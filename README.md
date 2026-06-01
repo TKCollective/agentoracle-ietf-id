@@ -13,8 +13,9 @@ Public working repository for **`draft-krausz-verification-state-00`** — an IE
 | -00 outline drafted | 2026-05-29 | ✅ |
 | External review (Beenz / @headlessoracle) | 2026-05-30 | ✅ — anchor citations and version-binding model incorporated (ADR-002) |
 | -00 outline published in this repo | 2026-06-01 | ✅ |
-| -00 manuscript drafting | 2026-06-02 → 06-04 | 🔄 |
-| -00 sent for second-round read | 2026-06-04 | 📋 |
+| **-00 manuscript drafted (Markdown)** | **2026-06-01** | **✅** [drafts/draft-krausz-verification-state-00.md](./drafts/draft-krausz-verification-state-00.md) |
+| -00 sent for second-round read (Beenz) | 2026-06-02 → 06-03 | 📋 |
+| xml2rfc v3 conversion | 2026-06-04 → 06-05 | 📋 |
 | Submission to datatracker.ietf.org/submit | 2026-06-06 (target) | 📋 |
 | Working group submission email (RATS list) | 2026-06-06 | 📋 |
 
@@ -53,15 +54,17 @@ The draft references and aligns with:
 - **Cross-operator benchmark** (open methodology, open submissions): [TKCollective/agentoracle-benchmark](https://github.com/TKCollective/agentoracle-benchmark)
 - **Live deployment**: [agentoracle.co](https://agentoracle.co)
 
-## Reading the outline
+## Reading the draft
 
-The current public artifact is the -00 outline — the structural skeleton with section-level content and external-review-incorporated citations. It's at [drafts/draft-krausz-verification-state-00-outline.md](./drafts/draft-krausz-verification-state-00-outline.md).
+**Current public artifact:** the full **-00 manuscript** at [drafts/draft-krausz-verification-state-00.md](./drafts/draft-krausz-verification-state-00.md). It contains all eleven sections, normative receipt-format definition, verification protocol, security considerations, IANA considerations, and references.
 
-The xml2rfc v3 manuscript is being prepared from this outline. When filed, this README will be updated with the Datatracker URL.
+The earlier **structural outline** is at [drafts/draft-krausz-verification-state-00-outline.md](./drafts/draft-krausz-verification-state-00-outline.md) and is preserved for change tracking.
+
+Next step: second-round read by Beenz / @headlessoracle (per his May 30 commitment), then xml2rfc v3 conversion, then submission to datatracker.ietf.org/submit. When filed, this README will be updated with the Datatracker URL.
 
 ## Reviewers welcome
 
-If you've shipped a verifier, a receipt format, or a pre-action gate primitive in any agent infrastructure stack — your read on the -00 manuscript is genuinely valuable before submission. Open an issue or email train@joekrausz.com.
+If you've shipped a verifier, a receipt format, or a pre-action gate primitive in any agent infrastructure stack — your read on the -00 manuscript is genuinely valuable before submission. Open an issue or email Joe@agentoracle.co.
 
 The draft is positioned to be a **community technical document**, not a single-vendor proposal. Co-authoring the v01+ revisions is open to operators with shipped, independent implementations.
 
@@ -71,4 +74,4 @@ Outline content: BSD-3-Clause to align with IETF document conventions. Files ind
 
 ## Author
 
-Joseph Krausz · TKCollective · `train@joekrausz.com` · [agentoracle.co](https://agentoracle.co)
+Joseph Krausz · TKCollective · `Joe@agentoracle.co` · [agentoracle.co](https://agentoracle.co)
