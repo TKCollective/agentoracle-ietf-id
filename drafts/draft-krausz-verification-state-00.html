@@ -1348,7 +1348,10 @@ li > p:last-of-type:only-child {
                 <p id="section-toc.1-1.4.2.4.1"><a href="#section-4.4" class="auto internal xref">4.4</a>.  <a href="#name-claim-binding" class="internal xref">Claim Binding</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.5">
-                <p id="section-toc.1-1.4.2.5.1"><a href="#section-4.5" class="auto internal xref">4.5</a>.  <a href="#name-version-binding-rationale" class="internal xref">Version-Binding Rationale</a></p>
+                <p id="section-toc.1-1.4.2.5.1"><a href="#section-4.5" class="auto internal xref">4.5</a>.  <a href="#name-receipt-envelope-example" class="internal xref">Receipt Envelope Example</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.6">
+                <p id="section-toc.1-1.4.2.6.1"><a href="#section-4.6" class="auto internal xref">4.6</a>.  <a href="#name-version-binding-rationale" class="internal xref">Version-Binding Rationale</a></p>
 </li>
             </ul>
 </li>
@@ -1413,6 +1416,14 @@ li > p:last-of-type:only-child {
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
             <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.1">
+                <p id="section-toc.1-1.9.2.1.1"><a href="#section-9.1" class="auto internal xref">9.1</a>.  <a href="#name-composition-non-interferenc" class="internal xref">Composition Non-Interference with environment.* Family</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.2">
+                <p id="section-toc.1-1.9.2.2.1"><a href="#section-9.2" class="auto internal xref">9.2</a>.  <a href="#name-other-security-consideratio" class="internal xref">Other Security Considerations</a></p>
+</li>
+            </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
             <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
@@ -1503,7 +1514,7 @@ li > p:last-of-type:only-child {
 <p id="section-2-4"><strong>Calibration anchor</strong> --- The dataset and seed defining confidence semantics for the verifier's pipeline.<a href="#section-2-4" class="pilcrow">¶</a></p>
 <p id="section-2-5"><strong>Multi-axis freshness</strong> --- Signature, calibration, and evidence each carry independent validity periods.<a href="#section-2-5" class="pilcrow">¶</a></p>
 <p id="section-2-6"><strong>Verdict (raw)</strong> --- One of <code>supported</code>, <code>refuted</code>, <code>unverifiable</code>, <code>unknown</code>. The underlying truth label.<a href="#section-2-6" class="pilcrow">¶</a></p>
-<p id="section-2-7"><strong>Recommendation (canonical)</strong> --- One of <code>confident_supported</code>, <code>vulnerable_supported</code>, <code>weak_supported</code>, <code>refuted</code>, <code>unverifiable</code>, <code>error</code>. Derived from primitives under the named mapping.<a href="#section-2-7" class="pilcrow">¶</a></p>
+<p id="section-2-7"><strong>Recommendation (canonical)</strong> --- One of <code>confident_supported</code>, <code>un_probed_not_cleared</code>, <code>vulnerable_supported</code>, <code>weak_supported</code>, <code>refuted</code>, <code>unverifiable</code>, <code>error</code>. Derived from primitives under the named mapping.<a href="#section-2-7" class="pilcrow">¶</a></p>
 <p id="section-2-8"><strong>Gate (derived)</strong> --- <code>act</code> or <code>halt</code>. Derived from recommendation under the named mapping.<a href="#section-2-8" class="pilcrow">¶</a></p>
 <p id="section-2-9"><strong>Mapping document</strong> --- A published, immutable document specifying how recommendations are derived from primitives and how gates are derived from recommendations. Identified by a stable string identifier (e.g., <code>v0.3.0-2026-05-30</code>).<a href="#section-2-9" class="pilcrow">¶</a></p>
 </section>
@@ -1563,7 +1574,7 @@ li > p:last-of-type:only-child {
 <a href="#section-3.2" class="section-number selfRef">3.2. </a><a href="#name-composition-rules" class="section-name selfRef">Composition Rules</a>
         </h3>
 <p id="section-3.2-1"><strong>Conjunction:</strong> Multiple <code>verification.*</code> constraints in a single mandate combine with AND (orthogonal+conjunctive). All constraints MUST resolve to <code>act</code> for the action to proceed.<a href="#section-3.2-1" class="pilcrow">¶</a></p>
-<p id="section-3.2-2"><strong>Ordering with environment.*:</strong> <code>environment.*</code> constraints SHOULD short-circuit before <code>verification.*</code> constraints. Environment evaluation is typically cheaper (no oracle roundtrip) and a failed environment constraint moots the verification.<a href="#section-3.2-2" class="pilcrow">¶</a></p>
+<p id="section-3.2-2"><strong>Ordering with environment.*:</strong> <code>environment.*</code> constraints MUST short-circuit before <code>verification.*</code> constraints per <span>[<a href="#ENV-STATE" class="cite xref">ENV-STATE</a>]</span> §5.5. Environment evaluation is typically cheaper (no oracle roundtrip) and a failed environment constraint moots the verification. See also <a href="#security-considerations" class="auto internal xref">Section 9</a> for the non-interference security property this ordering provides.<a href="#section-3.2-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -1607,10 +1618,7 @@ li > p:last-of-type:only-child {
             <code>v_confidence</code> (number, REQUIRED) --- Float in <code>[0, 1]</code>.<a href="#section-4.2-3.2" class="pilcrow">¶</a>
 </li>
           <li class="compact" id="section-4.2-3.3">
-            <code>v_gate_threshold</code> (number, REQUIRED) --- Float in <code>[0, 1]</code>. The confidence floor used to derive the recommendation.<a href="#section-4.2-3.3" class="pilcrow">¶</a>
-</li>
-          <li class="compact" id="section-4.2-3.4">
-            <code>v_adversarial_result</code> (string, REQUIRED) --- One of <code>resilient</code>, <code>vulnerable</code>, <code>not_checked</code>.<a href="#section-4.2-3.4" class="pilcrow">¶</a>
+            <code>v_adversarial_result</code> (string, REQUIRED) --- One of <code>resilient</code>, <code>vulnerable</code>, <code>not_checked</code>.<a href="#section-4.2-3.3" class="pilcrow">¶</a>
 </li>
         </ul>
 <p id="section-4.2-4"><strong>Canonical derived (signed):</strong><a href="#section-4.2-4" class="pilcrow">¶</a></p>
@@ -1629,6 +1637,9 @@ li > p:last-of-type:only-child {
 <ul class="compact">
 <li class="compact" id="section-4.2-9.1">
             <code>v_gate_mapping</code> (string, REQUIRED) --- Stable identifier of the published mapping document used at issuance (e.g., <code>v0.3.0-2026-05-30</code>). The mapping document is immutable after publication; future revisions ship as new identifiers.<a href="#section-4.2-9.1" class="pilcrow">¶</a>
+</li>
+          <li class="compact" id="section-4.2-9.2">
+            <code>v_gate_mapping_hash</code> (string, REQUIRED) --- SHA-256 hex digest of the canonical serialization of the mapping document identified by <code>v_gate_mapping</code>. MUST be present in every receipt. Receipts MUST bind to a content-addressed mapping; the absence of <code>v_gate_mapping_hash</code> is a malformed-receipt condition and MUST result in gate decision <code>halt</code>.<a href="#section-4.2-9.2" class="pilcrow">¶</a>
 </li>
         </ul>
 <p id="section-4.2-10"><strong>Provenance (signed, not gating):</strong><a href="#section-4.2-10" class="pilcrow">¶</a></p>
@@ -1663,9 +1674,14 @@ li > p:last-of-type:only-child {
 <div class="lang-text sourcecode" id="section-4.3-2">
 <pre>1. Verify JWS signature against issuer's published JWKS (RFC 7515).
 2. Resolve v_gate_mapping -&gt; fetch the named immutable mapping document.
+   MUST verify the SHA-256 digest of the fetched document matches
+   v_gate_mapping_hash (hex-encoded). Digest mismatch -&gt; malformed;
+   gate decision = halt. This binding is mandatory; receipts without
+   v_gate_mapping_hash are malformed.
 3. Recompute candidate_recommendation from
-   (v_verdict, v_confidence, v_gate_threshold, v_adversarial_result)
-   using the mapping's rules.
+   (v_verdict, v_confidence, v_adversarial_result)
+   using the mapping's rules and the threshold recovered from the
+   mapping document.
 4. Confirm candidate_recommendation == v_recommendation.
 5. Compute candidate_gate = mapping(v_recommendation).
 6. Confirm candidate_gate == v_gate.
@@ -1696,13 +1712,42 @@ li > p:last-of-type:only-child {
 <p id="section-4.4-3">Hash-only mode permits PII-sensitive verification while preserving the receipt's auditability --- the verifier can confirm a future caller's claim hash matches the issued receipt's bound hash without exposing the claim text.<a href="#section-4.4-3" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="version-binding-rationale">
+<div id="receipt-envelope-example">
 <section id="section-4.5">
-        <h3 id="name-version-binding-rationale">
-<a href="#section-4.5" class="section-number selfRef">4.5. </a><a href="#name-version-binding-rationale" class="section-name selfRef">Version-Binding Rationale</a>
+        <h3 id="name-receipt-envelope-example">
+<a href="#section-4.5" class="section-number selfRef">4.5. </a><a href="#name-receipt-envelope-example" class="section-name selfRef">Receipt Envelope Example</a>
         </h3>
-<p id="section-4.5-1">Gate-derivation rules will evolve. A receipt issued under mapping <code>v0.3.0-...</code> MUST remain verifiable as <em>correct-under-<code>v0.3.0</code></em> after a newer mapping ships. The mapping identifier in <code>v_gate_mapping</code> is the binding that makes this true: a verifier fetches the <em>same</em> mapping document the issuer used at issuance, regardless of newer revisions. Receipts never silently re-verify to a different gate.<a href="#section-4.5-1" class="pilcrow">¶</a></p>
-<p id="section-4.5-2">Mapping document publishers MUST treat published mappings as immutable. New rules ship under new mapping identifiers. Errata (typographical corrections only) MAY be appended to a published mapping document's metadata, but the normative rule tables MUST NOT change after first publication.<a href="#section-4.5-2" class="pilcrow">¶</a></p>
+<p id="section-4.5-1">The following is a non-normative example of a receipt envelope payload illustrating the mandatory <code>v_gate_mapping_hash</code> binding alongside <code>v_gate_mapping</code>:<a href="#section-4.5-1" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="section-4.5-2">
+<pre>{
+  "iss": "https://verifier.example.com",
+  "sub": "claim:sha256:a3f1...",
+  "iat": 1748649600,
+  "exp": 1748736000,
+  "v_verdict": "supported",
+  "v_confidence": 0.91,
+  "v_adversarial_result": "resilient",
+  "v_recommendation": "confident_supported",
+  "v_gate": "act",
+  "v_gate_mapping": "v0.3.0-2026-05-30",
+  "v_gate_mapping_hash": "sha256:e3b0c44298fc1c149afb4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "v_claim": {
+    "hash": "a3f1c2d4e5b6789012345678abcdef0123456789abcdef0123456789abcdef01"
+  }
+}
+
+</pre><a href="#section-4.5-2" class="pilcrow">¶</a>
+</div>
+<p id="section-4.5-3">The <code>v_gate_mapping_hash</code> field carries the hex-encoded SHA-256 digest of the canonical serialization of the mapping document identified by <code>v_gate_mapping</code>. This field MUST be present in all conforming receipts; its absence is a malformed-receipt condition.<a href="#section-4.5-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="version-binding-rationale">
+<section id="section-4.6">
+        <h3 id="name-version-binding-rationale">
+<a href="#section-4.6" class="section-number selfRef">4.6. </a><a href="#name-version-binding-rationale" class="section-name selfRef">Version-Binding Rationale</a>
+        </h3>
+<p id="section-4.6-1">Gate-derivation rules will evolve. A receipt issued under mapping <code>v0.3.0-...</code> MUST remain verifiable as <em>correct-under-<code>v0.3.0</code></em> after a newer mapping ships. The mapping identifier in <code>v_gate_mapping</code> is the binding that makes this true: a verifier fetches the <em>same</em> mapping document the issuer used at issuance, regardless of newer revisions. Receipts never silently re-verify to a different gate.<a href="#section-4.6-1" class="pilcrow">¶</a></p>
+<p id="section-4.6-2">Mapping document publishers MUST treat published mappings as immutable. New rules ship under new mapping identifiers. Errata (typographical corrections only) MAY be appended to a published mapping document's metadata, but the normative rule tables MUST NOT change after first publication.<a href="#section-4.6-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -1745,13 +1790,28 @@ li > p:last-of-type:only-child {
 </td>
               <td class="text-left" rowspan="1" colspan="1">&gt;= threshold</td>
               <td class="text-left" rowspan="1" colspan="1">
-                <code>resilient</code> or <code>not_checked</code>
+                <code>resilient</code>
 </td>
               <td class="text-left" rowspan="1" colspan="1">
                 <code>confident_supported</code>
 </td>
               <td class="text-left" rowspan="1" colspan="1">
                 <code>act</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>supported</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">&gt;= threshold</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>not_checked</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>un_probed_not_cleared</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>halt</code>
 </td>
             </tr>
             <tr>
@@ -1830,7 +1890,9 @@ li > p:last-of-type:only-child {
         <h3 id="name-threshold-rules">
 <a href="#section-5.2" class="section-number selfRef">5.2. </a><a href="#name-threshold-rules" class="section-name selfRef">Threshold Rules</a>
         </h3>
-<p id="section-5.2-1">The <code>v_gate_threshold</code> value MUST be present in every receipt. Relying parties MAY require higher thresholds for their own gate policies; they MUST NOT lower the threshold below the issuer's signed value. The receipt's threshold is the floor.<a href="#section-5.2-1" class="pilcrow">¶</a></p>
+<p id="section-5.2-1">The confidence threshold used to derive <code>v_recommendation</code> is specified in the named mapping document, not in the individual receipt. Receipts reference the mapping by <code>v_gate_mapping</code> identifier, and the threshold is recovered from that mapping. This ensures that the threshold is auditable, versioned, and consistent across all receipts issued under the same mapping: two receipts under the same mapping ID MUST gate against the same threshold; threshold changes require a new mapping version with a new ID.<a href="#section-5.2-1" class="pilcrow">¶</a></p>
+<p id="section-5.2-2">For a strict fail-closed gate, un-probed adversarial state is not equivalent to <code>resilient</code> --- it represents uncertainty about a dimension that can be exploited by adversarial input. Per the fail-closed property, uncertainty MUST halt. A claim may be confidently supported on its face, but if adversarial probing was not performed, the confidence applies only to the base claim, not to the claim under adversarial pressure. The <code>un_probed_not_cleared</code> recommendation reflects this: the gate treats the absence of probing as a distinct unresolved risk, not as a cleared risk.<a href="#section-5.2-2" class="pilcrow">¶</a></p>
+<p id="section-5.2-3">Relying parties MAY require a higher threshold mapping for their own gate policies by requiring receipts under a different mapping ID that specifies a higher threshold. They MUST NOT treat a receipt as conformant under a mapping that specifies a different threshold than the one in that mapping document.<a href="#section-5.2-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="fail-closed-mandate">
@@ -1983,7 +2045,7 @@ li > p:last-of-type:only-child {
         <h3 id="name-mastercard-verifiable-inten">
 <a href="#section-8.5" class="section-number selfRef">8.5. </a><a href="#name-mastercard-verifiable-inten" class="section-name selfRef">Mastercard Verifiable Intent (environment.*)</a>
         </h3>
-<p id="section-8.5-1">Mastercard's Verifiable Intent specification <span>[<a href="#VINTENT" class="cite xref">VINTENT</a>]</span> defines the <code>environment.*</code> constraint family for pre-action attestation of environment state. This document extends the constraint-family pattern to probabilistic predicates with calibration discipline, as a sibling family rather than a member entry. See <a href="#the-verification-constraint-family" class="auto internal xref">Section 3</a>.<a href="#section-8.5-1" class="pilcrow">¶</a></p>
+<p id="section-8.5-1">The <code>environment.*</code> constraint family for pre-action attestation of environment state is specified in <span>[<a href="#ENV-STATE" class="cite xref">ENV-STATE</a>]</span>, as part of the Verifiable Intent framework <span>[<a href="#VINTENT" class="cite xref">VINTENT</a>]</span>. This document extends the constraint-family pattern to probabilistic predicates with calibration discipline, as a sibling family rather than a member entry. See <a href="#the-verification-constraint-family" class="auto internal xref">Section 3</a>.<a href="#section-8.5-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="differentiator-summary">
@@ -2001,12 +2063,27 @@ li > p:last-of-type:only-child {
       <h2 id="name-security-considerations">
 <a href="#section-9" class="section-number selfRef">9. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
       </h2>
-<p id="section-9-1"><strong>Key compromise.</strong> Verifier issuers MUST rotate JWKS keys on a published cadence. Receipts signed under a compromised key remain verifiable against historical key state during the rotation horizon. RPs MUST honor key revocation lists where published.<a href="#section-9-1" class="pilcrow">¶</a></p>
-<p id="section-9-2"><strong>Replay attacks.</strong> Receipts include <code>iat</code> and <code>exp</code>. RPs MUST verify both against current time, subject to clock tolerance. Claim-binding via <code>v_claim.hash</code> provides resistance to receipt-reuse against a different claim payload.<a href="#section-9-2" class="pilcrow">¶</a></p>
-<p id="section-9-3"><strong>Confidence inflation attacks.</strong> A verifier issuer who inflates <code>v_confidence</code> to push more receipts to <code>act</code> would diverge from their published calibration anchor. The reproducibility mandate (<a href="#calibration-anchor-requirements" class="auto internal xref">Section 7</a>) makes this detectable. RPs SHOULD periodically sample receipts against the issuer's published harness.<a href="#section-9-3" class="pilcrow">¶</a></p>
-<p id="section-9-4"><strong>Selective disclosure.</strong> Hash-only claim binding (<a href="#claim-binding" class="auto internal xref">Section 4.4</a>) permits PII-sensitive verification without exposing claim text in the receipt envelope.<a href="#section-9-4" class="pilcrow">¶</a></p>
-<p id="section-9-5"><strong>Downgrade attacks.</strong> A future relying party MUST NOT accept a v0.3-spec receipt against a v0.4-spec gate. The receipt format version is implicitly bound by <code>v_gate_mapping</code>; mismatches between expected and signed mapping IDs are malformed-receipt conditions per <a href="#verification-protocol" class="auto internal xref">Section 4.3</a>.<a href="#section-9-5" class="pilcrow">¶</a></p>
-<p id="section-9-6"><strong>Mapping document tampering.</strong> Mapping documents MUST be hosted at URLs whose integrity is verifiable (e.g., git tag with content-addressable hash). Verifier implementations SHOULD cache mapping documents by ID and verify cached content matches the publisher's signed manifest, if published.<a href="#section-9-6" class="pilcrow">¶</a></p>
+<div id="composition-non-interference-with-environment-family">
+<section id="section-9.1">
+        <h3 id="name-composition-non-interferenc">
+<a href="#section-9.1" class="section-number selfRef">9.1. </a><a href="#name-composition-non-interferenc" class="section-name selfRef">Composition Non-Interference with environment.* Family</a>
+        </h3>
+<p id="section-9.1-1">When <code>verification.*</code> composes alongside <code>environment.*</code> on the same mandate, the ordering specified in §3.2 (environment.* short-circuits before verification.*) MUST hold. This document inherits that ordering directly from <span>[<a href="#ENV-STATE" class="cite xref">ENV-STATE</a>]</span> §5.5, which specifies that <code>environment.*</code> is not subject to ordering preemption by any other constraint family. A <code>verification.*</code> ACT outcome MUST NOT mask an <code>environment.*</code> HALT outcome; if <code>environment.*</code> halts on any constraint, that halt is final regardless of the <code>verification.*</code> state. Implementations MUST evaluate <code>environment.*</code> to its terminal state before evaluating any <code>verification.*</code> constraint, and a <code>verification.*</code> state SHALL NOT be reached if <code>environment.*</code> has already halted.<a href="#section-9.1-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="other-security-considerations">
+<section id="section-9.2">
+        <h3 id="name-other-security-consideratio">
+<a href="#section-9.2" class="section-number selfRef">9.2. </a><a href="#name-other-security-consideratio" class="section-name selfRef">Other Security Considerations</a>
+        </h3>
+<p id="section-9.2-1"><strong>Key compromise.</strong> Verifier issuers MUST rotate JWKS keys on a published cadence. Receipts signed under a compromised key remain verifiable against historical key state during the rotation horizon. RPs MUST honor key revocation lists where published.<a href="#section-9.2-1" class="pilcrow">¶</a></p>
+<p id="section-9.2-2"><strong>Replay attacks.</strong> Receipts include <code>iat</code> and <code>exp</code>. RPs MUST verify both against current time, subject to clock tolerance. Claim-binding via <code>v_claim.hash</code> provides resistance to receipt-reuse against a different claim payload.<a href="#section-9.2-2" class="pilcrow">¶</a></p>
+<p id="section-9.2-3"><strong>Confidence inflation attacks.</strong> A verifier issuer who inflates <code>v_confidence</code> to push more receipts to <code>act</code> would diverge from their published calibration anchor. The reproducibility mandate (<a href="#calibration-anchor-requirements" class="auto internal xref">Section 7</a>) makes this detectable. RPs SHOULD periodically sample receipts against the issuer's published harness.<a href="#section-9.2-3" class="pilcrow">¶</a></p>
+<p id="section-9.2-4"><strong>Selective disclosure.</strong> Hash-only claim binding (<a href="#claim-binding" class="auto internal xref">Section 4.4</a>) permits PII-sensitive verification without exposing claim text in the receipt envelope.<a href="#section-9.2-4" class="pilcrow">¶</a></p>
+<p id="section-9.2-5"><strong>Downgrade attacks.</strong> A future relying party MUST NOT accept a v0.3-spec receipt against a v0.4-spec gate. The receipt format version is implicitly bound by <code>v_gate_mapping</code>; mismatches between expected and signed mapping IDs are malformed-receipt conditions per <a href="#verification-protocol" class="auto internal xref">Section 4.3</a>.<a href="#section-9.2-5" class="pilcrow">¶</a></p>
+<p id="section-9.2-6"><strong>Mapping document tampering.</strong> Receipts MUST bind to a content-addressed mapping via the <code>v_gate_mapping_hash</code> field (SHA-256). Mapping documents MUST be hosted such that the SHA-256 digest of the canonical serialization is stable and independently verifiable (e.g., at a content-addressed URL or via a git-tagged manifest). Verifier implementations MUST verify the SHA-256 digest of the fetched mapping document against <code>v_gate_mapping_hash</code> before use; a digest mismatch MUST result in gate decision <code>halt</code>. A relying party that cannot independently verify the mapping document's hash MUST treat the receipt as malformed.<a href="#section-9.2-6" class="pilcrow">¶</a></p>
+</section>
+</div>
 </section>
 </div>
 <div id="iana-considerations">
@@ -2016,9 +2093,9 @@ li > p:last-of-type:only-child {
       </h2>
 <p id="section-10-1">This document requests the following IANA registrations:<a href="#section-10-1" class="pilcrow">¶</a></p>
 <p id="section-10-2"><strong>Media type:</strong> <code>verification-receipt+jws</code> (to be registered in the IANA Media Types registry following the procedures of RFC 6838).<a href="#section-10-2" class="pilcrow">¶</a></p>
-<p id="section-10-3"><strong>JWT claim names:</strong> <code>v_verdict</code>, <code>v_confidence</code>, <code>v_gate_threshold</code>, <code>v_adversarial_result</code>, <code>v_recommendation</code>, <code>v_gate</code>, <code>v_gate_mapping</code>, <code>v_method</code>, <code>v_calibration</code>, <code>v_sources_used</code>, <code>v_evidence</code>, <code>v_claim</code> (to be registered in the JSON Web Token Claims registry).<a href="#section-10-3" class="pilcrow">¶</a></p>
+<p id="section-10-3"><strong>JWT claim names:</strong> <code>v_verdict</code>, <code>v_confidence</code>, <code>v_adversarial_result</code>, <code>v_recommendation</code>, <code>v_gate</code>, <code>v_gate_mapping</code>, <code>v_gate_mapping_hash</code>, <code>v_method</code>, <code>v_calibration</code>, <code>v_sources_used</code>, <code>v_evidence</code>, <code>v_claim</code> (to be registered in the JSON Web Token Claims registry).<a href="#section-10-3" class="pilcrow">¶</a></p>
 <p id="section-10-4"><strong>Well-known URI:</strong> Verification issuers using HTTPS SHOULD publish their JWKS at <code>/.well-known/jwks.json</code> per existing <span>[<a href="#RFC7517" class="cite xref">RFC7517</a>]</span> Section 4.7 conventions. No new well-known URI is requested.<a href="#section-10-4" class="pilcrow">¶</a></p>
-<p id="section-10-5">The author requests coordination with <code>draft-msebenzi-environment-state</code> authors regarding namespace use; if both documents progress to RFC, the <code>verification.*</code> and <code>environment.*</code> namespaces should be registered jointly under a constraint-family registry to be defined.<a href="#section-10-5" class="pilcrow">¶</a></p>
+<p id="section-10-5">The <code>verification.*</code> and <code>environment.*</code> constraint families are related sibling namespaces. Coordination on a joint constraint-family registry shared with the <code>environment.*</code> family (<span>[<a href="#ENV-STATE" class="cite xref">ENV-STATE</a>]</span>) is deferred to all interested parties (Krausz, Borthwick, Msebenzi) for resolution outside the scope of this document. This document does not commit to a specific registry structure, nor does it assert agreement from the <code>environment.*</code> authors on any registry arrangement. The cross-referencing between <code>verification.*</code> and <code>environment.*</code> as related constraint families stands as documented, independent of any future registry decision.<a href="#section-10-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 <section id="section-11">
@@ -2033,6 +2110,10 @@ li > p:last-of-type:only-child {
 <dt id="AVERITEC">[AVERITEC]</dt>
       <dd>
 <span class="refAuthor">Schlichtkrull, M.</span>, <span class="refTitle">"AVeriTeC: A Dataset for Real-World Claim Verification with Evidence from the Web"</span>, <time datetime="2024" class="refDate">2024</time>. </dd>
+<dd class="break"></dd>
+<dt id="ENV-STATE">[ENV-STATE]</dt>
+      <dd>
+<span class="refAuthor">Borthwick, D.</span> and <span class="refAuthor">M. Msebenzi</span>, <span class="refTitle">"Verifiable Intent --- environment.* Constraint Family"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-borthwick-msebenzi-environment-state-00</span>, <time datetime="2026-05" class="refDate">May 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-borthwick-msebenzi-environment-state-00">https://datatracker.ietf.org/doc/html/draft-borthwick-msebenzi-environment-state-00</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC2119">[RFC2119]</dt>
       <dd>
@@ -2072,7 +2153,7 @@ li > p:last-of-type:only-child {
 <dd class="break"></dd>
 <dt id="VINTENT">[VINTENT]</dt>
     <dd>
-<span class="refAuthor">Mastercard</span>, <span class="refTitle">"Verifiable Intent Specification"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-msebenzi-environment-state</span>, <time datetime="2024" class="refDate">2024</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-msebenzi-environment-state">https://datatracker.ietf.org/doc/html/draft-msebenzi-environment-state</a>&gt;</span>. </dd>
+<span class="refAuthor">Verifiable Intent Working Group</span>, <span class="refTitle">"Verifiable Intent --- Constraint Type Definitions and Validation Rules"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, v0.1-draft</span>, <time datetime="2026-02" class="refDate">February 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/v0.1-draft">https://datatracker.ietf.org/doc/html/v0.1-draft</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 </dl>
 </section>

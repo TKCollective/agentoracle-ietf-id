@@ -86,26 +86,26 @@ Table of Contents
      4.2.  Payload Claims --- Canonical, Derived, Mapping-Bound  . .   6
      4.3.  Verification Protocol . . . . . . . . . . . . . . . . . .   7
      4.4.  Claim Binding . . . . . . . . . . . . . . . . . . . . . .   8
-     4.5.  Version-Binding Rationale . . . . . . . . . . . . . . . .   8
-   5.  Binary-Halt Gate Semantics  . . . . . . . . . . . . . . . . .   8
-     5.1.  Decision Table  . . . . . . . . . . . . . . . . . . . . .   8
-     5.2.  Threshold Rules . . . . . . . . . . . . . . . . . . . . .   9
-     5.3.  Fail-Closed Mandate . . . . . . . . . . . . . . . . . . .   9
-   6.  Multi-Axis Freshness  . . . . . . . . . . . . . . . . . . . .   9
-     6.1.  Three Independent Axes  . . . . . . . . . . . . . . . . .   9
-     6.2.  Staleness Semantics . . . . . . . . . . . . . . . . . . .  10
-   7.  Calibration Anchor Requirements . . . . . . . . . . . . . . .  10
-     7.1.  Reproducibility Mandate . . . . . . . . . . . . . . . . .  10
-     7.2.  Drift Detection . . . . . . . . . . . . . . . . . . . . .  11
-   8.  Relationship to Related Work  . . . . . . . . . . . . . . . .  11
-     8.1.  SCITT . . . . . . . . . . . . . . . . . . . . . . . . . .  11
-     8.2.  RATS  . . . . . . . . . . . . . . . . . . . . . . . . . .  11
-     8.3.  W3C VC Confidence Method  . . . . . . . . . . . . . . . .  11
-     8.4.  VAP Framework . . . . . . . . . . . . . . . . . . . . . .  12
-     8.5.  Mastercard Verifiable Intent (environment.*)  . . . . . .  12
-     8.6.  Differentiator Summary  . . . . . . . . . . . . . . . . .  12
-   9.  Security Considerations . . . . . . . . . . . . . . . . . . .  12
-   10. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  13
+     4.5.  Receipt Envelope Example  . . . . . . . . . . . . . . . .   8
+     4.6.  Version-Binding Rationale . . . . . . . . . . . . . . . .   9
+   5.  Binary-Halt Gate Semantics  . . . . . . . . . . . . . . . . .   9
+     5.1.  Decision Table  . . . . . . . . . . . . . . . . . . . . .   9
+     5.2.  Threshold Rules . . . . . . . . . . . . . . . . . . . . .  10
+     5.3.  Fail-Closed Mandate . . . . . . . . . . . . . . . . . . .  11
+   6.  Multi-Axis Freshness  . . . . . . . . . . . . . . . . . . . .  11
+     6.1.  Three Independent Axes  . . . . . . . . . . . . . . . . .  11
+     6.2.  Staleness Semantics . . . . . . . . . . . . . . . . . . .  11
+   7.  Calibration Anchor Requirements . . . . . . . . . . . . . . .  12
+     7.1.  Reproducibility Mandate . . . . . . . . . . . . . . . . .  12
+     7.2.  Drift Detection . . . . . . . . . . . . . . . . . . . . .  12
+   8.  Relationship to Related Work  . . . . . . . . . . . . . . . .  12
+     8.1.  SCITT . . . . . . . . . . . . . . . . . . . . . . . . . .  12
+     8.2.  RATS  . . . . . . . . . . . . . . . . . . . . . . . . . .  13
+     8.3.  W3C VC Confidence Method  . . . . . . . . . . . . . . . .  13
+     8.4.  VAP Framework . . . . . . . . . . . . . . . . . . . . . .  13
+     8.5.  Mastercard Verifiable Intent (environment.*)  . . . . . .  13
+     8.6.  Differentiator Summary  . . . . . . . . . . . . . . . . .  13
+   9.  Security Considerations . . . . . . . . . . . . . . . . . . .  13
 
 
 
@@ -114,8 +114,11 @@ Krausz                   Expires 8 December 2026                [Page 2]
 Internet-Draft            verification.* family                June 2026
 
 
-   11. Informative References  . . . . . . . . . . . . . . . . . . .  13
-   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  14
+     9.1.  Composition Non-Interference with environment.* Family  .  14
+     9.2.  Other Security Considerations . . . . . . . . . . . . . .  14
+   10. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  15
+   11. Informative References  . . . . . . . . . . . . . . . . . . .  15
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  17
 
 1.  Introduction
 
@@ -151,15 +154,12 @@ Internet-Draft            verification.* family                June 2026
        verifiable as correct-under-that-ruleset even after newer
        rulesets ship.
 
-   Property 3 is the load-bearing one and the one most existing
-   primitives stop short of.  SCITT [SCITT] signs receipts (necessary
-   but not sufficient).  W3C Verifiable Credentials Confidence Method
-   [VC-CM] exposes confidence as a verifiable property (useful but not
-   gating).  RATS [RFC9334] provides the Evidence->Verifier->AR->RP
-   vocabulary (matched here).  None fully recompose the gate verdict
-   from signed inputs.  Property 4 is the one that becomes a footgun if
-   skipped: rule changes silently invalidate or mis-verify old
-   artifacts.
+
+
+
+
+
+
 
 
 
@@ -169,6 +169,16 @@ Krausz                   Expires 8 December 2026                [Page 3]
 
 Internet-Draft            verification.* family                June 2026
 
+
+   Property 3 is the load-bearing one and the one most existing
+   primitives stop short of.  SCITT [SCITT] signs receipts (necessary
+   but not sufficient).  W3C Verifiable Credentials Confidence Method
+   [VC-CM] exposes confidence as a verifiable property (useful but not
+   gating).  RATS [RFC9334] provides the Evidence->Verifier->AR->RP
+   vocabulary (matched here).  None fully recompose the gate verdict
+   from signed inputs.  Property 4 is the one that becomes a footgun if
+   skipped: rule changes silently invalidate or mis-verify old
+   artifacts.
 
    This document is complementary to security frameworks for AI agent
    deployment, including the Zero Trust framework for AI Agents
@@ -207,6 +217,15 @@ Internet-Draft            verification.* family                June 2026
 
    *Verifier* --- Entity issuing a verification receipt.
 
+
+
+
+
+Krausz                   Expires 8 December 2026                [Page 4]
+
+Internet-Draft            verification.* family                June 2026
+
+
    *Relying Party (RP)* --- Agent or downstream system consuming the
    receipt at a gate.
 
@@ -219,19 +238,13 @@ Internet-Draft            verification.* family                June 2026
    *Multi-axis freshness* --- Signature, calibration, and evidence each
    carry independent validity periods.
 
-
-
-Krausz                   Expires 8 December 2026                [Page 4]
-
-Internet-Draft            verification.* family                June 2026
-
-
    *Verdict (raw)* --- One of supported, refuted, unverifiable, unknown.
    The underlying truth label.
 
    *Recommendation (canonical)* --- One of confident_supported,
-   vulnerable_supported, weak_supported, refuted, unverifiable, error.
-   Derived from primitives under the named mapping.
+   un_probed_not_cleared, vulnerable_supported, weak_supported, refuted,
+   unverifiable, error.  Derived from primitives under the named
+   mapping.
 
    *Gate (derived)* --- act or halt.  Derived from recommendation under
    the named mapping.
@@ -262,6 +275,13 @@ Internet-Draft            verification.* family                June 2026
 
                                  Table 1
 
+
+
+Krausz                   Expires 8 December 2026                [Page 5]
+
+Internet-Draft            verification.* family                June 2026
+
+
    Both families produce a binary fail-closed gate primitive.  They
    differ in predicate shape (boolean vs probabilistic) and threshold
    provenance (fixed vs calibration-anchored).  This difference is
@@ -271,27 +291,18 @@ Internet-Draft            verification.* family                June 2026
    mechanism described in Section 4 is specific to mappings between
    probabilistic primitives and binary outputs.
 
-
-
-
-
-
-
-Krausz                   Expires 8 December 2026                [Page 5]
-
-Internet-Draft            verification.* family                June 2026
-
-
 3.2.  Composition Rules
 
    *Conjunction:* Multiple verification.* constraints in a single
    mandate combine with AND (orthogonal+conjunctive).  All constraints
    MUST resolve to act for the action to proceed.
 
-   *Ordering with environment.*:* environment.* constraints SHOULD
-   short-circuit before verification.* constraints.  Environment
-   evaluation is typically cheaper (no oracle roundtrip) and a failed
-   environment constraint moots the verification.
+   *Ordering with environment.*:* environment.* constraints MUST short-
+   circuit before verification.* constraints per [ENV-STATE] §5.5.
+   Environment evaluation is typically cheaper (no oracle roundtrip) and
+   a failed environment constraint moots the verification.  See also
+   Section 9 for the non-interference security property this ordering
+   provides.
 
 4.  Receipt Format
 
@@ -317,10 +328,15 @@ Internet-Draft            verification.* family                June 2026
    *  v_verdict (string, REQUIRED) --- One of supported, refuted,
       unverifiable, unknown.
    *  v_confidence (number, REQUIRED) --- Float in [0, 1].
-   *  v_gate_threshold (number, REQUIRED) --- Float in [0, 1].  The
-      confidence floor used to derive the recommendation.
    *  v_adversarial_result (string, REQUIRED) --- One of resilient,
       vulnerable, not_checked.
+
+
+
+Krausz                   Expires 8 December 2026                [Page 6]
+
+Internet-Draft            verification.* family                June 2026
+
 
    *Canonical derived (signed):*
 
@@ -331,13 +347,6 @@ Internet-Draft            verification.* family                June 2026
 
    *Derived output (signed):*
 
-
-
-Krausz                   Expires 8 December 2026                [Page 6]
-
-Internet-Draft            verification.* family                June 2026
-
-
    *  v_gate (string, REQUIRED) --- One of act, halt.  Derived from
       v_recommendation under the named mapping.
 
@@ -347,6 +356,12 @@ Internet-Draft            verification.* family                June 2026
       published mapping document used at issuance (e.g.,
       v0.3.0-2026-05-30).  The mapping document is immutable after
       publication; future revisions ship as new identifiers.
+   *  v_gate_mapping_hash (string, REQUIRED) --- SHA-256 hex digest of
+      the canonical serialization of the mapping document identified by
+      v_gate_mapping.  MUST be present in every receipt.  Receipts MUST
+      bind to a content-addressed mapping; the absence of
+      v_gate_mapping_hash is a malformed-receipt condition and MUST
+      result in gate decision halt.
 
    *Provenance (signed, not gating):*
 
@@ -370,11 +385,25 @@ Internet-Draft            verification.* family                June 2026
    sequence and treat any failure as a malformed receipt with gate
    decision halt:
 
+
+
+
+
+Krausz                   Expires 8 December 2026                [Page 7]
+
+Internet-Draft            verification.* family                June 2026
+
+
    1. Verify JWS signature against issuer's published JWKS (RFC 7515).
    2. Resolve v_gate_mapping -> fetch the named immutable mapping document.
+      MUST verify the SHA-256 digest of the fetched document matches
+      v_gate_mapping_hash (hex-encoded). Digest mismatch -> malformed;
+      gate decision = halt. This binding is mandatory; receipts without
+      v_gate_mapping_hash are malformed.
    3. Recompute candidate_recommendation from
-      (v_verdict, v_confidence, v_gate_threshold, v_adversarial_result)
-      using the mapping's rules.
+      (v_verdict, v_confidence, v_adversarial_result)
+      using the mapping's rules and the threshold recovered from the
+      mapping document.
    4. Confirm candidate_recommendation == v_recommendation.
    5. Compute candidate_gate = mapping(v_recommendation).
    6. Confirm candidate_gate == v_gate.
@@ -386,13 +415,6 @@ Internet-Draft            verification.* family                June 2026
    The relying party never trusts the issuer's runtime to have applied
    the mapping correctly.  The signature binds inputs, outputs, and
    mapping identifier together; the verifier recomputes locally.
-
-
-
-Krausz                   Expires 8 December 2026                [Page 7]
-
-Internet-Draft            verification.* family                June 2026
-
 
 4.4.  Claim Binding
 
@@ -408,7 +430,49 @@ Internet-Draft            verification.* family                June 2026
    caller's claim hash matches the issued receipt's bound hash without
    exposing the claim text.
 
-4.5.  Version-Binding Rationale
+4.5.  Receipt Envelope Example
+
+   The following is a non-normative example of a receipt envelope
+   payload illustrating the mandatory v_gate_mapping_hash binding
+   alongside v_gate_mapping:
+
+
+
+
+
+
+
+
+
+
+Krausz                   Expires 8 December 2026                [Page 8]
+
+Internet-Draft            verification.* family                June 2026
+
+
+   {
+     "iss": "https://verifier.example.com",
+     "sub": "claim:sha256:a3f1...",
+     "iat": 1748649600,
+     "exp": 1748736000,
+     "v_verdict": "supported",
+     "v_confidence": 0.91,
+     "v_adversarial_result": "resilient",
+     "v_recommendation": "confident_supported",
+     "v_gate": "act",
+     "v_gate_mapping": "v0.3.0-2026-05-30",
+     "v_gate_mapping_hash": "sha256:e3b0c44298fc1c149afb4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "v_claim": {
+       "hash": "a3f1c2d4e5b6789012345678abcdef0123456789abcdef0123456789abcdef01"
+     }
+   }
+
+   The v_gate_mapping_hash field carries the hex-encoded SHA-256 digest
+   of the canonical serialization of the mapping document identified by
+   v_gate_mapping.  This field MUST be present in all conforming
+   receipts; its absence is a malformed-receipt condition.
+
+4.6.  Version-Binding Rationale
 
    Gate-derivation rules will evolve.  A receipt issued under mapping
    v0.3.0-... MUST remain verifiable as _correct-under-v0.3.0_ after a
@@ -437,48 +501,72 @@ Internet-Draft            verification.* family                June 2026
 
 
 
-
-
-
-
-
-
-
-
-Krausz                   Expires 8 December 2026                [Page 8]
+Krausz                   Expires 8 December 2026                [Page 9]
 
 Internet-Draft            verification.* family                June 2026
 
 
-   +============+============+====================+====================+======+
-   |v_verdict   |v_confidence|v_adversarial_result|v_recommendation    |v_gate|
-   |            |vs threshold|                    |                    |      |
-   +============+============+====================+====================+======+
-   |supported   |>= threshold|resilient or        |confident_supported |act   |
-   |            |            |not_checked         |                    |      |
-   +------------+------------+--------------------+--------------------+------+
-   |supported   |(any)       |vulnerable          |vulnerable_supported|halt  |
-   +------------+------------+--------------------+--------------------+------+
-   |supported   |< threshold |resilient or        |weak_supported      |halt  |
-   |            |            |not_checked         |                    |      |
-   +------------+------------+--------------------+--------------------+------+
-   |refuted     |(any)       |(any)               |refuted             |halt  |
-   +------------+------------+--------------------+--------------------+------+
-   |unverifiable|(any)       |(any)               |unverifiable        |halt  |
-   |or unknown  |            |                    |                    |      |
-   +------------+------------+--------------------+--------------------+------+
-   |(error      |N/A         |N/A                 |error               |halt  |
-   |condition)  |            |                    |                    |      |
-   +------------+------------+--------------------+--------------------+------+
+   +============+============+====================+=====================+======+
+   |v_verdict   |v_confidence|v_adversarial_result|v_recommendation     |v_gate|
+   |            |vs threshold|                    |                     |      |
+   +============+============+====================+=====================+======+
+   |supported   |>= threshold|resilient           |confident_supported  |act   |
+   +------------+------------+--------------------+---------------------+------+
+   |supported   |>= threshold|not_checked         |un_probed_not_cleared|halt  |
+   +------------+------------+--------------------+---------------------+------+
+   |supported   |(any)       |vulnerable          |vulnerable_supported |halt  |
+   +------------+------------+--------------------+---------------------+------+
+   |supported   |< threshold |resilient or        |weak_supported       |halt  |
+   |            |            |not_checked         |                     |      |
+   +------------+------------+--------------------+---------------------+------+
+   |refuted     |(any)       |(any)               |refuted              |halt  |
+   +------------+------------+--------------------+---------------------+------+
+   |unverifiable|(any)       |(any)               |unverifiable         |halt  |
+   |or unknown  |            |                    |                     |      |
+   +------------+------------+--------------------+---------------------+------+
+   |(error      |N/A         |N/A                 |error                |halt  |
+   |condition)  |            |                    |                     |      |
+   +------------+------------+--------------------+---------------------+------+
 
                                   Table 2
 
 5.2.  Threshold Rules
 
-   The v_gate_threshold value MUST be present in every receipt.  Relying
-   parties MAY require higher thresholds for their own gate policies;
-   they MUST NOT lower the threshold below the issuer's signed value.
-   The receipt's threshold is the floor.
+   The confidence threshold used to derive v_recommendation is specified
+   in the named mapping document, not in the individual receipt.
+   Receipts reference the mapping by v_gate_mapping identifier, and the
+   threshold is recovered from that mapping.  This ensures that the
+   threshold is auditable, versioned, and consistent across all receipts
+   issued under the same mapping: two receipts under the same mapping ID
+   MUST gate against the same threshold; threshold changes require a new
+   mapping version with a new ID.
+
+   For a strict fail-closed gate, un-probed adversarial state is not
+   equivalent to resilient --- it represents uncertainty about a
+   dimension that can be exploited by adversarial input.  Per the fail-
+   closed property, uncertainty MUST halt.  A claim may be confidently
+   supported on its face, but if adversarial probing was not performed,
+   the confidence applies only to the base claim, not to the claim under
+   adversarial pressure.  The un_probed_not_cleared recommendation
+   reflects this: the gate treats the absence of probing as a distinct
+   unresolved risk, not as a cleared risk.
+
+
+
+
+
+
+
+Krausz                   Expires 8 December 2026               [Page 10]
+
+Internet-Draft            verification.* family                June 2026
+
+
+   Relying parties MAY require a higher threshold mapping for their own
+   gate policies by requiring receipts under a different mapping ID that
+   specifies a higher threshold.  They MUST NOT treat a receipt as
+   conformant under a mapping that specifies a different threshold than
+   the one in that mapping document.
 
 5.3.  Fail-Closed Mandate
 
@@ -495,16 +583,6 @@ Internet-Draft            verification.* family                June 2026
 
    Verification receipts have three independent staleness axes, each
    with its own validity window:
-
-
-
-
-
-
-Krausz                   Expires 8 December 2026                [Page 9]
-
-Internet-Draft            verification.* family                June 2026
-
 
    +=============+===========================+========================+
    | Axis        | Field                     | Remediation            |
@@ -531,6 +609,15 @@ Internet-Draft            verification.* family                June 2026
    *  *Stale calibration* --- Receipt SHOULD be re-evaluated; relying
       party MAY honor as soft-stale per its own policy.  Verifier
       issuers SHOULD publish recalibration cadence in metadata.
+
+
+
+
+Krausz                   Expires 8 December 2026               [Page 11]
+
+Internet-Draft            verification.* family                June 2026
+
+
    *  *Stale evidence* --- Receipt SHOULD be re-evaluated.  MAY be
       honored for retrospective audit purposes (e.g., post-incident
       review of a past action) but MUST NOT be honored as a gate signal
@@ -549,18 +636,6 @@ Internet-Draft            verification.* family                June 2026
    *  Anchor dataset name and version.
    *  Anchor seed (or seeded run identifier).
    *  Anchor scoring methodology.
-
-
-
-
-
-
-
-
-Krausz                   Expires 8 December 2026               [Page 10]
-
-Internet-Draft            verification.* family                June 2026
-
 
    Verifier issuers SHOULD publish a reference reproduction harness
    under a permissive open-source license (Apache 2.0, MIT, or BSD).  A
@@ -589,6 +664,16 @@ Internet-Draft            verification.* family                June 2026
    this document specifies a gate primitive that may be transported via
    SCITT or via plain JWS.
 
+
+
+
+
+
+Krausz                   Expires 8 December 2026               [Page 12]
+
+Internet-Draft            verification.* family                June 2026
+
+
 8.2.  RATS
 
    RFC 9334 [RFC9334] defines the Remote Attestation Architecture's
@@ -606,18 +691,6 @@ Internet-Draft            verification.* family                June 2026
    metadata, not gating).  Confidence is provenance; the gate is the
    contract.  Alignment, not overlap.
 
-
-
-
-
-
-
-
-Krausz                   Expires 8 December 2026               [Page 11]
-
-Internet-Draft            verification.* family                June 2026
-
-
 8.4.  VAP Framework
 
    The Verifier Abstraction Pattern framework [VAP-FW] is an individual
@@ -629,11 +702,12 @@ Internet-Draft            verification.* family                June 2026
 
 8.5.  Mastercard Verifiable Intent (environment.*)
 
-   Mastercard's Verifiable Intent specification [VINTENT] defines the
-   environment.* constraint family for pre-action attestation of
-   environment state.  This document extends the constraint-family
-   pattern to probabilistic predicates with calibration discipline, as a
-   sibling family rather than a member entry.  See Section 3.
+   The environment.* constraint family for pre-action attestation of
+   environment state is specified in [ENV-STATE], as part of the
+   Verifiable Intent framework [VINTENT].  This document extends the
+   constraint-family pattern to probabilistic predicates with
+   calibration discipline, as a sibling family rather than a member
+   entry.  See Section 3.
 
 8.6.  Differentiator Summary
 
@@ -644,6 +718,33 @@ Internet-Draft            verification.* family                June 2026
    evolution.
 
 9.  Security Considerations
+
+
+
+
+
+
+
+Krausz                   Expires 8 December 2026               [Page 13]
+
+Internet-Draft            verification.* family                June 2026
+
+
+9.1.  Composition Non-Interference with environment.* Family
+
+   When verification.* composes alongside environment.* on the same
+   mandate, the ordering specified in §3.2 (environment.* short-circuits
+   before verification.*) MUST hold.  This document inherits that
+   ordering directly from [ENV-STATE] §5.5, which specifies that
+   environment.* is not subject to ordering preemption by any other
+   constraint family.  A verification.* ACT outcome MUST NOT mask an
+   environment.* HALT outcome; if environment.* halts on any constraint,
+   that halt is final regardless of the verification.* state.
+   Implementations MUST evaluate environment.* to its terminal state
+   before evaluating any verification.* constraint, and a verification.*
+   state SHALL NOT be reached if environment.* has already halted.
+
+9.2.  Other Security Considerations
 
    *Key compromise.* Verifier issuers MUST rotate JWKS keys on a
    published cadence.  Receipts signed under a compromised key remain
@@ -665,26 +766,30 @@ Internet-Draft            verification.* family                June 2026
    PII-sensitive verification without exposing claim text in the receipt
    envelope.
 
-
-
-
-
-Krausz                   Expires 8 December 2026               [Page 12]
-
-Internet-Draft            verification.* family                June 2026
-
-
    *Downgrade attacks.* A future relying party MUST NOT accept a
    v0.3-spec receipt against a v0.4-spec gate.  The receipt format
    version is implicitly bound by v_gate_mapping; mismatches between
    expected and signed mapping IDs are malformed-receipt conditions per
    Section 4.3.
 
-   *Mapping document tampering.* Mapping documents MUST be hosted at
-   URLs whose integrity is verifiable (e.g., git tag with content-
-   addressable hash).  Verifier implementations SHOULD cache mapping
-   documents by ID and verify cached content matches the publisher's
-   signed manifest, if published.
+   *Mapping document tampering.* Receipts MUST bind to a content-
+   addressed mapping via the v_gate_mapping_hash field (SHA-256).
+   Mapping documents MUST be hosted such that the SHA-256 digest of the
+   canonical serialization is stable and independently verifiable (e.g.,
+   at a content-addressed URL or via a git-tagged manifest).  Verifier
+   implementations MUST verify the SHA-256 digest of the fetched mapping
+
+
+
+Krausz                   Expires 8 December 2026               [Page 14]
+
+Internet-Draft            verification.* family                June 2026
+
+
+   document against v_gate_mapping_hash before use; a digest mismatch
+   MUST result in gate decision halt.  A relying party that cannot
+   independently verify the mapping document's hash MUST treat the
+   receipt as malformed.
 
 10.  IANA Considerations
 
@@ -693,8 +798,8 @@ Internet-Draft            verification.* family                June 2026
    *Media type:* verification-receipt+jws (to be registered in the IANA
    Media Types registry following the procedures of RFC 6838).
 
-   *JWT claim names:* v_verdict, v_confidence, v_gate_threshold,
-   v_adversarial_result, v_recommendation, v_gate, v_gate_mapping,
+   *JWT claim names:* v_verdict, v_confidence, v_adversarial_result,
+   v_recommendation, v_gate, v_gate_mapping, v_gate_mapping_hash,
    v_method, v_calibration, v_sources_used, v_evidence, v_claim (to be
    registered in the JSON Web Token Claims registry).
 
@@ -702,10 +807,16 @@ Internet-Draft            verification.* family                June 2026
    their JWKS at /.well-known/jwks.json per existing [RFC7517]
    Section 4.7 conventions.  No new well-known URI is requested.
 
-   The author requests coordination with draft-msebenzi-environment-
-   state authors regarding namespace use; if both documents progress to
-   RFC, the verification.* and environment.* namespaces should be
-   registered jointly under a constraint-family registry to be defined.
+   The verification.* and environment.* constraint families are related
+   sibling namespaces.  Coordination on a joint constraint-family
+   registry shared with the environment.* family ([ENV-STATE]) is
+   deferred to all interested parties (Krausz, Borthwick, Msebenzi) for
+   resolution outside the scope of this document.  This document does
+   not commit to a specific registry structure, nor does it assert
+   agreement from the environment.* authors on any registry arrangement.
+   The cross-referencing between verification.* and environment.* as
+   related constraint families stands as documented, independent of any
+   future registry decision.
 
 11.  Informative References
 
@@ -717,18 +828,32 @@ Internet-Draft            verification.* family                June 2026
    [AVERITEC] Schlichtkrull, M., "AVeriTeC: A Dataset for Real-World
               Claim Verification with Evidence from the Web", 2024.
 
+
+
+
+
+
+
+
+
+
+Krausz                   Expires 8 December 2026               [Page 15]
+
+Internet-Draft            verification.* family                June 2026
+
+
+   [ENV-STATE]
+              Borthwick, D. and M. Msebenzi, "Verifiable Intent ---
+              environment.* Constraint Family", Work in Progress,
+              Internet-Draft, draft-borthwick-msebenzi-environment-
+              state-00, May 2026,
+              <https://datatracker.ietf.org/doc/html/draft-borthwick-
+              msebenzi-environment-state-00>.
+
    [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
               Requirement Levels", BCP 14, RFC 2119,
               DOI 10.17487/RFC2119, March 1997,
               <https://www.rfc-editor.org/info/rfc2119>.
-
-
-
-
-Krausz                   Expires 8 December 2026               [Page 13]
-
-Internet-Draft            verification.* family                June 2026
-
 
    [RFC7515]  Jones, M., Bradley, J., and N. Sakimura, "JSON Web
               Signature (JWS)", RFC 7515, DOI 10.17487/RFC7515, May
@@ -765,10 +890,18 @@ Internet-Draft            verification.* family                June 2026
    [VC-CM]    World Wide Web Consortium, "Verifiable Credentials
               Confidence Method", W3C Working Draft, 2024.
 
-   [VINTENT]  Mastercard, "Verifiable Intent Specification", Work in
-              Progress, Internet-Draft, draft-msebenzi-environment-
-              state, 2024, <https://datatracker.ietf.org/doc/html/draft-
-              msebenzi-environment-state>.
+
+
+
+Krausz                   Expires 8 December 2026               [Page 16]
+
+Internet-Draft            verification.* family                June 2026
+
+
+   [VINTENT]  Verifiable Intent Working Group, "Verifiable Intent ---
+              Constraint Type Definitions and Validation Rules", Work in
+              Progress, Internet-Draft, v0.1-draft, February 2026,
+              <https://datatracker.ietf.org/doc/html/v0.1-draft>.
 
 Author's Address
 
@@ -781,4 +914,39 @@ Author's Address
 
 
 
-Krausz                   Expires 8 December 2026               [Page 14]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Krausz                   Expires 8 December 2026               [Page 17]

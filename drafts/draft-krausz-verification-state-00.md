@@ -86,7 +86,7 @@ Out of scope:
 
 **Verdict (raw)** --- One of `supported`, `refuted`, `unverifiable`, `unknown`. The underlying truth label.
 
-**Recommendation (canonical)** --- One of `confident_supported`, `vulnerable_supported`, `weak_supported`, `refuted`, `unverifiable`, `error`. Derived from primitives under the named mapping.
+**Recommendation (canonical)** --- One of `confident_supported`, `un_probed_not_cleared`, `vulnerable_supported`, `weak_supported`, `refuted`, `unverifiable`, `error`. Derived from primitives under the named mapping.
 
 **Gate (derived)** --- `act` or `halt`. Derived from recommendation under the named mapping.
 
@@ -109,7 +109,7 @@ Both families produce a binary fail-closed gate primitive. They differ in predic
 
 **Conjunction:** Multiple `verification.*` constraints in a single mandate combine with AND (orthogonal+conjunctive). All constraints MUST resolve to `act` for the action to proceed.
 
-**Ordering with environment.*:** `environment.*` constraints SHOULD short-circuit before `verification.*` constraints. Environment evaluation is typically cheaper (no oracle roundtrip) and a failed environment constraint moots the verification.
+**Ordering with environment.*:** `environment.*` constraints MUST short-circuit before `verification.*` constraints per [@ENV-STATE] §5.5. Environment evaluation is typically cheaper (no oracle roundtrip) and a failed environment constraint moots the verification. See also {{security-considerations}} for the non-interference security property this ordering provides.
 
 ## Receipt Format {#receipt-format}
 
@@ -129,7 +129,6 @@ The payload signs three structurally distinct field groups plus their bindings.
 
 - `v_verdict` (string, REQUIRED) --- One of `supported`, `refuted`, `unverifiable`, `unknown`.
 - `v_confidence` (number, REQUIRED) --- Float in `[0, 1]`.
-- `v_gate_threshold` (number, REQUIRED) --- Float in `[0, 1]`. The confidence floor used to derive the recommendation.
 - `v_adversarial_result` (string, REQUIRED) --- One of `resilient`, `vulnerable`, `not_checked`.
 
 **Canonical derived (signed):**
@@ -143,6 +142,7 @@ The payload signs three structurally distinct field groups plus their bindings.
 **Binding (signed):**
 
 - `v_gate_mapping` (string, REQUIRED) --- Stable identifier of the published mapping document used at issuance (e.g., `v0.3.0-2026-05-30`). The mapping document is immutable after publication; future revisions ship as new identifiers.
+- `v_gate_mapping_hash` (string, REQUIRED) --- SHA-256 hex digest of the canonical serialization of the mapping document identified by `v_gate_mapping`. MUST be present in every receipt. Receipts MUST bind to a content-addressed mapping; the absence of `v_gate_mapping_hash` is a malformed-receipt condition and MUST result in gate decision `halt`.
 
 **Provenance (signed, not gating):**
 
@@ -162,9 +162,14 @@ A relying party verifying a receipt MUST execute the following sequence and trea
 ~~~ text
 1. Verify JWS signature against issuer's published JWKS (RFC 7515).
 2. Resolve v_gate_mapping -> fetch the named immutable mapping document.
+   MUST verify the SHA-256 digest of the fetched document matches
+   v_gate_mapping_hash (hex-encoded). Digest mismatch -> malformed;
+   gate decision = halt. This binding is mandatory; receipts without
+   v_gate_mapping_hash are malformed.
 3. Recompute candidate_recommendation from
-   (v_verdict, v_confidence, v_gate_threshold, v_adversarial_result)
-   using the mapping's rules.
+   (v_verdict, v_confidence, v_adversarial_result)
+   using the mapping's rules and the threshold recovered from the
+   mapping document.
 4. Confirm candidate_recommendation == v_recommendation.
 5. Compute candidate_gate = mapping(v_recommendation).
 6. Confirm candidate_gate == v_gate.
@@ -189,6 +194,31 @@ The verified claim MUST be bound to the receipt via `v_claim`:
 
 Hash-only mode permits PII-sensitive verification while preserving the receipt's auditability --- the verifier can confirm a future caller's claim hash matches the issued receipt's bound hash without exposing the claim text.
 
+### Receipt Envelope Example
+
+The following is a non-normative example of a receipt envelope payload illustrating the mandatory `v_gate_mapping_hash` binding alongside `v_gate_mapping`:
+
+~~~ json
+{
+  "iss": "https://verifier.example.com",
+  "sub": "claim:sha256:a3f1...",
+  "iat": 1748649600,
+  "exp": 1748736000,
+  "v_verdict": "supported",
+  "v_confidence": 0.91,
+  "v_adversarial_result": "resilient",
+  "v_recommendation": "confident_supported",
+  "v_gate": "act",
+  "v_gate_mapping": "v0.3.0-2026-05-30",
+  "v_gate_mapping_hash": "sha256:e3b0c44298fc1c149afb4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "v_claim": {
+    "hash": "a3f1c2d4e5b6789012345678abcdef0123456789abcdef0123456789abcdef01"
+  }
+}
+~~~
+
+The `v_gate_mapping_hash` field carries the hex-encoded SHA-256 digest of the canonical serialization of the mapping document identified by `v_gate_mapping`. This field MUST be present in all conforming receipts; its absence is a malformed-receipt condition.
+
 ### Version-Binding Rationale
 
 Gate-derivation rules will evolve. A receipt issued under mapping `v0.3.0-...` MUST remain verifiable as *correct-under-`v0.3.0`* after a newer mapping ships. The mapping identifier in `v_gate_mapping` is the binding that makes this true: a verifier fetches the *same* mapping document the issuer used at issuance, regardless of newer revisions. Receipts never silently re-verify to a different gate.
@@ -203,7 +233,8 @@ The reference mapping `v0.3.0-2026-05-30` defines the following decision table. 
 
 | `v_verdict` | `v_confidence` vs threshold | `v_adversarial_result` | `v_recommendation` | `v_gate` |
 |---|---|---|---|---|
-| `supported` | >= threshold | `resilient` or `not_checked` | `confident_supported` | `act` |
+| `supported` | >= threshold | `resilient` | `confident_supported` | `act` |
+| `supported` | >= threshold | `not_checked` | `un_probed_not_cleared` | `halt` |
 | `supported` | (any) | `vulnerable` | `vulnerable_supported` | `halt` |
 | `supported` | < threshold | `resilient` or `not_checked` | `weak_supported` | `halt` |
 | `refuted` | (any) | (any) | `refuted` | `halt` |
@@ -212,7 +243,11 @@ The reference mapping `v0.3.0-2026-05-30` defines the following decision table. 
 
 ### Threshold Rules
 
-The `v_gate_threshold` value MUST be present in every receipt. Relying parties MAY require higher thresholds for their own gate policies; they MUST NOT lower the threshold below the issuer's signed value. The receipt's threshold is the floor.
+The confidence threshold used to derive `v_recommendation` is specified in the named mapping document, not in the individual receipt. Receipts reference the mapping by `v_gate_mapping` identifier, and the threshold is recovered from that mapping. This ensures that the threshold is auditable, versioned, and consistent across all receipts issued under the same mapping: two receipts under the same mapping ID MUST gate against the same threshold; threshold changes require a new mapping version with a new ID.
+
+For a strict fail-closed gate, un-probed adversarial state is not equivalent to `resilient` --- it represents uncertainty about a dimension that can be exploited by adversarial input. Per the fail-closed property, uncertainty MUST halt. A claim may be confidently supported on its face, but if adversarial probing was not performed, the confidence applies only to the base claim, not to the claim under adversarial pressure. The `un_probed_not_cleared` recommendation reflects this: the gate treats the absence of probing as a distinct unresolved risk, not as a cleared risk.
+
+Relying parties MAY require a higher threshold mapping for their own gate policies by requiring receipts under a different mapping ID that specifies a higher threshold. They MUST NOT treat a receipt as conformant under a mapping that specifies a different threshold than the one in that mapping document.
 
 ### Fail-Closed Mandate
 
@@ -274,13 +309,17 @@ The Verifier Abstraction Pattern framework [@VAP-FW] is an individual Internet-D
 
 ### Mastercard Verifiable Intent (environment.*)
 
-Mastercard's Verifiable Intent specification [@VINTENT] defines the `environment.*` constraint family for pre-action attestation of environment state. This document extends the constraint-family pattern to probabilistic predicates with calibration discipline, as a sibling family rather than a member entry. See {{the-verification.-constraint-family}}.
+The `environment.*` constraint family for pre-action attestation of environment state is specified in [@ENV-STATE], as part of the Verifiable Intent framework [@VINTENT]. This document extends the constraint-family pattern to probabilistic predicates with calibration discipline, as a sibling family rather than a member entry. See {{the-verification-constraint-family}}.
 
 ### Differentiator Summary
 
 Pre-action fail-closed gate. Not signing machinery (covered by SCITT). Not confidence quantification (covered by W3C VC CM). Not just an Attestation Result (covered by RATS). The gate primitive itself, with the version-binding necessary to outlive ruleset evolution.
 
 ## Security Considerations
+
+### Composition Non-Interference with environment.* Family
+
+When `verification.*` composes alongside `environment.*` on the same mandate, the ordering specified in §3.2 (environment.* short-circuits before verification.*) MUST hold. This document inherits that ordering directly from [@ENV-STATE] §5.5, which specifies that `environment.*` is not subject to ordering preemption by any other constraint family. A `verification.*` ACT outcome MUST NOT mask an `environment.*` HALT outcome; if `environment.*` halts on any constraint, that halt is final regardless of the `verification.*` state. Implementations MUST evaluate `environment.*` to its terminal state before evaluating any `verification.*` constraint, and a `verification.*` state SHALL NOT be reached if `environment.*` has already halted.
 
 **Key compromise.** Verifier issuers MUST rotate JWKS keys on a published cadence. Receipts signed under a compromised key remain verifiable against historical key state during the rotation horizon. RPs MUST honor key revocation lists where published.
 
@@ -292,7 +331,7 @@ Pre-action fail-closed gate. Not signing machinery (covered by SCITT). Not confi
 
 **Downgrade attacks.** A future relying party MUST NOT accept a v0.3-spec receipt against a v0.4-spec gate. The receipt format version is implicitly bound by `v_gate_mapping`; mismatches between expected and signed mapping IDs are malformed-receipt conditions per {{verification-protocol}}.
 
-**Mapping document tampering.** Mapping documents MUST be hosted at URLs whose integrity is verifiable (e.g., git tag with content-addressable hash). Verifier implementations SHOULD cache mapping documents by ID and verify cached content matches the publisher's signed manifest, if published.
+**Mapping document tampering.** Receipts MUST bind to a content-addressed mapping via the `v_gate_mapping_hash` field (SHA-256). Mapping documents MUST be hosted such that the SHA-256 digest of the canonical serialization is stable and independently verifiable (e.g., at a content-addressed URL or via a git-tagged manifest). Verifier implementations MUST verify the SHA-256 digest of the fetched mapping document against `v_gate_mapping_hash` before use; a digest mismatch MUST result in gate decision `halt`. A relying party that cannot independently verify the mapping document's hash MUST treat the receipt as malformed.
 
 ## IANA Considerations
 
@@ -300,11 +339,11 @@ This document requests the following IANA registrations:
 
 **Media type:** `verification-receipt+jws` (to be registered in the IANA Media Types registry following the procedures of RFC 6838).
 
-**JWT claim names:** `v_verdict`, `v_confidence`, `v_gate_threshold`, `v_adversarial_result`, `v_recommendation`, `v_gate`, `v_gate_mapping`, `v_method`, `v_calibration`, `v_sources_used`, `v_evidence`, `v_claim` (to be registered in the JSON Web Token Claims registry).
+**JWT claim names:** `v_verdict`, `v_confidence`, `v_adversarial_result`, `v_recommendation`, `v_gate`, `v_gate_mapping`, `v_gate_mapping_hash`, `v_method`, `v_calibration`, `v_sources_used`, `v_evidence`, `v_claim` (to be registered in the JSON Web Token Claims registry).
 
 **Well-known URI:** Verification issuers using HTTPS SHOULD publish their JWKS at `/.well-known/jwks.json` per existing [@RFC7517] Section 4.7 conventions. No new well-known URI is requested.
 
-The author requests coordination with `draft-msebenzi-environment-state` authors regarding namespace use; if both documents progress to RFC, the `verification.*` and `environment.*` namespaces should be registered jointly under a constraint-family registry to be defined.
+The `verification.*` and `environment.*` constraint families are related sibling namespaces. Coordination on a joint constraint-family registry shared with the `environment.*` family ([@ENV-STATE]) is deferred to all interested parties (Krausz, Borthwick, Msebenzi) for resolution outside the scope of this document. This document does not commit to a specific registry structure, nor does it assert agreement from the `environment.*` authors on any registry arrangement. The cross-referencing between `verification.*` and `environment.*` as related constraint families stands as documented, independent of any future registry decision.
 
 {backmatter}
 
@@ -372,13 +411,25 @@ The author requests coordination with `draft-msebenzi-environment-state` authors
 
 <reference anchor="VINTENT">
   <front>
-    <title>Verifiable Intent Specification</title>
+    <title>Verifiable Intent --- Constraint Type Definitions and Validation Rules</title>
     <author>
-      <organization>Mastercard</organization>
+      <organization>Verifiable Intent Working Group</organization>
     </author>
-    <date year="2024"/>
+    <date year="2026" month="February"/>
   </front>
-  <seriesInfo name="Internet-Draft" value="draft-msebenzi-environment-state"/>
+  <seriesInfo name="Internet-Draft" value="v0.1-draft"/>
+  <target>https://verifiableintent.dev/spec/constraints/</target>
+</reference>
+
+<reference anchor="ENV-STATE">
+  <front>
+    <title>Verifiable Intent --- environment.* Constraint Family</title>
+    <author initials="D." surname="Borthwick" fullname="D. Borthwick"/>
+    <author initials="M." surname="Msebenzi" fullname="M. Msebenzi"/>
+    <date year="2026" month="May"/>
+  </front>
+  <seriesInfo name="Internet-Draft" value="draft-borthwick-msebenzi-environment-state-00"/>
+  <target>https://datatracker.ietf.org/doc/draft-borthwick-msebenzi-environment-state/</target>
 </reference>
 
 <reference anchor="AO-RECEIPT-SPEC">

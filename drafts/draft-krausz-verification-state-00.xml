@@ -24,7 +24,6 @@
 <t>This document specifies the <tt>verification.*</tt> constraint family --- a pre-action, fail-closed gate primitive for AI agent decisions, sibling in shape to the <tt>environment.*</tt> family used in Verifiable Intent specifications. A <tt>verification.*</tt> receipt is a JWS-signed artifact (<xref target="RFC7515"></xref>) carrying a canonical input, a derived binary <tt>act</tt>/<tt>halt</tt> output, and a versioned mapping identifier that binds them. A relying party recomputes the gate locally from signed primitives under the named mapping; the verifier never trusts the issuer's runtime. This shape provides decision explainability and traceability evidence aligned with EU AI Act Article 12 record-keeping obligations and with the Decision Explainability tier of Anthropic's Zero Trust for AI Agents framework <xref target="ANTHROPIC-ZT"></xref>. The format is forward-compatible across mapping revisions: receipts signed under one mapping ID remain verifiable as correct-under-that-mapping after newer mappings ship.</t>
 </abstract>
 
-
 </front>
 
 <middle>
@@ -75,7 +74,7 @@
 <t><strong>Calibration anchor</strong> --- The dataset and seed defining confidence semantics for the verifier's pipeline.</t>
 <t><strong>Multi-axis freshness</strong> --- Signature, calibration, and evidence each carry independent validity periods.</t>
 <t><strong>Verdict (raw)</strong> --- One of <tt>supported</tt>, <tt>refuted</tt>, <tt>unverifiable</tt>, <tt>unknown</tt>. The underlying truth label.</t>
-<t><strong>Recommendation (canonical)</strong> --- One of <tt>confident_supported</tt>, <tt>vulnerable_supported</tt>, <tt>weak_supported</tt>, <tt>refuted</tt>, <tt>unverifiable</tt>, <tt>error</tt>. Derived from primitives under the named mapping.</t>
+<t><strong>Recommendation (canonical)</strong> --- One of <tt>confident_supported</tt>, <tt>un_probed_not_cleared</tt>, <tt>vulnerable_supported</tt>, <tt>weak_supported</tt>, <tt>refuted</tt>, <tt>unverifiable</tt>, <tt>error</tt>. Derived from primitives under the named mapping.</t>
 <t><strong>Gate (derived)</strong> --- <tt>act</tt> or <tt>halt</tt>. Derived from recommendation under the named mapping.</t>
 <t><strong>Mapping document</strong> --- A published, immutable document specifying how recommendations are derived from primitives and how gates are derived from recommendations. Identified by a stable string identifier (e.g., <tt>v0.3.0-2026-05-30</tt>).</t>
 </section>
@@ -122,7 +121,7 @@
 
 <section anchor="composition-rules"><name>Composition Rules</name>
 <t><strong>Conjunction:</strong> Multiple <tt>verification.*</tt> constraints in a single mandate combine with AND (orthogonal+conjunctive). All constraints MUST resolve to <tt>act</tt> for the action to proceed.</t>
-<t><strong>Ordering with environment.*:</strong> <tt>environment.*</tt> constraints SHOULD short-circuit before <tt>verification.*</tt> constraints. Environment evaluation is typically cheaper (no oracle roundtrip) and a failed environment constraint moots the verification.</t>
+<t><strong>Ordering with environment.*:</strong> <tt>environment.*</tt> constraints MUST short-circuit before <tt>verification.*</tt> constraints per <xref target="ENV-STATE"></xref> §5.5. Environment evaluation is typically cheaper (no oracle roundtrip) and a failed environment constraint moots the verification. See also <xref target="security-considerations"/> for the non-interference security property this ordering provides.</t>
 </section>
 </section>
 
@@ -145,7 +144,6 @@
 <ul spacing="compact">
 <li><tt>v_verdict</tt> (string, REQUIRED) --- One of <tt>supported</tt>, <tt>refuted</tt>, <tt>unverifiable</tt>, <tt>unknown</tt>.</li>
 <li><tt>v_confidence</tt> (number, REQUIRED) --- Float in <tt>[0, 1]</tt>.</li>
-<li><tt>v_gate_threshold</tt> (number, REQUIRED) --- Float in <tt>[0, 1]</tt>. The confidence floor used to derive the recommendation.</li>
 <li><tt>v_adversarial_result</tt> (string, REQUIRED) --- One of <tt>resilient</tt>, <tt>vulnerable</tt>, <tt>not_checked</tt>.</li>
 </ul>
 <t><strong>Canonical derived (signed):</strong></t>
@@ -162,6 +160,7 @@
 
 <ul spacing="compact">
 <li><tt>v_gate_mapping</tt> (string, REQUIRED) --- Stable identifier of the published mapping document used at issuance (e.g., <tt>v0.3.0-2026-05-30</tt>). The mapping document is immutable after publication; future revisions ship as new identifiers.</li>
+<li><tt>v_gate_mapping_hash</tt> (string, REQUIRED) --- SHA-256 hex digest of the canonical serialization of the mapping document identified by <tt>v_gate_mapping</tt>. MUST be present in every receipt. Receipts MUST bind to a content-addressed mapping; the absence of <tt>v_gate_mapping_hash</tt> is a malformed-receipt condition and MUST result in gate decision <tt>halt</tt>.</li>
 </ul>
 <t><strong>Provenance (signed, not gating):</strong></t>
 
@@ -183,9 +182,14 @@
 
 <sourcecode type="text"><![CDATA[1. Verify JWS signature against issuer's published JWKS (RFC 7515).
 2. Resolve v_gate_mapping -> fetch the named immutable mapping document.
+   MUST verify the SHA-256 digest of the fetched document matches
+   v_gate_mapping_hash (hex-encoded). Digest mismatch -> malformed;
+   gate decision = halt. This binding is mandatory; receipts without
+   v_gate_mapping_hash are malformed.
 3. Recompute candidate_recommendation from
-   (v_verdict, v_confidence, v_gate_threshold, v_adversarial_result)
-   using the mapping's rules.
+   (v_verdict, v_confidence, v_adversarial_result)
+   using the mapping's rules and the threshold recovered from the
+   mapping document.
 4. Confirm candidate_recommendation == v_recommendation.
 5. Compute candidate_gate = mapping(v_recommendation).
 6. Confirm candidate_gate == v_gate.
@@ -208,6 +212,30 @@
 ]]>
 </sourcecode>
 <t>Hash-only mode permits PII-sensitive verification while preserving the receipt's auditability --- the verifier can confirm a future caller's claim hash matches the issued receipt's bound hash without exposing the claim text.</t>
+</section>
+
+<section anchor="receipt-envelope-example"><name>Receipt Envelope Example</name>
+<t>The following is a non-normative example of a receipt envelope payload illustrating the mandatory <tt>v_gate_mapping_hash</tt> binding alongside <tt>v_gate_mapping</tt>:</t>
+
+<sourcecode type="json"><![CDATA[{
+  "iss": "https://verifier.example.com",
+  "sub": "claim:sha256:a3f1...",
+  "iat": 1748649600,
+  "exp": 1748736000,
+  "v_verdict": "supported",
+  "v_confidence": 0.91,
+  "v_adversarial_result": "resilient",
+  "v_recommendation": "confident_supported",
+  "v_gate": "act",
+  "v_gate_mapping": "v0.3.0-2026-05-30",
+  "v_gate_mapping_hash": "sha256:e3b0c44298fc1c149afb4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "v_claim": {
+    "hash": "a3f1c2d4e5b6789012345678abcdef0123456789abcdef0123456789abcdef01"
+  }
+}
+]]>
+</sourcecode>
+<t>The <tt>v_gate_mapping_hash</tt> field carries the hex-encoded SHA-256 digest of the canonical serialization of the mapping document identified by <tt>v_gate_mapping</tt>. This field MUST be present in all conforming receipts; its absence is a malformed-receipt condition.</t>
 </section>
 
 <section anchor="version-binding-rationale"><name>Version-Binding Rationale</name>
@@ -235,9 +263,17 @@
 <tr>
 <td><tt>supported</tt></td>
 <td>&gt;= threshold</td>
-<td><tt>resilient</tt> or <tt>not_checked</tt></td>
+<td><tt>resilient</tt></td>
 <td><tt>confident_supported</tt></td>
 <td><tt>act</tt></td>
+</tr>
+
+<tr>
+<td><tt>supported</tt></td>
+<td>&gt;= threshold</td>
+<td><tt>not_checked</tt></td>
+<td><tt>un_probed_not_cleared</tt></td>
+<td><tt>halt</tt></td>
 </tr>
 
 <tr>
@@ -283,7 +319,9 @@
 </table></section>
 
 <section anchor="threshold-rules"><name>Threshold Rules</name>
-<t>The <tt>v_gate_threshold</tt> value MUST be present in every receipt. Relying parties MAY require higher thresholds for their own gate policies; they MUST NOT lower the threshold below the issuer's signed value. The receipt's threshold is the floor.</t>
+<t>The confidence threshold used to derive <tt>v_recommendation</tt> is specified in the named mapping document, not in the individual receipt. Receipts reference the mapping by <tt>v_gate_mapping</tt> identifier, and the threshold is recovered from that mapping. This ensures that the threshold is auditable, versioned, and consistent across all receipts issued under the same mapping: two receipts under the same mapping ID MUST gate against the same threshold; threshold changes require a new mapping version with a new ID.</t>
+<t>For a strict fail-closed gate, un-probed adversarial state is not equivalent to <tt>resilient</tt> --- it represents uncertainty about a dimension that can be exploited by adversarial input. Per the fail-closed property, uncertainty MUST halt. A claim may be confidently supported on its face, but if adversarial probing was not performed, the confidence applies only to the base claim, not to the claim under adversarial pressure. The <tt>un_probed_not_cleared</tt> recommendation reflects this: the gate treats the absence of probing as a distinct unresolved risk, not as a cleared risk.</t>
+<t>Relying parties MAY require a higher threshold mapping for their own gate policies by requiring receipts under a different mapping ID that specifies a higher threshold. They MUST NOT treat a receipt as conformant under a mapping that specifies a different threshold than the one in that mapping document.</t>
 </section>
 
 <section anchor="fail-closed-mandate"><name>Fail-Closed Mandate</name>
@@ -373,7 +411,7 @@
 </section>
 
 <section anchor="mastercard-verifiable-intent-environment"><name>Mastercard Verifiable Intent (environment.*)</name>
-<t>Mastercard's Verifiable Intent specification <xref target="VINTENT"></xref> defines the <tt>environment.*</tt> constraint family for pre-action attestation of environment state. This document extends the constraint-family pattern to probabilistic predicates with calibration discipline, as a sibling family rather than a member entry. See <xref target="the-verification-constraint-family"/>.</t>
+<t>The <tt>environment.*</tt> constraint family for pre-action attestation of environment state is specified in <xref target="ENV-STATE"></xref>, as part of the Verifiable Intent framework <xref target="VINTENT"></xref>. This document extends the constraint-family pattern to probabilistic predicates with calibration discipline, as a sibling family rather than a member entry. See <xref target="the-verification-constraint-family"/>.</t>
 </section>
 
 <section anchor="differentiator-summary"><name>Differentiator Summary</name>
@@ -382,28 +420,33 @@
 </section>
 
 <section anchor="security-considerations"><name>Security Considerations</name>
+
+<section anchor="composition-non-interference-with-environment-family"><name>Composition Non-Interference with environment.* Family</name>
+<t>When <tt>verification.*</tt> composes alongside <tt>environment.*</tt> on the same mandate, the ordering specified in §3.2 (environment.* short-circuits before verification.*) MUST hold. This document inherits that ordering directly from <xref target="ENV-STATE"></xref> §5.5, which specifies that <tt>environment.*</tt> is not subject to ordering preemption by any other constraint family. A <tt>verification.*</tt> ACT outcome MUST NOT mask an <tt>environment.*</tt> HALT outcome; if <tt>environment.*</tt> halts on any constraint, that halt is final regardless of the <tt>verification.*</tt> state. Implementations MUST evaluate <tt>environment.*</tt> to its terminal state before evaluating any <tt>verification.*</tt> constraint, and a <tt>verification.*</tt> state SHALL NOT be reached if <tt>environment.*</tt> has already halted.</t>
+</section>
+<section anchor="other-security-considerations"><name>Other Security Considerations</name>
 <t><strong>Key compromise.</strong> Verifier issuers MUST rotate JWKS keys on a published cadence. Receipts signed under a compromised key remain verifiable against historical key state during the rotation horizon. RPs MUST honor key revocation lists where published.</t>
 <t><strong>Replay attacks.</strong> Receipts include <tt>iat</tt> and <tt>exp</tt>. RPs MUST verify both against current time, subject to clock tolerance. Claim-binding via <tt>v_claim.hash</tt> provides resistance to receipt-reuse against a different claim payload.</t>
 <t><strong>Confidence inflation attacks.</strong> A verifier issuer who inflates <tt>v_confidence</tt> to push more receipts to <tt>act</tt> would diverge from their published calibration anchor. The reproducibility mandate (<xref target="calibration-anchor-requirements"/>) makes this detectable. RPs SHOULD periodically sample receipts against the issuer's published harness.</t>
 <t><strong>Selective disclosure.</strong> Hash-only claim binding (<xref target="claim-binding"/>) permits PII-sensitive verification without exposing claim text in the receipt envelope.</t>
 <t><strong>Downgrade attacks.</strong> A future relying party MUST NOT accept a v0.3-spec receipt against a v0.4-spec gate. The receipt format version is implicitly bound by <tt>v_gate_mapping</tt>; mismatches between expected and signed mapping IDs are malformed-receipt conditions per <xref target="verification-protocol"/>.</t>
-<t><strong>Mapping document tampering.</strong> Mapping documents MUST be hosted at URLs whose integrity is verifiable (e.g., git tag with content-addressable hash). Verifier implementations SHOULD cache mapping documents by ID and verify cached content matches the publisher's signed manifest, if published.</t>
+<t><strong>Mapping document tampering.</strong> Receipts MUST bind to a content-addressed mapping via the <tt>v_gate_mapping_hash</tt> field (SHA-256). Mapping documents MUST be hosted such that the SHA-256 digest of the canonical serialization is stable and independently verifiable (e.g., at a content-addressed URL or via a git-tagged manifest). Verifier implementations MUST verify the SHA-256 digest of the fetched mapping document against <tt>v_gate_mapping_hash</tt> before use; a digest mismatch MUST result in gate decision <tt>halt</tt>. A relying party that cannot independently verify the mapping document's hash MUST treat the receipt as malformed.</t>
+</section>
 </section>
 
 <section anchor="iana-considerations"><name>IANA Considerations</name>
 <t>This document requests the following IANA registrations:</t>
 <t><strong>Media type:</strong> <tt>verification-receipt+jws</tt> (to be registered in the IANA Media Types registry following the procedures of RFC 6838).</t>
-<t><strong>JWT claim names:</strong> <tt>v_verdict</tt>, <tt>v_confidence</tt>, <tt>v_gate_threshold</tt>, <tt>v_adversarial_result</tt>, <tt>v_recommendation</tt>, <tt>v_gate</tt>, <tt>v_gate_mapping</tt>, <tt>v_method</tt>, <tt>v_calibration</tt>, <tt>v_sources_used</tt>, <tt>v_evidence</tt>, <tt>v_claim</tt> (to be registered in the JSON Web Token Claims registry).</t>
+<t><strong>JWT claim names:</strong> <tt>v_verdict</tt>, <tt>v_confidence</tt>, <tt>v_adversarial_result</tt>, <tt>v_recommendation</tt>, <tt>v_gate</tt>, <tt>v_gate_mapping</tt>, <tt>v_gate_mapping_hash</tt>, <tt>v_method</tt>, <tt>v_calibration</tt>, <tt>v_sources_used</tt>, <tt>v_evidence</tt>, <tt>v_claim</tt> (to be registered in the JSON Web Token Claims registry).</t>
 <t><strong>Well-known URI:</strong> Verification issuers using HTTPS SHOULD publish their JWKS at <tt>/.well-known/jwks.json</tt> per existing <xref target="RFC7517"></xref> Section 4.7 conventions. No new well-known URI is requested.</t>
-<t>The author requests coordination with <tt>draft-msebenzi-environment-state</tt> authors regarding namespace use; if both documents progress to RFC, the <tt>verification.*</tt> and <tt>environment.*</tt> namespaces should be registered jointly under a constraint-family registry to be defined.</t>
+<t>The <tt>verification.*</tt> and <tt>environment.*</tt> constraint families are related sibling namespaces. Coordination on a joint constraint-family registry shared with the <tt>environment.*</tt> family (<xref target="ENV-STATE"></xref>) is deferred to all interested parties (Krausz, Borthwick, Msebenzi) for resolution outside the scope of this document. This document does not commit to a specific registry structure, nor does it assert agreement from the <tt>environment.*</tt> authors on any registry arrangement. The cross-referencing between <tt>verification.*</tt> and <tt>environment.*</tt> as related constraint families stands as documented, independent of any future registry decision.</t>
 </section>
-
 
 </middle>
 
 <back>
 <references><name>Informative References</name>
-<reference anchor="ANTHROPIC-ZT" target="">
+<reference anchor="ANTHROPIC-ZT">
   <front>
     <title>Zero Trust for AI Agents: A security framework for deploying autonomous AI agents in the enterprise</title>
     <author>
@@ -413,12 +456,21 @@
   </front>
   <refcontent>PDF, 36 pages</refcontent>
 </reference>
-<reference anchor="AVERITEC" target="">
+<reference anchor="AVERITEC">
   <front>
     <title>AVeriTeC: A Dataset for Real-World Claim Verification with Evidence from the Web</title>
     <author fullname="Michael Schlichtkrull" initials="M." surname="Schlichtkrull"></author>
     <date year="2024"></date>
   </front>
+</reference>
+<reference anchor="ENV-STATE">
+  <front>
+    <title>Verifiable Intent --- environment.* Constraint Family</title>
+    <author fullname="D. Borthwick" initials="D." surname="Borthwick"></author>
+    <author fullname="M. Msebenzi" initials="M." surname="Msebenzi"></author>
+    <date year="2026" month="May"></date>
+  </front>
+  <seriesInfo name="Internet-Draft" value="draft-borthwick-msebenzi-environment-state-00"></seriesInfo>
 </reference>
 <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.2119.xml"/>
 <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.7515.xml"/>
@@ -426,7 +478,7 @@
 <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.7519.xml"/>
 <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8174.xml"/>
 <xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.9334.xml"/>
-<reference anchor="SCITT" target="">
+<reference anchor="SCITT">
   <front>
     <title>An Architecture for Trustworthy and Transparent Digital Supply Chains</title>
     <author>
@@ -436,7 +488,7 @@
   </front>
   <seriesInfo name="Internet-Draft" value="draft-ietf-scitt-architecture"></seriesInfo>
 </reference>
-<reference anchor="VAP-FW" target="">
+<reference anchor="VAP-FW">
   <front>
     <title>Verifier Abstraction Pattern Framework</title>
     <author fullname="K. Kamimura" initials="K." surname="Kamimura"></author>
@@ -444,7 +496,7 @@
   </front>
   <seriesInfo name="Internet-Draft" value="draft-kamimura-vap-framework"></seriesInfo>
 </reference>
-<reference anchor="VC-CM" target="">
+<reference anchor="VC-CM">
   <front>
     <title>Verifiable Credentials Confidence Method</title>
     <author>
@@ -454,15 +506,15 @@
   </front>
   <refcontent>W3C Working Draft</refcontent>
 </reference>
-<reference anchor="VINTENT" target="">
+<reference anchor="VINTENT">
   <front>
-    <title>Verifiable Intent Specification</title>
+    <title>Verifiable Intent --- Constraint Type Definitions and Validation Rules</title>
     <author>
-      <organization>Mastercard</organization>
+      <organization>Verifiable Intent Working Group</organization>
     </author>
-    <date year="2024"></date>
+    <date year="2026" month="February"></date>
   </front>
-  <seriesInfo name="Internet-Draft" value="draft-msebenzi-environment-state"></seriesInfo>
+  <seriesInfo name="Internet-Draft" value="v0.1-draft"></seriesInfo>
 </reference>
 </references>
 
