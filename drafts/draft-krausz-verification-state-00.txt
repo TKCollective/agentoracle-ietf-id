@@ -905,7 +905,7 @@ Internet-Draft            verification.* family                June 2026
 
 Author's Address
 
-   Joseph Krausz
+   Joe Krausz
    TK Collective
    Los Angeles, CA
    United States of America

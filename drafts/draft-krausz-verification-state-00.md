@@ -435,7 +435,7 @@ The `verification.*` and `environment.*` constraint families are related sibling
 <reference anchor="AO-RECEIPT-SPEC">
   <front>
     <title>AgentOracle Verification Receipt Format, v0.3</title>
-    <author initials="J." surname="Krausz" fullname="Joseph Krausz"/>
+    <author initials="J." surname="Krausz" fullname="Joe Krausz"/>
     <date year="2026"/>
   </front>
   <target>https://github.com/TKCollective/agentoracle-receipt-spec/tree/v0.3-binary-halt</target>
@@ -444,7 +444,7 @@ The `verification.*` and `environment.*` constraint families are related sibling
 <reference anchor="AO-MAPPING-v0.3.0">
   <front>
     <title>AgentOracle Mapping Document v0.3.0-2026-05-30</title>
-    <author initials="J." surname="Krausz" fullname="Joseph Krausz"/>
+    <author initials="J." surname="Krausz" fullname="Joe Krausz"/>
     <date year="2026"/>
   </front>
   <target>https://github.com/TKCollective/agentoracle-receipt-spec/blob/v0.3-binary-halt/mappings/v0.3.0-2026-05-30.md</target>
