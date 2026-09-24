@@ -18,7 +18,7 @@ Public working repository for **`draft-krausz-verification-state`** — an IETF 
 | -01 published | 2026-06-12 | ✅ |
 | -02 published | 2026-09-23 | ✅ — four-state vocabulary (`verified`/`contradicted`/`indeterminate`/`not_evaluated`), reason-code mechanism (including `instrument_failure`), admissibility gate, evidence pinning |
 
-The full `-02` text is in this repo at [drafts/draft-krausz-verification-state-02.xml](./drafts/draft-krausz-verification-state-02.xml) (source), [.txt](./drafts/draft-krausz-verification-state-02.txt), and [.html](./drafts/draft-krausz-verification-state-02.html) (rendered), along with [drafts/CHANGES-01-to-02.md](./drafts/CHANGES-01-to-02.md) documenting exactly what changed since `-01`. Earlier revisions (`-00`, `-01`) are preserved in this repo's history for change tracking.
+The full `-02` text is in this repo at [drafts/draft-krausz-verification-state-02.xml](./drafts/draft-krausz-verification-state-02.xml) (source), [.txt](./drafts/draft-krausz-verification-state-02.txt), and [.html](./drafts/draft-krausz-verification-state-02.html) (rendered), along with [drafts/CHANGES-01-to-02.md](./drafts/CHANGES-01-to-02.md) documenting exactly what changed since `-01`. Earlier revisions are on the IETF datatracker; the `-00` manuscript and outline remain in [drafts/](./drafts/).
 
 ## What's in the draft
 
