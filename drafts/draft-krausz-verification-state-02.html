@@ -1,0 +1,2674 @@
+<!DOCTYPE html>
+<html lang="en" class="Internet-Draft">
+<head>
+<meta charset="utf-8">
+<meta content="Common,Latin" name="scripts">
+<meta content="initial-scale=1.0" name="viewport">
+<title>The verification.* Constraint Family: Pre-Action Fail-Closed Gates for AI Agent Decisions</title>
+<meta content="Joe Krausz" name="author">
+<meta content="
+       This document specifies the  verification.*  constraint family --- a pre-action, fail-closed gate primitive for AI agent decisions, sibling in shape to the  environment.*  family used in Verifiable Intent specifications. A  verification.*  receipt is a JSON Web Signature (JWS) signed artifact carrying a canonical input, a derived binary  act / halt  output, and a versioned mapping identifier that binds them. A relying party recomputes the gate locally from signed primitives under the named mapping; the verifier never trusts the issuer's runtime. 
+       This revision replaces the raw verdict domain of  draft-krausz-verification-state-01  ( supported / refuted / unverifiable / unknown ) with a four-state vocabulary ---  verified ,  contradicted ,  indeterminate , and  not_evaluated  --- together with a reason-code mechanism that separates a state's substance from a verifier's own instrument failure, and with an admissibility gate applied before a state is ever assigned. It adds evidence pinning: a receipt MAY carry an  evidence_set  block that content-addresses the sources considered during verification, so that a verdict can be recomputed offline from the receipt and the pinned bytes alone, without depending on a live retrieval provider. Freshness is anchored to the evidence's own  retrieved_at  timestamp rather than a separately declared validity window. This shape provides decision explainability and traceability evidence aligned with EU AI Act Article 12 record-keeping obligations and with the Decision Explainability tier of an industry Zero Trust for AI Agents framework published in 2026. The format is forward-compatible across mapping revisions: receipts signed under one mapping ID remain verifiable as correct-under-that-mapping after newer mappings ship. The vectors that content-address a mapping document or an evidence set are historical, digest-anchored artifacts and are unchanged by this revision; nothing in this document alters a previously issued digest. 
+    " name="description">
+<meta content="xml2rfc 3.34.0" name="generator">
+<meta content="agent" name="keyword">
+<meta content="verification" name="keyword">
+<meta content="receipt" name="keyword">
+<meta content="JWS" name="keyword">
+<meta content="gate" name="keyword">
+<meta content="AI" name="keyword">
+<meta content="evidence pinning" name="keyword">
+<meta content="draft-krausz-verification-state-02" name="ietf.draft">
+<!-- Generator version information:
+  xml2rfc 3.34.0
+    Python 3.12.8
+    ConfigArgParse 1.7.5
+    google-i18n-address 3.1.1
+    intervaltree 3.2.1
+    Jinja2 3.1.6
+    lxml 6.1.1
+    natsort 8.4.0
+    platformdirs 4.10.0
+    pycountry 26.2.16
+    pypdf 6.12.2
+    PyYAML 6.0.3
+    requests 2.34.2
+    wcwidth 0.7.0
+-->
+<link href="draft-krausz-verification-state-02.xml" rel="alternate" type="application/rfc+xml">
+<link href="#copyright" rel="license">
+<style type="text/css">/*
+
+  NOTE: Changes at the bottom of this file overrides some earlier settings.
+
+  Once the style has stabilized and has been adopted as an official RFC style,
+  this can be consolidated so that style settings occur only in one place, but
+  for now the contents of this file consists first of the initial CSS work as
+  provided to the RFC Formatter (xml2rfc) work, followed by itemized and
+  commented changes found necessary during the development of the v3
+  formatters.
+
+*/
+
+/* fonts */
+@import url('https://static.ietf.org/fonts/noto-sans/import.css'); /* Sans-serif */
+@import url('https://static.ietf.org/fonts/noto-serif/import.css'); /* Serif (print) */
+@import url('https://static.ietf.org/fonts/roboto-mono/import.css'); /* Monospace */
+
+:root {
+  --font-sans: 'Noto Sans', Arial, Helvetica, sans-serif;
+  --font-serif: 'Noto Serif', 'Times', 'Times New Roman', serif;
+  --font-mono: 'Roboto Mono', Courier, 'Courier New', monospace;
+}
+
+@viewport {
+  zoom: 1.0;
+}
+@-ms-viewport {
+  width: extend-to-zoom;
+  zoom: 1.0;
+}
+/* general and mobile first */
+html {
+}
+body {
+  max-width: 90%;
+  margin: 1.5em auto;
+  color: #222;
+  background-color: #fff;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  scroll-behavior: smooth;
+  overflow-wrap: break-word;
+}
+.ears {
+  display: none;
+}
+
+/* headings */
+#title, h1, h2, h3, h4, h5, h6 {
+  margin: 1em 0 0.5em;
+  font-weight: bold;
+  line-height: 1.3;
+}
+#title {
+  clear: both;
+  border-bottom: 1px solid #ddd;
+  margin: 0 0 0.5em 0;
+  padding: 1em 0 0.5em;
+}
+.author {
+  padding-bottom: 4px;
+}
+h1 {
+  font-size: 26px;
+  margin: 1em 0;
+}
+h2 {
+  font-size: 22px;
+  margin-top: -20px;  /* provide offset for in-page anchors */
+  padding-top: 33px;
+}
+h3 {
+  font-size: 18px;
+  margin-top: -36px;  /* provide offset for in-page anchors */
+  padding-top: 42px;
+}
+h4 {
+  font-size: 16px;
+  margin-top: -36px;  /* provide offset for in-page anchors */
+  padding-top: 42px;
+}
+h5, h6 {
+  font-size: 14px;
+}
+#n-copyright-notice {
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 1em;
+  margin-bottom: 1em;
+}
+/* general structure */
+p {
+  padding: 0;
+  margin: 0 0 1em 0;
+  text-align: left;
+}
+div, span {
+  position: relative;
+}
+div {
+  margin: 0;
+}
+.alignRight.art-text {
+  background-color: #f9f9f9;
+  border: 1px solid #eee;
+  border-radius: 3px;
+  padding: 1em 1em 0;
+  margin-bottom: 1.5em;
+}
+.alignRight.art-text pre {
+  padding: 0;
+}
+.alignRight {
+  margin: 1em 0;
+}
+.alignRight > *:first-child {
+  border: none;
+  margin: 0;
+  float: right;
+  clear: both;
+}
+.alignRight > *:nth-child(2) {
+  clear: both;
+  display: block;
+  border: none;
+}
+svg {
+  display: block;
+}
+@media print {
+  svg {
+    max-height: 850px;
+    max-width: 660px;
+  }
+}
+svg[font-family~="serif" i], svg [font-family~="serif" i] {
+  font-family: var(--font-serif);
+}
+svg[font-family~="sans-serif" i], svg [font-family~="sans-serif" i] {
+  font-family: var(--font-sans);
+}
+svg[font-family~="monospace" i], svg [font-family~="monospace" i] {
+  font-family: var(--font-mono);
+}
+.alignCenter.art-text {
+  background-color: #f9f9f9;
+  border: 1px solid #eee;
+  border-radius: 3px;
+  padding: 1em 1em 0;
+  margin-bottom: 1.5em;
+}
+.alignCenter.art-text pre {
+  padding: 0;
+}
+.alignCenter {
+  margin: 1em 0;
+}
+.alignCenter > *:first-child {
+  display: table;
+  border: none;
+  margin: 0 auto;
+}
+
+/* lists */
+ol, ul {
+  padding: 0;
+  margin: 0 0 1em 2em;
+}
+ol ol, ul ul, ol ul, ul ol {
+  margin-left: 1em;
+}
+li {
+  margin: 0 0 0.25em 0;
+}
+.ulCompact li {
+  margin: 0;
+}
+ul.empty, .ulEmpty {
+  list-style-type: none;
+}
+ul.empty li, .ulEmpty li {
+  margin-top: 0.5em;
+}
+ul.ulBare, li.ulBare {
+  margin-left: 0em !important;
+}
+ul.compact, .ulCompact,
+ol.compact, .olCompact {
+  line-height: 100%;
+  margin: 0 0 0 2em;
+}
+
+/* definition lists */
+dl {
+}
+dl > dt {
+  float: left;
+  margin-right: 1em;
+}
+/* 
+dl.nohang > dt {
+  float: none;
+}
+*/
+dl > dd {
+  margin-bottom: .8em;
+  min-height: 1.3em;
+}
+dl.compact > dd, .dlCompact > dd {
+  margin-bottom: 0em;
+}
+dl > dd > dl {
+  margin-top: 0.5em;
+  margin-bottom: 0em;
+}
+
+/* links */
+a {
+  text-decoration: none;
+}
+a[href] {
+  color: #22e; /* Arlen: WCAG 2019 */
+}
+a[href]:hover {
+  background-color: #f2f2f2;
+}
+figcaption a[href],
+a[href].selfRef {
+  color: #222;
+}
+/* XXX probably not this:
+a.selfRef:hover {
+  background-color: transparent;
+  cursor: default;
+} */
+
+/* Figures */
+tt, code, pre {
+  background-color: #f9f9f9;
+  font-family: var(--font-mono);
+}
+pre {
+  border: 1px solid #eee;
+  margin: 0;
+  padding: 1em;
+}
+img {
+  max-width: 100%;
+}
+figure {
+  margin: 0;
+}
+figure blockquote {
+  margin: 0.8em 0.4em 0.4em;
+}
+figcaption {
+  font-style: italic;
+  margin: 0 0 1em 0;
+}
+@media screen {
+  pre {
+    overflow-x: auto;
+    max-width: 100%;
+    max-width: calc(100% - 22px);
+  }
+}
+
+/* aside, blockquote */
+aside, blockquote {
+  margin-left: 0;
+  padding: 1.2em 2em;
+}
+blockquote {
+  background-color: #f9f9f9;
+  color: #111; /* Arlen: WCAG 2019 */
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  margin: 1em 0;
+}
+blockquote > *:last-child {
+  margin-bottom: 0;
+}
+cite {
+  display: block;
+  text-align: right;
+  font-style: italic;
+}
+.xref {
+  overflow-wrap: normal;
+}
+
+/* tables */
+table {
+  width: 100%;
+  margin: 0 0 1em;
+  border-collapse: collapse;
+  border: 1px solid #eee;
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.5em 0.75em;
+}
+th {
+  text-align: left;
+  background-color: #e9e9e9;
+}
+tr:nth-child(2n+1) > td {
+  background-color: #f5f5f5;
+}
+table caption {
+  font-style: italic;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+table p {
+  /* XXX to avoid bottom margin on table row signifiers. If paragraphs should
+     be allowed within tables more generally, it would be far better to select on a class. */
+  margin: 0;
+}
+
+/* pilcrow */
+a.pilcrow {
+  color: #666; /* Arlen: AHDJ 2019 */
+  text-decoration: none;
+  visibility: hidden;
+  user-select: none;
+  -ms-user-select: none;
+  -o-user-select:none;
+  -moz-user-select: none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+@media screen {
+  aside:hover > a.pilcrow,
+  p:hover > a.pilcrow,
+  blockquote:hover > a.pilcrow,
+  div:hover > a.pilcrow,
+  li:hover > a.pilcrow,
+  pre:hover > a.pilcrow {
+    visibility: visible;
+  }
+  a.pilcrow:hover {
+    background-color: transparent;
+  }
+}
+
+/* misc */
+hr {
+  border: 0;
+  border-top: 1px solid #eee;
+}
+.bcp14 {
+  font-variant: small-caps;
+}
+
+.role {
+  font-variant: all-small-caps;
+}
+
+/* info block */
+#identifiers {
+  margin: 0;
+  font-size: 0.9em;
+}
+#identifiers dt {
+  width: 3em;
+  clear: left;
+}
+#identifiers dd {
+  float: left;
+  margin-bottom: 0;
+}
+/* Fix PDF info block run off issue */
+@media print {
+  #identifiers dd {
+    max-width: 100%;
+  }
+}
+#identifiers .authors .author {
+  display: inline-block;
+  margin-right: 1.5em;
+}
+#identifiers .authors .org {
+  font-style: italic;
+}
+
+/* The prepared/rendered info at the very bottom of the page */
+.docInfo {
+  color: #666; /* Arlen: WCAG 2019 */
+  font-size: 0.9em;
+  font-style: italic;
+  margin-top: 2em;
+}
+.docInfo .prepared {
+  float: left;
+}
+.docInfo .prepared {
+  float: right;
+}
+
+/* table of contents */
+#toc  {
+  padding: 0.75em 0 2em 0;
+  margin-bottom: 1em;
+}
+nav.toc ul {
+  margin: 0 0.5em 0 0;
+  padding: 0;
+  list-style: none;
+}
+nav.toc li {
+  line-height: 1.3em;
+  margin: 0.75em 0;
+  padding-left: 1.2em;
+  text-indent: -1.2em;
+}
+/* references */
+.references dt {
+  text-align: right;
+  font-weight: bold;
+  min-width: 7em;
+}
+.references dd {
+  margin-left: 8em;
+  overflow: auto;
+}
+
+.refInstance {
+  margin-bottom: 1.25em;
+}
+
+.refSubseries {
+  margin-bottom: 1.25em;
+}
+
+.references .ascii {
+  margin-bottom: 0.25em;
+}
+
+/* index */
+.index ul {
+  margin: 0 0 0 1em;
+  padding: 0;
+  list-style: none;
+}
+.index ul ul {
+  margin: 0;
+}
+.index li {
+  margin: 0;
+  text-indent: -2em;
+  padding-left: 2em;
+  padding-bottom: 5px;
+}
+.indexIndex {
+  margin: 0.5em 0 1em;
+}
+.index a {
+  font-weight: 700;
+}
+/* make the index two-column on all but the smallest screens */
+@media (min-width: 600px) {
+  .index ul {
+    -moz-column-count: 2;
+    -moz-column-gap: 20px;
+  }
+  .index ul ul {
+    -moz-column-count: 1;
+    -moz-column-gap: 0;
+  }
+}
+
+/* authors */
+address.vcard {
+  font-style: normal;
+  margin: 1em 0;
+}
+
+address.vcard .nameRole {
+  font-weight: 700;
+  margin-left: 0;
+}
+address.vcard .label {
+  font-family: var(--font-sans);
+  margin: 0.5em 0;
+}
+address.vcard .type {
+  display: none;
+}
+.alternative-contact {
+  margin: 1.5em 0 1em;
+}
+hr.addr {
+  border-top: 1px dashed;
+  margin: 0;
+  color: #ddd;
+  max-width: calc(100% - 16px);
+}
+
+/* temporary notes */
+.rfcEditorRemove::before {
+  position: absolute;
+  top: 0.2em;
+  right: 0.2em;
+  padding: 0.2em;
+  content: "The RFC Editor will remove this note";
+  color: #9e2a00; /* Arlen: WCAG 2019 */
+  background-color: #ffd; /* Arlen: WCAG 2019 */
+}
+.rfcEditorRemove {
+  position: relative;
+  padding-top: 1.8em;
+  background-color: #ffd; /* Arlen: WCAG 2019 */
+  border-radius: 3px;
+}
+.cref {
+  background-color: #ffd; /* Arlen: WCAG 2019 */
+  padding: 2px 4px;
+}
+.crefSource {
+  font-style: italic;
+}
+/* alternative layout for smaller screens */
+@media screen and (max-width: 1023px) {
+  body {
+    padding-top: 2em;
+  }
+  #title {
+    padding: 1em 0;
+  }
+  h1 {
+    font-size: 24px;
+  }
+  h2 {
+    font-size: 20px;
+    margin-top: -18px;  /* provide offset for in-page anchors */
+    padding-top: 38px;
+  }
+  #identifiers dd {
+    max-width: 60%;
+  }
+  #toc {
+    position: fixed;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    padding: 0;
+    margin: 0;
+    background-color: inherit;
+    border-bottom: 1px solid #ccc;
+  }
+  #toc h2 {
+    margin: -1px 0 0 0;
+    padding: 4px 0 4px 6px;
+    padding-right: 1em;
+    min-width: 190px;
+    font-size: 1.1em;
+    text-align: right;
+    background-color: #444;
+    color: white;
+    cursor: pointer;
+  }
+  #toc h2::before { /* css hamburger */
+    float: right;
+    position: relative;
+    width: 1em;
+    height: 1px;
+    left: -164px;
+    margin: 6px 0 0 0;
+    background: white none repeat scroll 0 0;
+    box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
+    content: "";
+  }
+  #toc nav {
+    display: none;
+    padding: 0.5em 1em 1em;
+    overflow: auto;
+    height: calc(100vh - 48px);
+    border-left: 1px solid #ddd;
+  }
+}
+
+/* alternative layout for wide screens */
+@media screen and (min-width: 1024px) {
+  body {
+    max-width: 724px;
+    margin: 42px auto;
+    padding-left: 1.5em;
+    padding-right: 29em;
+  }
+  #toc {
+    position: fixed;
+    top: 42px;
+    right: 42px;
+    width: 25%;
+    margin: 0;
+    padding: 0 1em;
+    z-index: 1;
+  }
+  #toc h2 {
+    border-top: none;
+    border-bottom: 1px solid #ddd;
+    font-size: 1em;
+    font-weight: normal;
+    margin: 0;
+    padding: 0.25em 1em 1em 0;
+  }
+  #toc nav {
+    display: block;
+    height: calc(90vh - 84px);
+    bottom: 0;
+    padding: 0.5em 0 0;
+    overflow: auto;
+  }
+  img { /* future proofing */
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* pagination */
+@media print {
+  body {
+    width: 100%;
+  }
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+  #n-copyright-notice {
+    border-bottom: none;
+  }
+  #toc, #n-introduction {
+    page-break-before: always;
+  }
+  #toc {
+    border-top: none;
+    padding-top: 0;
+  }
+  figure, pre {
+    page-break-inside: avoid;
+  }
+  figure {
+    overflow: scroll;
+  }
+  .breakable pre {
+    break-inside: auto;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+  h2+*, h3+*, h4+*, h5+*, h6+* {
+    page-break-before: avoid;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 10pt;
+  }
+  table {
+    border: 1px solid #ddd;
+  }
+  td {
+    border-top: 1px solid #ddd;
+  }
+}
+
+/* This is commented out here, as the string-set: doesn't
+   pass W3C validation currently */
+/*
+.ears thead .left {
+  string-set: ears-top-left content();
+}
+
+.ears thead .center {
+  string-set: ears-top-center content();
+}
+
+.ears thead .right {
+  string-set: ears-top-right content();
+}
+
+.ears tfoot .left {
+  string-set: ears-bottom-left content();
+}
+
+.ears tfoot .center {
+  string-set: ears-bottom-center content();
+}
+
+.ears tfoot .right {
+  string-set: ears-bottom-right content();
+}
+*/
+
+@page :first {
+  padding-top: 0;
+  @top-left {
+    content: normal;
+    border: none;
+  }
+  @top-center {
+    content: normal;
+    border: none;
+  }
+  @top-right {
+    content: normal;
+    border: none;
+  }
+}
+
+@page {
+  size: A4;
+  margin-bottom: 45mm;
+  padding-top: 20px;
+  /* The following is commented out here, but set appropriately by in code, as
+     the content depends on the document */
+  /*
+  @top-left {
+    content: 'Internet-Draft';
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @top-left {
+    content: string(ears-top-left);
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @top-center {
+    content: string(ears-top-center);
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @top-right {
+    content: string(ears-top-right);
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @bottom-left {
+    content: string(ears-bottom-left);
+    vertical-align: top;
+    border-top: solid 1px #ccc;
+  }
+  @bottom-center {
+    content: string(ears-bottom-center);
+    vertical-align: top;
+    border-top: solid 1px #ccc;
+  }
+  @bottom-right {
+      content: '[Page ' counter(page) ']';
+      vertical-align: top;
+      border-top: solid 1px #ccc;
+  }
+  */
+
+}
+
+/* Changes introduced to fix issues found during implementation */
+/* Make sure links are clickable even if overlapped by following H* */
+a {
+  z-index: 2;
+}
+/* Separate body from document info even without intervening H1 */
+section {
+  clear: both;
+}
+
+
+/* Top align author divs, to avoid names without organization dropping level with org names */
+.author {
+  vertical-align: top;
+}
+
+/* Leave room in document info to show Internet-Draft on one line */
+#identifiers dt {
+  width: 8em;
+}
+
+/* Don't waste quite as much whitespace between label and value in doc info */
+#identifiers dd {
+  margin-left: 1em;
+}
+
+/* Give floating toc a background color (needed when it's a div inside section */
+#toc {
+  background-color: white;
+}
+
+/* Make the collapsed ToC header render white on gray also when it's a link */
+@media screen and (max-width: 1023px) {
+  #toc h2 a,
+  #toc h2 a:link,
+  #toc h2 a:focus,
+  #toc h2 a:hover,
+  #toc a.toplink,
+  #toc a.toplink:hover {
+    color: white;
+    background-color: #444;
+    text-decoration: none;
+  }
+}
+
+/* Give the bottom of the ToC some whitespace */
+@media screen and (min-width: 1024px) {
+  #toc {
+    padding: 0 0 1em 1em;
+  }
+}
+
+/* Style section numbers with more space between number and title */
+.section-number {
+  padding-right: 0.5em;
+}
+
+/* prevent monospace from becoming overly large */
+tt, code, pre {
+  font-size: 95%;
+}
+
+/* Fix the height/width aspect for ascii art*/
+.sourcecode pre,
+.art-text pre {
+  line-height: 1.12;
+}
+
+
+/* Add styling for a link in the ToC that points to the top of the document */
+a.toplink {
+  float: right;
+  margin-right: 0.5em;
+}
+
+/* Fix the dl styling to match the RFC 7992 attributes */
+dl > dt,
+dl.dlParallel > dt {
+  float: left;
+  margin-right: 1em;
+}
+dl.dlNewline > dt {
+  float: none;
+}
+
+/* Provide styling for table cell text alignment */
+table td.text-left,
+table th.text-left {
+  text-align: left;
+}
+table td.text-center,
+table th.text-center {
+  text-align: center;
+}
+table td.text-right,
+table th.text-right {
+  text-align: right;
+}
+
+/* Make the alternative author contact information look less like just another
+   author, and group it closer with the primary author contact information */
+.alternative-contact {
+  margin: 0.5em 0 0.25em 0;
+}
+address .non-ascii {
+  margin: 0 0 0 2em;
+}
+
+/* With it being possible to set tables with alignment
+  left, center, and right, { width: 100%; } does not make sense */
+table {
+  width: auto;
+}
+
+/* Avoid reference text that sits in a block with very wide left margin,
+   because of a long floating dt label.*/
+.references dd {
+  overflow: visible;
+}
+
+/* Control caption placement */
+caption {
+  caption-side: bottom;
+}
+
+/* Limit the width of the author address vcard, so names in right-to-left
+   script don't end up on the other side of the page. */
+
+address.vcard {
+  max-width: 30em;
+  margin-right: auto;
+}
+
+/* For address alignment dependent on LTR or RTL scripts */
+address div.left {
+  text-align: left;
+}
+address div.right {
+  text-align: right;
+}
+
+/* Provide table alignment support.  We can't use the alignX classes above
+   since they do unwanted things with caption and other styling. */
+table.right {
+ margin-left: auto;
+ margin-right: 0;
+}
+table.center {
+ margin-left: auto;
+ margin-right: auto;
+}
+table.left {
+ margin-left: 0;
+ margin-right: auto;
+}
+
+/* Give the table caption label the same styling as the figcaption */
+caption a[href] {
+  color: #222;
+}
+
+@media print {
+  .toplink {
+    display: none;
+  }
+
+  /* avoid overwriting the top border line with the ToC header */
+  #toc {
+    padding-top: 1px;
+  }
+
+  /* Avoid page breaks inside dl and author address entries */
+  .vcard {
+    page-break-inside: avoid;
+  }
+
+}
+/* Tweak the bcp14 keyword presentation */
+.bcp14 {
+  font-variant: small-caps;
+  font-weight: bold;
+  font-size: 0.9em;
+}
+/* Tweak the invisible space above H* in order not to overlay links in text above */
+ h2 {
+  margin-top: -18px;  /* provide offset for in-page anchors */
+  padding-top: 31px;
+ }
+ h3 {
+  margin-top: -18px;  /* provide offset for in-page anchors */
+  padding-top: 24px;
+ }
+ h4 {
+  margin-top: -18px;  /* provide offset for in-page anchors */
+  padding-top: 24px;
+ }
+/* Float artwork pilcrow to the right */
+@media screen {
+  .artwork a.pilcrow {
+    display: block;
+    line-height: 0.7;
+    margin-top: 0.15em;
+  }
+}
+/* Make pilcrows on dd visible */
+@media screen {
+  dd:hover > a.pilcrow {
+    visibility: visible;
+  }
+}
+/* Make the placement of figcaption match that of a table's caption
+   by removing the figure's added bottom margin */
+.alignLeft.art-text,
+.alignCenter.art-text,
+.alignRight.art-text {
+   margin-bottom: 0;
+}
+.alignLeft,
+.alignCenter,
+.alignRight {
+  margin: 1em 0 0 0;
+}
+/* In print, the pilcrow won't show on hover, so prevent it from taking up space,
+   possibly even requiring a new line */
+@media print {
+  a.pilcrow {
+    display: none;
+  }
+}
+/* Styling for the external metadata */
+div#external-metadata {
+  background-color: #eee;
+  padding: 0.5em;
+  margin-bottom: 0.5em;
+  display: none;
+}
+div#internal-metadata {
+  padding: 0.5em;                       /* to match the external-metadata padding */
+}
+/* Styling for title RFC Number */
+h1#rfcnum {
+  clear: both;
+  margin: 0 0 -1em;
+  padding: 1em 0 0 0;
+}
+/* Make .olPercent look the same as <ol><li> */
+dl.olPercent > dd {
+  margin-bottom: 0.25em;
+  min-height: initial;
+}
+/* Give aside some styling to set it apart */
+aside {
+  border-left: 1px solid #ddd;
+  margin: 1em 0 1em 2em;
+  padding: 0.2em 2em;
+}
+aside > dl,
+aside > ol,
+aside > ul,
+aside > table,
+aside > p {
+  margin-bottom: 0.5em;
+}
+/* Additional page break settings */
+@media print {
+  figcaption, table caption {
+    page-break-before: avoid;
+  }
+}
+/* Font size adjustments for print */
+@media print {
+  body  { font-size: 10pt;      line-height: normal; max-width: 96%; }
+  h1    { font-size: 1.72em;    padding-top: 1.5em; } /* 1*1.2*1.2*1.2 */
+  h2    { font-size: 1.44em;    padding-top: 1.5em; } /* 1*1.2*1.2 */
+  h3    { font-size: 1.2em;     padding-top: 1.5em; } /* 1*1.2 */
+  h4    { font-size: 1em;       padding-top: 1.5em; }
+  h5, h6 { font-size: 1em;      margin: initial; padding: 0.5em 0 0.3em; }
+}
+/* Sourcecode margin in print, when there's no pilcrow */
+@media print {
+  .artwork,
+  .artwork > pre,
+  .sourcecode {
+    margin-bottom: 1em;
+  }
+}
+/* Avoid narrow tables forcing too narrow table captions, which may render badly */
+table {
+  min-width: 20em;
+}
+/* ol type a */
+ol.type-a { list-style-type: lower-alpha; }
+ol.type-A { list-style-type: upper-alpha; }
+ol.type-i { list-style-type: lower-roman; }
+ol.type-I { list-style-type: upper-roman; }
+/* Apply the print table and row borders in general, on request from the RPC,
+and increase the contrast between border and odd row background slightly */
+table {
+  border: 1px solid #ddd;
+}
+td {
+  border-top: 1px solid #ddd;
+}
+tr {
+  break-inside: avoid;
+}
+tr:nth-child(2n+1) > td {
+  background-color: #f8f8f8;
+}
+/* Use style rules to govern display of the TOC. */
+@media screen and (max-width: 1023px) {
+  #toc nav { display: none; }
+  #toc.active nav { display: block; }
+}
+/* Add support for keepWithNext */
+.keepWithNext {
+  break-after: avoid-page;
+  break-after: avoid-page;
+}
+/* Add support for keepWithPrevious */
+.keepWithPrevious {
+  break-before: avoid-page;
+}
+/* Change the approach to avoiding breaks inside artwork etc. */
+figure, pre, table, .artwork, .sourcecode  {
+  break-before: auto;
+  break-after: auto;
+}
+/* Avoid breaks between <dt> and <dd> */
+dl {
+  break-before: auto;
+  break-inside: auto;
+}
+dt {
+  break-before: auto;
+  break-after: avoid-page;
+}
+dd {
+  break-before: avoid-page;
+  break-after: auto;
+  orphans: 3;
+  widows: 3
+}
+span.break, dd.break {
+  margin-bottom: 0;
+  min-height: 0;
+  break-before: auto;
+  break-inside: auto;
+  break-after: auto;
+}
+/* Undo break-before ToC */
+@media print {
+  #toc {
+    break-before: auto;
+  }
+}
+/* Text in compact lists should not get extra bottom margin space,
+   since that would makes the list not compact */
+ul.compact p, .ulCompact p,
+ol.compact p, .olCompact p {
+ margin: 0;
+}
+/* But the list as a whole needs the extra space at the end */
+section ul.compact,
+section .ulCompact,
+section ol.compact,
+section .olCompact {
+  margin-bottom: 1em;                    /* same as p not within ul.compact etc. */
+}
+/* The tt and code background above interferes with for instance table cell
+   backgrounds.  Changed to something a bit more selective. */
+tt, code {
+  background-color: transparent;
+}
+p tt, p code, li tt, li code, dt tt, dt code {
+  background-color: #f8f8f8;
+}
+/* Tweak the pre margin -- 0px doesn't come out well */
+pre {
+   margin-top: 0.5px;
+}
+/* Tweak the compact list text */
+ul.compact, .ulCompact,
+ol.compact, .olCompact,
+dl.compact, .dlCompact {
+  line-height: normal;
+}
+/* Don't add top margin for nested lists */
+li > ul, li > ol, li > dl,
+dd > ul, dd > ol, dd > dl,
+dl > dd > dl {
+  margin-top: initial;
+}
+/* Elements that should not be rendered on the same line as a <dt> */
+/* This should match the element list in writer.text.TextWriter.render_dl() */
+dd > div.artwork:first-child,
+dd > aside:first-child,
+dd > blockquote:first-child,
+dd > figure:first-child,
+dd > ol:first-child,
+dd > div.sourcecode:first-child,
+dd > table:first-child,
+dd > ul:first-child {
+  clear: left;
+}
+/* fix for weird browser behaviour when <dd/> is empty */
+dt+dd:empty::before{
+  content: "\00a0";
+}
+/* Make paragraph spacing inside <li> smaller than in body text, to fit better within the list */
+li > p {
+  margin-bottom: 0.5em
+}
+/* Don't let p margin spill out from inside list items */
+li > p:last-of-type:only-child {
+  margin-bottom: 0;
+}
+</style>
+<link href="rfc-local.css" rel="stylesheet" type="text/css">
+</head>
+<body class="xml2rfc">
+<table class="ears">
+<thead><tr>
+<td class="left">Internet-Draft</td>
+<td class="center">verification.* family</td>
+<td class="right">September 2026</td>
+</tr></thead>
+<tfoot><tr>
+<td class="left">Krausz</td>
+<td class="center">Expires 26 March 2027</td>
+<td class="right">[Page]</td>
+</tr></tfoot>
+</table>
+<div id="external-metadata" class="document-information"></div>
+<div id="internal-metadata" class="document-information">
+<dl id="identifiers">
+<dt class="label-workgroup">Workgroup:</dt>
+<dd class="workgroup">Network Working Group</dd>
+<dt class="label-internet-draft">Internet-Draft:</dt>
+<dd class="internet-draft">draft-krausz-verification-state-02</dd>
+<dt class="label-published">Published:</dt>
+<dd class="published">
+<time datetime="2026-09-22" class="published">22 September 2026</time>
+    </dd>
+<dt class="label-intended-status">Intended Status:</dt>
+<dd class="intended-status">Informational</dd>
+<dt class="label-expires">Expires:</dt>
+<dd class="expires"><time datetime="2027-03-26">26 March 2027</time></dd>
+<dt class="label-authors">Author:</dt>
+<dd class="authors">
+<div class="author">
+      <div class="author-name">J. Krausz</div>
+<div class="org">TK Collective LLC</div>
+</div>
+</dd>
+</dl>
+</div>
+<h1 id="title">The verification.* Constraint Family: Pre-Action Fail-Closed Gates for AI Agent Decisions</h1>
+<section id="section-abstract">
+      <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
+<p id="section-abstract-1">This document specifies the <code>verification.*</code> constraint family --- a pre-action, fail-closed gate primitive for AI agent decisions, sibling in shape to the <code>environment.*</code> family used in Verifiable Intent specifications. A <code>verification.*</code> receipt is a JSON Web Signature (JWS) signed artifact carrying a canonical input, a derived binary <code>act</code>/<code>halt</code> output, and a versioned mapping identifier that binds them. A relying party recomputes the gate locally from signed primitives under the named mapping; the verifier never trusts the issuer's runtime.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+<p id="section-abstract-2">This revision replaces the raw verdict domain of <code>draft-krausz-verification-state-01</code> (<code>supported</code>/<code>refuted</code>/<code>unverifiable</code>/<code>unknown</code>) with a four-state vocabulary --- <code>verified</code>, <code>contradicted</code>, <code>indeterminate</code>, and <code>not_evaluated</code> --- together with a reason-code mechanism that separates a state's substance from a verifier's own instrument failure, and with an admissibility gate applied before a state is ever assigned. It adds evidence pinning: a receipt MAY carry an <code>evidence_set</code> block that content-addresses the sources considered during verification, so that a verdict can be recomputed offline from the receipt and the pinned bytes alone, without depending on a live retrieval provider. Freshness is anchored to the evidence's own <code>retrieved_at</code> timestamp rather than a separately declared validity window. This shape provides decision explainability and traceability evidence aligned with EU AI Act Article 12 record-keeping obligations and with the Decision Explainability tier of an industry Zero Trust for AI Agents framework published in 2026. The format is forward-compatible across mapping revisions: receipts signed under one mapping ID remain verifiable as correct-under-that-mapping after newer mappings ship. The vectors that content-address a mapping document or an evidence set are historical, digest-anchored artifacts and are unchanged by this revision; nothing in this document alters a previously issued digest.<a href="#section-abstract-2" class="pilcrow">¶</a></p>
+</section>
+<div id="status-of-memo">
+<section id="section-boilerplate.1">
+        <h2 id="name-status-of-this-memo">
+<a href="#name-status-of-this-memo" class="section-name selfRef">Status of This Memo</a>
+        </h2>
+<p id="section-boilerplate.1-1">
+        This Internet-Draft is submitted in full conformance with the
+        provisions of BCP 78 and BCP 79.<a href="#section-boilerplate.1-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-2">
+        Internet-Drafts are working documents of the Internet Engineering Task
+        Force (IETF). Note that other groups may also distribute working
+        documents as Internet-Drafts. The list of current Internet-Drafts is
+        at <span><a href="https://datatracker.ietf.org/drafts/current/">https://datatracker.ietf.org/drafts/current/</a></span>.<a href="#section-boilerplate.1-2" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-3">
+        Internet-Drafts are draft documents valid for a maximum of six months
+        and may be updated, replaced, or obsoleted by other documents at any
+        time. It is inappropriate to use Internet-Drafts as reference
+        material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-4">
+        This Internet-Draft will expire on 26 March 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="copyright">
+<section id="section-boilerplate.2">
+        <h2 id="name-copyright-notice">
+<a href="#name-copyright-notice" class="section-name selfRef">Copyright Notice</a>
+        </h2>
+<p id="section-boilerplate.2-1">
+            Copyright (c) 2026 IETF Trust and the persons identified as the
+            document authors. All rights reserved.<a href="#section-boilerplate.2-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.2-2">
+            This document is subject to BCP 78 and the IETF Trust's Legal
+            Provisions Relating to IETF Documents
+            (<span><a href="https://trustee.ietf.org/license-info">https://trustee.ietf.org/license-info</a></span>) in effect on the date of
+            publication of this document. Please review these documents
+            carefully, as they describe your rights and restrictions with
+            respect to this document. Code Components extracted from this
+            document must include Revised BSD License text as described in
+            Section 4.e of the Trust Legal Provisions and are provided without
+            warranty as described in the Revised BSD License.<a href="#section-boilerplate.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="toc">
+<section id="section-toc.1">
+        <a href="#" onclick="scroll(0,0)" class="toplink">▲</a><h2 id="name-table-of-contents">
+<a href="#name-table-of-contents" class="section-name selfRef">Table of Contents</a>
+        </h2>
+<nav class="toc"><ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1">
+            <p id="section-toc.1-1.1.1" class="keepWithNext"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.1">
+                <p id="section-toc.1-1.1.2.1.1" class="keepWithNext"><a href="#section-1.1" class="auto internal xref">1.1</a>.  <a href="#name-requirements-language" class="internal xref">Requirements Language</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.2">
+                <p id="section-toc.1-1.1.2.2.1" class="keepWithNext"><a href="#section-1.2" class="auto internal xref">1.2</a>.  <a href="#name-scope" class="internal xref">Scope</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
+            <p id="section-toc.1-1.2.1"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-terminology" class="internal xref">Terminology</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
+            <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-verification-state-vocabula" class="internal xref">Verification State Vocabulary</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.1">
+                <p id="section-toc.1-1.3.2.1.1"><a href="#section-3.1" class="auto internal xref">3.1</a>.  <a href="#name-the-four-states-and-the-cap" class="internal xref">The Four States and the Capture Relationship</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.1.2.1">
+                    <p id="section-toc.1-1.3.2.1.2.1.1"><a href="#section-3.1.1" class="auto internal xref">3.1.1</a>.  <a href="#name-enumerating-the-negatives-b" class="internal xref">Enumerating the Negatives Behind an Indeterminate Count</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.2">
+                <p id="section-toc.1-1.3.2.2.1"><a href="#section-3.2" class="auto internal xref">3.2</a>.  <a href="#name-the-subject-clause" class="internal xref">The Subject Clause</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.3">
+                <p id="section-toc.1-1.3.2.3.1"><a href="#section-3.3" class="auto internal xref">3.3</a>.  <a href="#name-admissibility-as-a-gate-not" class="internal xref">Admissibility as a Gate, Not a State</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-the-verification-constraint" class="internal xref">The verification.* Constraint Family</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1">
+                <p id="section-toc.1-1.4.2.1.1"><a href="#section-4.1" class="auto internal xref">4.1</a>.  <a href="#name-sibling-not-member-relation" class="internal xref">Sibling-not-Member Relationship to environment.*</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2">
+                <p id="section-toc.1-1.4.2.2.1"><a href="#section-4.2" class="auto internal xref">4.2</a>.  <a href="#name-composition-rules" class="internal xref">Composition Rules</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
+            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-receipt-format" class="internal xref">Receipt Format</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1">
+                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-jws-envelope" class="internal xref">JWS Envelope</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2">
+                <p id="section-toc.1-1.5.2.2.1"><a href="#section-5.2" class="auto internal xref">5.2</a>.  <a href="#name-payload-claims-canonical-de" class="internal xref">Payload Claims --- Canonical, Derived, Mapping-Bound</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.3">
+                <p id="section-toc.1-1.5.2.3.1"><a href="#section-5.3" class="auto internal xref">5.3</a>.  <a href="#name-evidence-pinning" class="internal xref">Evidence Pinning</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.3.2.1">
+                    <p id="section-toc.1-1.5.2.3.2.1.1"><a href="#section-5.3.1" class="auto internal xref">5.3.1</a>.  <a href="#name-the-evidence_set-member" class="internal xref">The evidence_set Member</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.3.2.2">
+                    <p id="section-toc.1-1.5.2.3.2.2.1"><a href="#section-5.3.2" class="auto internal xref">5.3.2</a>.  <a href="#name-source-entries" class="internal xref">Source Entries</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.3.2.3">
+                    <p id="section-toc.1-1.5.2.3.2.3.1"><a href="#section-5.3.3" class="auto internal xref">5.3.3</a>.  <a href="#name-evidence-root-construction" class="internal xref">Evidence Root Construction</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.3.2.4">
+                    <p id="section-toc.1-1.5.2.3.2.4.1"><a href="#section-5.3.4" class="auto internal xref">5.3.4</a>.  <a href="#name-what-an-evidence-set-does-n" class="internal xref">What an Evidence Set Does Not Establish</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.3.2.5">
+                    <p id="section-toc.1-1.5.2.3.2.5.1"><a href="#section-5.3.5" class="auto internal xref">5.3.5</a>.  <a href="#name-independence" class="internal xref">Independence</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.4">
+                <p id="section-toc.1-1.5.2.4.1"><a href="#section-5.4" class="auto internal xref">5.4</a>.  <a href="#name-verification-protocol" class="internal xref">Verification Protocol</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.4.2.1">
+                    <p id="section-toc.1-1.5.2.4.2.1.1"><a href="#section-5.4.1" class="auto internal xref">5.4.1</a>.  <a href="#name-evidence-set-resolution-ste" class="internal xref">Evidence-Set Resolution Step</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.5">
+                <p id="section-toc.1-1.5.2.5.1"><a href="#section-5.5" class="auto internal xref">5.5</a>.  <a href="#name-claim-binding" class="internal xref">Claim Binding</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.6">
+                <p id="section-toc.1-1.5.2.6.1"><a href="#section-5.6" class="auto internal xref">5.6</a>.  <a href="#name-receipt-envelope-example" class="internal xref">Receipt Envelope Example</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.7">
+                <p id="section-toc.1-1.5.2.7.1"><a href="#section-5.7" class="auto internal xref">5.7</a>.  <a href="#name-version-binding-rationale" class="internal xref">Version-Binding Rationale</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
+            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-binary-halt-gate-semantics" class="internal xref">Binary-Halt Gate Semantics</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.1">
+                <p id="section-toc.1-1.6.2.1.1"><a href="#section-6.1" class="auto internal xref">6.1</a>.  <a href="#name-decision-table" class="internal xref">Decision Table</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.2">
+                <p id="section-toc.1-1.6.2.2.1"><a href="#section-6.2" class="auto internal xref">6.2</a>.  <a href="#name-threshold-rules" class="internal xref">Threshold Rules</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.3">
+                <p id="section-toc.1-1.6.2.3.1"><a href="#section-6.3" class="auto internal xref">6.3</a>.  <a href="#name-fail-closed-mandate" class="internal xref">Fail-Closed Mandate</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-multi-axis-freshness" class="internal xref">Multi-Axis Freshness</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.1">
+                <p id="section-toc.1-1.7.2.1.1"><a href="#section-7.1" class="auto internal xref">7.1</a>.  <a href="#name-three-independent-axes" class="internal xref">Three Independent Axes</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.2">
+                <p id="section-toc.1-1.7.2.2.1"><a href="#section-7.2" class="auto internal xref">7.2</a>.  <a href="#name-staleness-semantics" class="internal xref">Staleness Semantics</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-calibration-anchor-requirem" class="internal xref">Calibration Anchor Requirements</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.1">
+                <p id="section-toc.1-1.8.2.1.1"><a href="#section-8.1" class="auto internal xref">8.1</a>.  <a href="#name-reproducibility-mandate" class="internal xref">Reproducibility Mandate</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.2">
+                <p id="section-toc.1-1.8.2.2.1"><a href="#section-8.2" class="auto internal xref">8.2</a>.  <a href="#name-drift-detection" class="internal xref">Drift Detection</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
+            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-relationship-to-related-wor" class="internal xref">Relationship to Related Work</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.1">
+                <p id="section-toc.1-1.9.2.1.1"><a href="#section-9.1" class="auto internal xref">9.1</a>.  <a href="#name-scitt" class="internal xref">SCITT</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.2">
+                <p id="section-toc.1-1.9.2.2.1"><a href="#section-9.2" class="auto internal xref">9.2</a>.  <a href="#name-relationship-to-decision-re" class="internal xref">Relationship to Decision Records</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.3">
+                <p id="section-toc.1-1.9.2.3.1"><a href="#section-9.3" class="auto internal xref">9.3</a>.  <a href="#name-rats" class="internal xref">RATS</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.4">
+                <p id="section-toc.1-1.9.2.4.1"><a href="#section-9.4" class="auto internal xref">9.4</a>.  <a href="#name-w3c-vc-confidence-method" class="internal xref">W3C VC Confidence Method</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.5">
+                <p id="section-toc.1-1.9.2.5.1"><a href="#section-9.5" class="auto internal xref">9.5</a>.  <a href="#name-vap-framework" class="internal xref">VAP Framework</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.6">
+                <p id="section-toc.1-1.9.2.6.1"><a href="#section-9.6" class="auto internal xref">9.6</a>.  <a href="#name-mastercard-verifiable-inten" class="internal xref">Mastercard Verifiable Intent (environment.*)</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.7">
+                <p id="section-toc.1-1.9.2.7.1"><a href="#section-9.7" class="auto internal xref">9.7</a>.  <a href="#name-differentiator-summary" class="internal xref">Differentiator Summary</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-open-issues" class="internal xref">Open Issues</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
+            <p id="section-toc.1-1.11.1"><a href="#section-11" class="auto internal xref">11</a>. <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.1">
+                <p id="section-toc.1-1.11.2.1.1"><a href="#section-11.1" class="auto internal xref">11.1</a>.  <a href="#name-composition-non-interferenc" class="internal xref">Composition Non-Interference with environment.* Family</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.2">
+                <p id="section-toc.1-1.11.2.2.1"><a href="#section-11.2" class="auto internal xref">11.2</a>.  <a href="#name-other-security-consideratio" class="internal xref">Other Security Considerations</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
+            <p id="section-toc.1-1.12.1"><a href="#section-12" class="auto internal xref">12</a>. <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
+            <p id="section-toc.1-1.13.1"><a href="#section-13" class="auto internal xref">13</a>. <a href="#name-informative-references" class="internal xref">Informative References</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14">
+            <p id="section-toc.1-1.14.1"><a href="#appendix-A" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15">
+            <p id="section-toc.1-1.15.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
+</li>
+        </ul>
+</nav>
+</section>
+</div>
+<div id="introduction">
+<section id="section-1">
+      <h2 id="name-introduction">
+<a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
+      </h2>
+<p id="section-1-1">AI agents increasingly take economic and operational actions on probabilistic input. A customer-service agent posts content; a procurement agent commits to a supplier; a research agent files a regulatory report. Each action is preceded by a factual claim the agent believes to be true. Today, the infrastructure verifying whether the claim is true <em>before</em> the agent acts on it is fragmented across operator logs (after-the-fact), confidence scores (soft signals), and ad-hoc validation pipelines (not interoperable).<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-2">This document specifies the <code>verification.*</code> constraint family: a pre-action, fail-closed gate primitive shaped identically to the <code>environment.*</code> family used in Verifiable Intent specifications <span>[<a href="#VINTENT" class="cite xref">VINTENT</a>]</span>, but applied to probabilistic predicates rather than boolean state. A <code>verification.*</code> receipt asserts, for a specific claim under a specific ruleset at a specific moment, whether an agent SHOULD proceed or halt. The receipt is JWS-signed <span>[<a href="#RFC7515" class="cite xref">RFC7515</a>]</span> and structured such that a relying party can recompute the gate decision locally from signed primitives, without trusting the issuer's runtime.<a href="#section-1-2" class="pilcrow">¶</a></p>
+<p id="section-1-3">The four properties this primitive needs to satisfy together:<a href="#section-1-3" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="compact type-1" id="section-1-4">
+<li id="section-1-4.1">
+          <strong>Pre-action.</strong> The verification happens before the action.<a href="#section-1-4.1" class="pilcrow">¶</a>
+</li>
+        <li id="section-1-4.2">
+          <strong>Fail-closed.</strong> Anything ambiguous halts; "impossible, not tedious."<a href="#section-1-4.2" class="pilcrow">¶</a>
+</li>
+        <li id="section-1-4.3">
+          <strong>Third-party recomputable.</strong> The verifier never trusts the issuer's runtime; signature binds inputs, outputs, and mapping identifier together.<a href="#section-1-4.3" class="pilcrow">¶</a>
+</li>
+        <li id="section-1-4.4">
+          <strong>Forward-compatible.</strong> Receipts signed under one ruleset remain verifiable as correct-under-that-ruleset even after newer rulesets ship.<a href="#section-1-4.4" class="pilcrow">¶</a>
+</li>
+      </ol>
+<p id="section-1-5">Property 3 is the load-bearing one and the one most existing primitives stop short of. SCITT <span>[<a href="#RFC9943" class="cite xref">RFC9943</a>]</span> signs receipts (necessary but not sufficient). W3C Verifiable Credentials Confidence Method <span>[<a href="#VC-CM" class="cite xref">VC-CM</a>]</span> exposes confidence as a verifiable property (useful but not gating). RATS <span>[<a href="#RFC9334" class="cite xref">RFC9334</a>]</span> provides the Evidence-&gt;Verifier-&gt;AR-&gt;RP vocabulary (matched here). None fully recompose the gate verdict from signed inputs. Property 4 is the one that becomes a footgun if skipped: rule changes silently invalidate or mis-verify old artifacts.<a href="#section-1-5" class="pilcrow">¶</a></p>
+<p id="section-1-6">This document is complementary to security frameworks for AI agent deployment, including the Zero Trust framework for AI Agents published by Anthropic in May 2026 <span>[<a href="#ANTHROPIC-ZT" class="cite xref">ANTHROPIC-ZT</a>]</span>, which names decision explainability as non-optional for regulated AI systems. The <code>verification.*</code> constraint family is one credible artifact shape for satisfying that explainability requirement.<a href="#section-1-6" class="pilcrow">¶</a></p>
+<div id="requirements-language">
+<section id="section-1.1">
+        <h3 id="name-requirements-language">
+<a href="#section-1.1" class="section-number selfRef">1.1. </a><a href="#name-requirements-language" class="section-name selfRef">Requirements Language</a>
+        </h3>
+<p id="section-1.1-1">The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in BCP 14 <span>[<a href="#RFC2119" class="cite xref">RFC2119</a>]</span> <span>[<a href="#RFC8174" class="cite xref">RFC8174</a>]</span> when, and only when, they appear in all capitals, as shown here.<a href="#section-1.1-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="scope">
+<section id="section-1.2">
+        <h3 id="name-scope">
+<a href="#section-1.2" class="section-number selfRef">1.2. </a><a href="#name-scope" class="section-name selfRef">Scope</a>
+        </h3>
+<p id="section-1.2-1">In scope:<a href="#section-1.2-1" class="pilcrow">¶</a></p>
+<ul class="compact">
+<li class="compact" id="section-1.2-2.1">Gate semantics for pre-action verification of factual claims.<a href="#section-1.2-2.1" class="pilcrow">¶</a>
+</li>
+          <li class="compact" id="section-1.2-2.2">Receipt envelope format and required claims.<a href="#section-1.2-2.2" class="pilcrow">¶</a>
+</li>
+          <li class="compact" id="section-1.2-2.3">Calibration anchor requirements and discipline.<a href="#section-1.2-2.3" class="pilcrow">¶</a>
+</li>
+          <li class="compact" id="section-1.2-2.4">Multi-axis freshness model.<a href="#section-1.2-2.4" class="pilcrow">¶</a>
+</li>
+          <li class="compact" id="section-1.2-2.5">Verification protocol for relying parties.<a href="#section-1.2-2.5" class="pilcrow">¶</a>
+</li>
+        </ul>
+<p id="section-1.2-3">Out of scope:<a href="#section-1.2-3" class="pilcrow">¶</a></p>
+<ul class="compact">
+<li class="compact" id="section-1.2-4.1">Signing key management policy (defers to JWKS standards).<a href="#section-1.2-4.1" class="pilcrow">¶</a>
+</li>
+          <li class="compact" id="section-1.2-4.2">Specific verifier implementations or model architectures.<a href="#section-1.2-4.2" class="pilcrow">¶</a>
+</li>
+          <li class="compact" id="section-1.2-4.3">Claim-extraction techniques (how a claim is identified from agent input/output).<a href="#section-1.2-4.3" class="pilcrow">¶</a>
+</li>
+          <li class="compact" id="section-1.2-4.4">Adversarial-probe methodology specifics.<a href="#section-1.2-4.4" class="pilcrow">¶</a>
+</li>
+        </ul>
+</section>
+</div>
+</section>
+</div>
+<div id="terminology">
+<section id="section-2">
+      <h2 id="name-terminology">
+<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-terminology" class="section-name selfRef">Terminology</a>
+      </h2>
+<p id="section-2-1"><strong>Verifier</strong> --- Entity issuing a verification receipt.<a href="#section-2-1" class="pilcrow">¶</a></p>
+<p id="section-2-2"><strong>Relying Party (RP)</strong> --- Agent or downstream system consuming the receipt at a gate.<a href="#section-2-2" class="pilcrow">¶</a></p>
+<p id="section-2-3"><strong>Gate</strong> --- The decision point in the RP's code path where <code>act</code> / <code>halt</code> is consumed.<a href="#section-2-3" class="pilcrow">¶</a></p>
+<p id="section-2-4"><strong>Calibration anchor</strong> --- The dataset and seed defining confidence semantics for the verifier's pipeline.<a href="#section-2-4" class="pilcrow">¶</a></p>
+<p id="section-2-5"><strong>Multi-axis freshness</strong> --- Signature, calibration, and evidence each carry independent staleness exposure. As of this revision the evidence axis is computed from <code>evidence_set.retrieved_at</code> rather than from a separately declared validity window; see <a href="#multi-axis-freshness" class="auto internal xref">Section 7</a>.<a href="#section-2-5" class="pilcrow">¶</a></p>
+<p id="section-2-6"><strong>State (raw)</strong> --- One of <code>verified</code>, <code>contradicted</code>, <code>indeterminate</code>, <code>not_evaluated</code>. See <a href="#verification-state-vocabulary" class="auto internal xref">Section 3</a> for the full vocabulary, its reason codes, and the admissibility gate applied before a state is assigned. This replaces the <code>supported</code>/<code>refuted</code>/<code>unverifiable</code>/<code>unknown</code> domain of <code>draft-krausz-verification-state-01</code>.<a href="#section-2-6" class="pilcrow">¶</a></p>
+<p id="section-2-7"><strong>Reason code</strong> --- A machine-readable qualifier carried alongside a reported state that distinguishes how the state was reached. See <a href="#verification-state-vocabulary" class="auto internal xref">Section 3</a>.<a href="#section-2-7" class="pilcrow">¶</a></p>
+<p id="section-2-8"><strong>Subject</strong> --- The specific observation --- not the code, verifier, or vantage point that produced it --- that a reported state describes. See <a href="#subject-clause" class="auto internal xref">Section 3.2</a>.<a href="#section-2-8" class="pilcrow">¶</a></p>
+<p id="section-2-9"><strong>Admissibility</strong> --- A gate applied to an observation before evaluation: whether the observation counts at all. Distinct from the four states, which describe the outcome of evaluating an admitted observation. See <a href="#admissibility-gate" class="auto internal xref">Section 3.3</a>.<a href="#section-2-9" class="pilcrow">¶</a></p>
+<p id="section-2-10"><strong>Recommendation (canonical)</strong> --- One of <code>confident_supported</code>, <code>un_probed_not_cleared</code>, <code>vulnerable_supported</code>, <code>weak_supported</code>, <code>refuted</code>, <code>unverifiable</code>, <code>error</code>. Derived from primitives under the named mapping. The mapping's own vocabulary is retained unchanged from <code>draft-krausz-verification-state-01</code> pending a future revision; see <a href="#open-issues" class="auto internal xref">Section 10</a>.<a href="#section-2-10" class="pilcrow">¶</a></p>
+<p id="section-2-11"><strong>Gate (derived)</strong> --- <code>act</code> or <code>halt</code>. Derived from recommendation under the named mapping.<a href="#section-2-11" class="pilcrow">¶</a></p>
+<p id="section-2-12"><strong>Mapping document</strong> --- A published, immutable document specifying how recommendations are derived from primitives and how gates are derived from recommendations. Identified by a stable string identifier (e.g., <code>v0.3.0-2026-05-30</code>).<a href="#section-2-12" class="pilcrow">¶</a></p>
+<p id="section-2-13"><strong>Evidence item</strong> --- A single retrieved source considered during verification, identified by its URI and, when pinned, by a cryptographic digest of the retrieved content.<a href="#section-2-13" class="pilcrow">¶</a></p>
+<p id="section-2-14"><strong>Evidence set</strong> --- The complete, unordered collection of evidence items considered during one verification, together with the metadata that makes it recomputable.<a href="#section-2-14" class="pilcrow">¶</a></p>
+<p id="section-2-15"><strong>Pinned</strong> --- An evidence item is pinned when the receipt carries a digest of the retrieved content, such that a verifier holding the same content can confirm it is the content that was judged. An item carrying a URI alone is <strong>not</strong> pinned.<a href="#section-2-15" class="pilcrow">¶</a></p>
+<p id="section-2-16"><strong>Offline recomputation</strong> --- Re-derivation of a verification outcome from the receipt, the referenced mapping document, and the pinned evidence content alone, without contacting the issuer or any retrieval provider.<a href="#section-2-16" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="verification-state-vocabulary">
+<section id="section-3">
+      <h2 id="name-verification-state-vocabula">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-verification-state-vocabula" class="section-name selfRef">Verification State Vocabulary</a>
+      </h2>
+<p id="section-3-1">This section replaces the raw verdict domain of <code>draft-krausz-verification-state-01</code> with a four-state vocabulary, a reason-code mechanism, a generalized subject clause, and an admissibility gate applied before any state is assigned. It reflects working-group discussion current as of 2026-09-22, including wg-identity #21 and tsc #4 threads.<a href="#section-3-1" class="pilcrow">¶</a></p>
+<div id="the-four-states">
+<section id="section-3.1">
+        <h3 id="name-the-four-states-and-the-cap">
+<a href="#section-3.1" class="section-number selfRef">3.1. </a><a href="#name-the-four-states-and-the-cap" class="section-name selfRef">The Four States and the Capture Relationship</a>
+        </h3>
+<p id="section-3.1-1">A verifier reports exactly one of four states for an admitted observation:<a href="#section-3.1-1" class="pilcrow">¶</a></p>
+<ul class="compact">
+<li class="compact" id="section-3.1-2.1">
+            <code>verified</code> --- the claim was checked against evidence and the evidence supports it.<a href="#section-3.1-2.1" class="pilcrow">¶</a>
+</li>
+          <li class="compact" id="section-3.1-2.2">
+            <code>contradicted</code> --- the claim was checked against evidence and the evidence is inconsistent with it.<a href="#section-3.1-2.2" class="pilcrow">¶</a>
+</li>
+          <li class="compact" id="section-3.1-2.3">
+            <code>indeterminate</code> --- the claim was checked and the check did not resolve to either of the above. See below for the reason codes that distinguish why.<a href="#section-3.1-2.3" class="pilcrow">¶</a>
+</li>
+          <li class="compact" id="section-3.1-2.4">
+            <code>not_evaluated</code> --- no check was performed.<a href="#section-3.1-2.4" class="pilcrow">¶</a>
+</li>
+        </ul>
+<p id="section-3.1-3">These four supersede <code>draft-krausz-verification-state-01</code>'s <code>supported</code> / <code>refuted</code> / <code>unverifiable</code> / <code>unknown</code> domain one-for-one in that order; see <a href="#open-issues" class="auto internal xref">Section 10</a> for what this renaming does and does not settle about the downstream recommendation and gate mapping.<a href="#section-3.1-3" class="pilcrow">¶</a></p>
+<p id="section-3.1-4"><strong>Capture relationship.</strong> A state is not a free-standing value. A receipt MUST capture a state together with (a) the subject it describes (<a href="#subject-clause" class="auto internal xref">Section 3.2</a>) and (b) a reason code, when this section requires one for that state. A bare state carried without an identified subject is not evaluable under this vocabulary and MUST be treated by a relying party as if the state were absent. The <code>evidence_set</code> block of <a href="#evidence-pinning" class="auto internal xref">Section 5.3</a>, where present, is the record of what was captured; the state is the record of what capturing it established.<a href="#section-3.1-4" class="pilcrow">¶</a></p>
+<p id="section-3.1-5"><strong>Instrument failure.</strong> A verifier reporting any of the four states MUST distinguish reaching that state through evaluation from failing to evaluate because the verifier's own instrument failed. An implementation that could not complete its check --- a timeout, a crashed dependency, a malformed internal input --- MUST NOT report <code>indeterminate</code> or any other state as though it were a substantive finding. It MUST report the state the observation would otherwise carry (typically <code>not_evaluated</code>, or <code>indeterminate</code> where a partial check ran before failing) together with the reason code <code>instrument_failure</code>. <code>instrument_failure</code> is available under all four states for exactly this purpose: it marks the state as unreliable on account of the verifier's own tooling, not as a genuine result about the subject.<a href="#section-3.1-5" class="pilcrow">¶</a></p>
+<p id="section-3.1-6"><strong>Reason codes under <code>indeterminate</code>.</strong> Two further reason codes distinguish why a check that ran did not resolve:<a href="#section-3.1-6" class="pilcrow">¶</a></p>
+<ul class="compact">
+<li class="compact" id="section-3.1-7.1">
+            <code>divergence</code> --- the check ran and found a divergence between sources or signals that the verifier cannot attribute to either side.<a href="#section-3.1-7.1" class="pilcrow">¶</a>
+</li>
+          <li class="compact" id="section-3.1-7.2">
+            <code>absence</code> --- the check ran and produced no signal at all. This name is retained from prior working-group usage rather than renamed, because the absence of a signal is a distinct and previously-established meaning that a synonym would obscure.<a href="#section-3.1-7.2" class="pilcrow">¶</a>
+</li>
+        </ul>
+<p id="section-3.1-8">A verifier MUST choose <code>divergence</code> or <code>absence</code> for every <code>indeterminate</code> report that is not an instrument failure; the two are not interchangeable, and collapsing them discards exactly the distinction this section exists to preserve.<a href="#section-3.1-8" class="pilcrow">¶</a></p>
+<div id="melchiorre-clause">
+<section id="section-3.1.1">
+          <h4 id="name-enumerating-the-negatives-b">
+<a href="#section-3.1.1" class="section-number selfRef">3.1.1. </a><a href="#name-enumerating-the-negatives-b" class="section-name selfRef">Enumerating the Negatives Behind an Indeterminate Count</a>
+          </h4>
+<p id="section-3.1.1-1">Committed 2026-09-16 as a direct consequence of a natural experiment comparing HTTP 429 responses across two hosts, one returning over three thousand and the other returning zero, where the zero count was a fact about the requester's own standing with the host and not about the host's behavior:<a href="#section-3.1.1-1" class="pilcrow">¶</a></p>
+<p id="section-3.1.1-2">Before an implementation or a report built on this vocabulary publishes any count of the form "N subjects are not doing X," it MUST enumerate the status codes behind the negatives. A negative built from a status about the asker --- the verifier's own instrument, vantage point, or standing --- is not a negative about the subject being observed, and MUST be attributed to <code>instrument_failure</code> or <code>absence</code> as appropriate rather than folded into a substantive <code>contradicted</code> or <code>indeterminate</code> count.<a href="#section-3.1.1-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="subject-clause">
+<section id="section-3.2">
+        <h3 id="name-the-subject-clause">
+<a href="#section-3.2" class="section-number selfRef">3.2. </a><a href="#name-the-subject-clause" class="section-name selfRef">The Subject Clause</a>
+        </h3>
+<p id="section-3.2-1">The subject of a state carrying an open attribution question between the artifact being evaluated and the evaluator that produced the state is a property of the observation, not of the code, verifier, or vantage point that produced it. A verifier reporting such a state MUST name what it observed, because the same signal observed from a different vantage is a different fact.<a href="#section-3.2-1" class="pilcrow">¶</a></p>
+<p id="section-3.2-2">This clause generalizes a narrower formulation originally scoped to <code>not_evaluated</code> alone. A roll-up in which canonicalization disagreement and a forged signature both terminate in the same reported outcome shows that the same attribution question arises wherever a state's cause could be either the artifact or the evaluator, not only where no evaluation was performed. The clause therefore applies to <code>indeterminate</code> and <code>contradicted</code> reports carrying an unresolved artifact-vs-evaluator question exactly as it applies to <code>not_evaluated</code>.<a href="#section-3.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="admissibility-gate">
+<section id="section-3.3">
+        <h3 id="name-admissibility-as-a-gate-not">
+<a href="#section-3.3" class="section-number selfRef">3.3. </a><a href="#name-admissibility-as-a-gate-not" class="section-name selfRef">Admissibility as a Gate, Not a State</a>
+        </h3>
+<p id="section-3.3-1">Admissibility is a gate applied to an observation before evaluation: does this observation count at all. It is evaluated prior to, and independently of, the four states in <a href="#the-four-states" class="auto internal xref">Section 3.1</a>, and it is <strong>not</strong> a fifth state alongside them.<a href="#section-3.3-1" class="pilcrow">¶</a></p>
+<p id="section-3.3-2">An observation excluded at the admissibility gate (for example, one excluded on reconnaissance or scope grounds) never reaches state assignment and MUST NOT be reported using any of the four states. Admissibility and state occupy different axes: an admitted observation is then, and only then, evaluated to one of <code>verified</code>, <code>contradicted</code>, <code>indeterminate</code>, or <code>not_evaluated</code>.<a href="#section-3.3-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="the-verification-constraint-family">
+<section id="section-4">
+      <h2 id="name-the-verification-constraint">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-the-verification-constraint" class="section-name selfRef">The verification.* Constraint Family</a>
+      </h2>
+<div id="sibling-not-member-relationship-to-environment">
+<section id="section-4.1">
+        <h3 id="name-sibling-not-member-relation">
+<a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-sibling-not-member-relation" class="section-name selfRef">Sibling-not-Member Relationship to environment.*</a>
+        </h3>
+<table class="center" id="table-1">
+          <caption><a href="#table-1" class="selfRef">Table 1</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Property</th>
+              <th class="text-left" rowspan="1" colspan="1">
+                <code>environment.*</code>
+</th>
+              <th class="text-left" rowspan="1" colspan="1">
+                <code>verification.*</code>
+</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Predicate</td>
+              <td class="text-left" rowspan="1" colspan="1">Boolean (state matches or does not)</td>
+              <td class="text-left" rowspan="1" colspan="1">Probabilistic in [0,1]</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Threshold ownership</td>
+              <td class="text-left" rowspan="1" colspan="1">Oracle-defined, fixed-semantic</td>
+              <td class="text-left" rowspan="1" colspan="1">Calibration-anchored, mapping-versioned</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Freshness</td>
+              <td class="text-left" rowspan="1" colspan="1">Single TTL</td>
+              <td class="text-left" rowspan="1" colspan="1">Multi-axis</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Gate shape</td>
+              <td class="text-left" rowspan="1" colspan="1">Binary halt</td>
+              <td class="text-left" rowspan="1" colspan="1">Binary halt</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-4.1-2">Both families produce a binary fail-closed gate primitive. They differ in predicate shape (boolean vs probabilistic) and threshold provenance (fixed vs calibration-anchored). This difference is sufficient to warrant a sibling family rather than a member entry under <code>environment.*</code>: probabilistic predicates require calibration discipline that boolean predicates do not, and the version-binding mechanism described in <a href="#receipt-format" class="auto internal xref">Section 5</a> is specific to mappings between probabilistic primitives and binary outputs.<a href="#section-4.1-2" class="pilcrow">¶</a></p>
+<p id="section-4.1-3">Read sibling-to-sibling: <code>environment.*</code> attests a deterministic read of the world (state matches or does not, with a fixed-semantic threshold), while <code>verification.*</code> attests an irreducibly probabilistic statement about a proposition (calibration-anchored confidence over a claim, with a mapping-versioned threshold). Both produce the same binary gate output; they differ in what kind of fact the threshold is being applied to. This split is structural: the receipt envelope, JCS canonicalization, signed-primitives discipline, and offline-verifiable-against-published-JWKS verification model are identical across the two families. See <span>[<a href="#ENV-STATE" class="cite xref">ENV-STATE</a>]</span> for the world-state-read sibling.<a href="#section-4.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="composition-rules">
+<section id="section-4.2">
+        <h3 id="name-composition-rules">
+<a href="#section-4.2" class="section-number selfRef">4.2. </a><a href="#name-composition-rules" class="section-name selfRef">Composition Rules</a>
+        </h3>
+<p id="section-4.2-1"><strong>Conjunction:</strong> Multiple <code>verification.*</code> constraints in a single mandate combine with AND (orthogonal+conjunctive). All constraints MUST resolve to <code>act</code> for the action to proceed.<a href="#section-4.2-1" class="pilcrow">¶</a></p>
+<p id="section-4.2-2"><strong>Ordering with environment.*:</strong> <code>environment.*</code> constraints MUST short-circuit before <code>verification.*</code> constraints per <span>[<a href="#ENV-STATE" class="cite xref">ENV-STATE</a>]</span> Section 5.5. Environment evaluation is typically cheaper (no oracle roundtrip) and a failed environment constraint moots the verification. See also <a href="#security-considerations" class="auto internal xref">Section 11</a> for the non-interference security property this ordering provides.<a href="#section-4.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="receipt-format">
+<section id="section-5">
+      <h2 id="name-receipt-format">
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-receipt-format" class="section-name selfRef">Receipt Format</a>
+      </h2>
+<div id="jws-envelope">
+<section id="section-5.1">
+        <h3 id="name-jws-envelope">
+<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-jws-envelope" class="section-name selfRef">JWS Envelope</a>
+        </h3>
+<p id="section-5.1-1">Verification receipts MUST be issued as JSON Web Signatures (JWS) <span>[<a href="#RFC7515" class="cite xref">RFC7515</a>]</span>. Both compact serialization and JSON serialization (flattened form) are conforming. The v0.3 reference fixture pair uses JWS JSON (flattened) serialization because it preserves the protected/unprotected/signature object structure the verification protocol walks (<a href="#verification-protocol" class="auto internal xref">Section 5.4</a>); compact serialization remains valid for profiles that prefer it. A relying party MUST accept both serializations.<a href="#section-5.1-1" class="pilcrow">¶</a></p>
+<ul class="compact">
+<li class="compact" id="section-5.1-2.1">
+            <code>alg</code>: A conforming implementation MUST accept both <code>EdDSA</code> (Ed25519, <span>[<a href="#RFC8037" class="cite xref">RFC8037</a>]</span>) and <code>ES256</code> (<span>[<a href="#RFC7518" class="cite xref">RFC7518</a>]</span>). The v0.3 reference fixture pair signs with <code>EdDSA</code>; <code>ES256</code> remains valid for profiles that prefer it. Other algorithms are optional and SHOULD follow the IANA JOSE Algorithms registry.<a href="#section-5.1-2.1" class="pilcrow">¶</a>
+</li>
+          <li class="compact" id="section-5.1-2.2">
+            <code>kid</code>: MUST resolve to a key in the issuer's published JWKS <span>[<a href="#RFC7517" class="cite xref">RFC7517</a>]</span> at <code>/.well-known/jwks.json</code> unless an alternate JWKS location is published in the issuer's metadata.<a href="#section-5.1-2.2" class="pilcrow">¶</a>
+</li>
+          <li class="compact" id="section-5.1-2.3">
+            <code>typ</code>: <code>verification-receipt+jws</code>.<a href="#section-5.1-2.3" class="pilcrow">¶</a>
+</li>
+        </ul>
+</section>
+</div>
+<div id="payload-claims-canonical-derived-mapping-bound">
+<section id="section-5.2">
+        <h3 id="name-payload-claims-canonical-de">
+<a href="#section-5.2" class="section-number selfRef">5.2. </a><a href="#name-payload-claims-canonical-de" class="section-name selfRef">Payload Claims --- Canonical, Derived, Mapping-Bound</a>
+        </h3>
+<p id="section-5.2-1">The payload signs three structurally distinct field groups plus their bindings.<a href="#section-5.2-1" class="pilcrow">¶</a></p>
+<p id="section-5.2-2"><strong>Canonical input (signed primitives):</strong><a href="#section-5.2-2" class="pilcrow">¶</a></p>
+<ul class="compact">
+<li class="compact" id="section-5.2-3.1">
+            <code>v_verdict</code> (string, REQUIRED) --- One of <code>verified</code>, <code>contradicted</code>, <code>indeterminate</code>, <code>not_evaluated</code>, per <a href="#verification-state-vocabulary" class="auto internal xref">Section 3</a>. This revision changes the field's domain from <code>draft-krausz-verification-state-01</code>'s <code>supported</code>/<code>refuted</code>/<code>unverifiable</code>/<code>unknown</code> values to this four-value vocabulary, one-for-one in that order; the claim name <code>v_verdict</code> itself is unchanged and continues to be emitted by existing issuers. A rename of the claim to <code>v_state</code>, to align the wire name with this vocabulary's own terminology, is deferred to a future revision pending an assessment of the migration cost across existing <code>draft-krausz-verification-state-01</code> implementers; see <a href="#open-issues" class="auto internal xref">Section 10</a>.<a href="#section-5.2-3.1" class="pilcrow">¶</a>
+</li>
+          <li class="compact" id="section-5.2-3.2">
+            <code>v_reason_code</code> (string, REQUIRED when <a href="#verification-state-vocabulary" class="auto internal xref">Section 3</a> requires one for the reported <code>v_verdict</code>, OPTIONAL otherwise) --- One of <code>instrument_failure</code> (available under any state), or, when <code>v_verdict</code> is <code>indeterminate</code> and the reason is not <code>instrument_failure</code>, exactly one of <code>divergence</code> or <code>absence</code>.<a href="#section-5.2-3.2" class="pilcrow">¶</a>
+</li>
+          <li class="compact" id="section-5.2-3.3">
+            <code>v_subject</code> (string, REQUIRED when <code>v_verdict</code> carries an open attribution question per <a href="#subject-clause" class="auto internal xref">Section 3.2</a>, OPTIONAL otherwise) --- Names the specific observation the state describes, so that the same signal reported from a different vantage is identifiable as a different fact.<a href="#section-5.2-3.3" class="pilcrow">¶</a>
+</li>
+          <li class="compact" id="section-5.2-3.4">
+            <code>v_confidence</code> (number, REQUIRED) --- Float in <code>[0, 1]</code>.<a href="#section-5.2-3.4" class="pilcrow">¶</a>
+</li>
+          <li class="compact" id="section-5.2-3.5">
+            <code>v_adversarial_result</code> (string, REQUIRED) --- One of <code>resilient</code>, <code>vulnerable</code>, <code>not_checked</code>.<a href="#section-5.2-3.5" class="pilcrow">¶</a>
+</li>
+        </ul>
+<p id="section-5.2-4"><strong>Canonical derived (signed):</strong><a href="#section-5.2-4" class="pilcrow">¶</a></p>
+<ul class="compact">
+<li class="compact" id="section-5.2-5.1">
+            <code>v_recommendation</code> (string, REQUIRED) --- One of <code>confident_supported</code>, <code>un_probed_not_cleared</code>, <code>vulnerable_supported</code>, <code>weak_supported</code>, <code>refuted</code>, <code>unverifiable</code>, <code>error</code>. Derived deterministically from the canonical input under the named mapping.<a href="#section-5.2-5.1" class="pilcrow">¶</a>
+</li>
+        </ul>
+<p id="section-5.2-6"><strong>Derived output (signed):</strong><a href="#section-5.2-6" class="pilcrow">¶</a></p>
+<ul class="compact">
+<li class="compact" id="section-5.2-7.1">
+            <code>v_gate</code> (string, REQUIRED) --- One of <code>act</code>, <code>halt</code>. Derived from <code>v_recommendation</code> under the named mapping.<a href="#section-5.2-7.1" class="pilcrow">¶</a>
+</li>
+        </ul>
+<p id="section-5.2-8"><strong>Binding (signed):</strong><a href="#section-5.2-8" class="pilcrow">¶</a></p>
+<ul class="compact">
+<li class="compact" id="section-5.2-9.1">
+            <code>v_gate_mapping</code> (string, REQUIRED) --- Stable identifier of the published mapping document used at issuance (e.g., <code>v0.3.0-2026-05-30</code>). The mapping document is immutable after publication; future revisions ship as new identifiers.<a href="#section-5.2-9.1" class="pilcrow">¶</a>
+</li>
+          <li class="compact" id="section-5.2-9.2">
+            <code>v_gate_mapping_hash</code> (string, REQUIRED) --- SHA-256 hex digest of the canonical serialization of the mapping document identified by <code>v_gate_mapping</code>. MUST be present in every receipt. Receipts MUST bind to a content-addressed mapping; the absence of <code>v_gate_mapping_hash</code> is a malformed-receipt condition and MUST result in gate decision <code>halt</code>.<a href="#section-5.2-9.2" class="pilcrow">¶</a>
+</li>
+          <li class="compact" id="section-5.2-9.3">
+            <code>v_claim</code> (object, REQUIRED) --- Binds the verified claim to the receipt. See <a href="#claim-binding" class="auto internal xref">Section 5.5</a>.<a href="#section-5.2-9.3" class="pilcrow">¶</a>
+</li>
+        </ul>
+<p id="section-5.2-10"><strong>Provenance (signed, not gating):</strong><a href="#section-5.2-10" class="pilcrow">¶</a></p>
+<ul class="compact">
+<li class="compact" id="section-5.2-11.1">
+            <code>v_method</code> (string, OPTIONAL) --- Self-describing verifier pipeline identifier.<a href="#section-5.2-11.1" class="pilcrow">¶</a>
+</li>
+          <li class="compact" id="section-5.2-11.2">
+            <code>v_calibration</code> (object, OPTIONAL) --- Calibration anchor metadata. See <a href="#calibration-anchor-requirements" class="auto internal xref">Section 8</a>.<a href="#section-5.2-11.2" class="pilcrow">¶</a>
+</li>
+          <li class="compact" id="section-5.2-11.3">
+            <code>v_sources_used</code> (array of strings, DEPRECATED) --- Source labels actually consulted in this evaluation. Deprecated by this revision in favor of <code>evidence_set.sources</code> (<a href="#evidence-pinning" class="auto internal xref">Section 5.3</a>), which names sources with content-addressing rather than free-text labels. An issuer MAY still emit this member for backward compatibility; a relying party MUST NOT treat its absence as a defect, and MUST NOT treat its presence as evidence pinning.<a href="#section-5.2-11.3" class="pilcrow">¶</a>
+</li>
+          <li class="compact" id="section-5.2-11.4">
+            <code>v_evidence</code> (string, DEPRECATED) --- URI pointer to evidence corpus, if persisted. Deprecated by this revision in favor of <code>evidence_set</code> (<a href="#evidence-pinning" class="auto internal xref">Section 5.3</a>), which pins content rather than pointing at a live location. An issuer MAY still emit this member for backward compatibility; a relying party MUST NOT treat its absence as a defect.<a href="#section-5.2-11.4" class="pilcrow">¶</a>
+</li>
+          <li class="compact" id="section-5.2-11.5">
+            <code>evidence_set</code> (object, OPTIONAL) --- Content-addressed record of the sources considered during verification. See <a href="#evidence-pinning" class="auto internal xref">Section 5.3</a> for its full structure.<a href="#section-5.2-11.5" class="pilcrow">¶</a>
+</li>
+        </ul>
+<p id="section-5.2-12"><strong>Standard JWT claims <span>[<a href="#RFC7519" class="cite xref">RFC7519</a>]</span>:</strong><a href="#section-5.2-12" class="pilcrow">¶</a></p>
+<ul class="compact">
+<li class="compact" id="section-5.2-13.1">
+            <code>iss</code> (REQUIRED), <code>sub</code> (RECOMMENDED), <code>iat</code> (REQUIRED), <code>exp</code> (REQUIRED), <code>nbf</code> (OPTIONAL).<a href="#section-5.2-13.1" class="pilcrow">¶</a>
+</li>
+        </ul>
+</section>
+</div>
+<div id="evidence-pinning">
+<section id="section-5.3">
+        <h3 id="name-evidence-pinning">
+<a href="#section-5.3" class="section-number selfRef">5.3. </a><a href="#name-evidence-pinning" class="section-name selfRef">Evidence Pinning</a>
+        </h3>
+<p id="section-5.3-1">A <code>verification.*</code> receipt pins <strong>the rule</strong> applied (via <code>v_gate_mapping_hash</code>) but, absent this section, carries sources as bare URIs. Recomputing a state therefore requires re-retrieving them, which is neither deterministic (the same URI returns different bytes over time) nor durable (a retrieval provider can retire). A receipt without evidence pinning is a pointer to evidence, not a record of it. This section closes that gap by letting a receipt carry a content-addressed <code>evidence_set</code>. Throughout, the evidence block states what was judged; it never states what the judgment was --- <code>v_verdict</code> and its reason code are untouched by anything in this section.<a href="#section-5.3-1" class="pilcrow">¶</a></p>
+<div id="evidence-set-object">
+<section id="section-5.3.1">
+          <h4 id="name-the-evidence_set-member">
+<a href="#section-5.3.1" class="section-number selfRef">5.3.1. </a><a href="#name-the-evidence_set-member" class="section-name selfRef">The evidence_set Member</a>
+          </h4>
+<p id="section-5.3.1-1">A receipt payload MAY carry an <code>evidence_set</code> member. When present it MUST be an object with the following members:<a href="#section-5.3.1-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlNewline" id="section-5.3.1-2">
+            <dt id="section-5.3.1-2.1">
+<code>evidence_set_version</code> (string):</dt>
+            <dd style="margin-left: 1.5em" id="section-5.3.1-2.2">Version identifier for this block's semantics. This document defines <code>"ao-evidence-set-v1"</code>.<a href="#section-5.3.1-2.2" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-5.3.1-2.3">
+<code>retrieved_at</code> (RFC 3339 timestamp):</dt>
+            <dd style="margin-left: 1.5em" id="section-5.3.1-2.4">MUST equal the bytewise-least <code>retrieved_at</code> among <strong>all</strong> entries in <code>sources</code>, pinned and unpinned alike, comparing the UTF-8 bytes of the member as carried. Well-defined because <code>sources</code> is non-empty and every entry carries the member. A value that is not the bytewise-least such value is malformed; gate decision = halt; reported condition <code>set_retrieved_at_not_bytewise_least</code>.<a href="#section-5.3.1-2.4" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-5.3.1-2.5">
+<code>source_count</code> (integer):</dt>
+            <dd style="margin-left: 1.5em" id="section-5.3.1-2.6">Total number of evidence items considered. MUST equal <code>len(sources)</code> and MUST be greater than zero: a present <code>evidence_set</code> MUST carry at least one entry in <code>sources</code>. An issuer with no sources to report MUST omit <code>evidence_set</code> entirely; <a href="#verification-protocol" class="auto internal xref">Section 5.4</a> resolves that case as <code>unknown</code> for the evidence step without failing it. Reported condition on violation: <code>evidence_set_names_no_sources</code>.<a href="#section-5.3.1-2.6" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-5.3.1-2.7">
+<code>pinned_count</code> (integer):</dt>
+            <dd style="margin-left: 1.5em" id="section-5.3.1-2.8">Number of entries with <code>pinned: true</code>. MUST be less than or equal to <code>source_count</code>.<a href="#section-5.3.1-2.8" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-5.3.1-2.9">
+<code>fully_pinned</code> (boolean):</dt>
+            <dd style="margin-left: 1.5em" id="section-5.3.1-2.10">
+              <code>true</code> if and only if <code>pinned_count</code> equals <code>source_count</code> and <code>source_count</code> is greater than zero.<a href="#section-5.3.1-2.10" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-5.3.1-2.11">
+<code>evidence_root</code> (string or null):</dt>
+            <dd style="margin-left: 1.5em" id="section-5.3.1-2.12">Merkle root over the pinned items per <a href="#evidence-root-construction" class="auto internal xref">Section 5.3.3</a>, or <code>null</code> when <code>pinned_count</code> is zero. MUST be non-null when <code>pinned_count</code> is greater than zero.<a href="#section-5.3.1-2.12" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-5.3.1-2.13">
+<code>sources</code> (array):</dt>
+            <dd style="margin-left: 1.5em" id="section-5.3.1-2.14">One entry per evidence item, per <a href="#evidence-set-sources" class="auto internal xref">Section 5.3.2</a>.<a href="#section-5.3.1-2.14" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+</dl>
+<p id="section-5.3.1-3"><code>fully_pinned</code> is stated rather than left to be derived, so a reader can determine that a set is partial without recounting the array. Partial pinning is an honest state and is not a defect; concealing it is. Zero pinned items is legal and is not an empty set: an <code>evidence_set</code> naming three sources, none pinned and each carrying a valid <code>unpinned_reason</code>, is well-formed, its <code>evidence_root</code> is <code>null</code>, and its <code>fully_pinned</code> is <code>false</code>. The prohibition is on a set naming no sources, never on one that pins none.<a href="#section-5.3.1-3" class="pilcrow">¶</a></p>
+<p id="section-5.3.1-4"><strong>Fallback when a count is declared absent.</strong> When <code>source_count</code> is absent, its operand for any check in this section is <code>len(sources)</code>. When <code>pinned_count</code> is absent, its operand is the count of entries with <code>pinned: true</code> (well-defined because <code>pinned</code> is REQUIRED and boolean per <a href="#evidence-set-sources" class="auto internal xref">Section 5.3.2</a>). When <code>source_count</code>, <code>pinned_count</code>, and <code>fully_pinned</code> are all absent, resolution derives all three the same way and MUST NOT halt for want of the declared members: validation and resolution alike are not skipped merely because a member that could be reconstructed from <code>sources</code> was not declared.<a href="#section-5.3.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="evidence-set-sources">
+<section id="section-5.3.2">
+          <h4 id="name-source-entries">
+<a href="#section-5.3.2" class="section-number selfRef">5.3.2. </a><a href="#name-source-entries" class="section-name selfRef">Source Entries</a>
+          </h4>
+<p id="section-5.3.2-1">Each entry in <code>sources</code> MUST be an object with:<a href="#section-5.3.2-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlNewline" id="section-5.3.2-2">
+            <dt id="section-5.3.2-2.1">
+<code>url</code> (string, REQUIRED):</dt>
+            <dd style="margin-left: 1.5em" id="section-5.3.2-2.2">The URI used for retrieval, carried without normalization --- no case folding, percent-encoding changes, query reordering, or trailing-slash adjustment.<a href="#section-5.3.2-2.2" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-5.3.2-2.3">
+<code>snippet_sha256</code> (string or null, REQUIRED):</dt>
+            <dd style="margin-left: 1.5em" id="section-5.3.2-2.4">Lowercase hex SHA-256 of the retrieved content bytes exactly as received --- no transcoding, trimming, whitespace collapsing, case folding, or Unicode normalization --- or <code>null</code> if not pinned. There is no character-encoding step: the digest is over bytes, not over text.<a href="#section-5.3.2-2.4" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-5.3.2-2.5">
+<code>retrieved_at</code> (RFC 3339 timestamp, REQUIRED):</dt>
+            <dd style="margin-left: 1.5em" id="section-5.3.2-2.6">Retrieval time for this item. MUST be in UTC with the <code>Z</code> designator and exactly three fractional-second digits. This canonical form is required for every entry, pinned and unpinned alike, evaluated before any branch on <code>pinned</code>, because the sort in <a href="#evidence-root-construction" class="auto internal xref">Section 5.3.3</a> and the set-level comparison above are both bytewise. Reported condition on violation: <code>retrieved_at_not_canonical_form</code>.<a href="#section-5.3.2-2.6" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-5.3.2-2.7">
+<code>pinned</code> (boolean, REQUIRED):</dt>
+            <dd style="margin-left: 1.5em" id="section-5.3.2-2.8">MUST be exactly the JSON value <code>true</code> or <code>false</code>. An entry where <code>pinned</code> is absent, <code>null</code>, or of any type other than boolean is malformed; gate decision = halt; reported condition <code>pinned_absent_or_not_boolean</code>. This closes the domain to exactly two values before any rule in this document that ranges "over every entry, pinned and unpinned alike" is evaluated.<a href="#section-5.3.2-2.8" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-5.3.2-2.9">
+<code>content_kind</code> (string or absent/null, REQUIRED when <code>pinned</code> is <code>true</code>):</dt>
+            <dd style="margin-left: 1.5em" id="section-5.3.2-2.10">One of <code>snippet</code>, <code>excerpt</code>, <code>full_resource</code>, naming what the digest covers. On an unpinned entry, <code>content_kind</code> MUST be absent or <code>null</code> (the two are equivalent); on a pinned entry it MUST be present.<a href="#section-5.3.2-2.10" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-5.3.2-2.11">
+<code>resource_sha256</code> (string, OPTIONAL):</dt>
+            <dd style="margin-left: 1.5em" id="section-5.3.2-2.12">Digest of the full resource, where the full resource was also obtained. MUST be absent when <code>content_kind</code> is <code>full_resource</code> (in that case <code>snippet_sha256</code> already is that digest). This rule ranges over every entry regardless of <code>pinned</code>: an unpinned entry carrying <code>content_kind: full_resource</code> together with a non-null <code>resource_sha256</code> is malformed under the same rule as a pinned one. Reported condition: <code>snippet_digest_present_for_full_resource</code>.<a href="#section-5.3.2-2.12" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-5.3.2-2.13">
+<code>unpinned_reason</code> (string, REQUIRED when <code>pinned</code> is <code>false</code>):</dt>
+            <dd style="margin-left: 1.5em" id="section-5.3.2-2.14">One of <code>no_content_returned</code> (the retrieval attempt returned no content bytes --- covers refusal, paywall interception, robots exclusion, and transport failure alike) or <code>provider_metadata_only</code> (the retrieval surface returned metadata about a resource without its content).<a href="#section-5.3.2-2.14" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+</dl>
+<p id="section-5.3.2-3"><strong>Possession, not composition.</strong> An issuer MUST pin every evidence item for which it received content bytes; <code>pinned</code> MAY be <code>false</code> only where no content bytes were received for that item. The digest is computed over the content bytes as received, before or alongside any judgement; whether the bytes are kept afterward is irrelevant to pinning. An item with <code>pinned: false</code> and no <code>unpinned_reason</code>, or a value outside the two-value domain above, is malformed; gate decision = halt. An issuer that received content bytes for an item and declares either <code>unpinned_reason</code> value has signed a false statement: the format cannot verify possession from the receipt, but it converts selective pinning from a permitted state into a lie. A composition rule --- pin every source that refutes the state --- cannot be written, because "refutes" is the issuer's own classification; possession is different in kind because whether bytes arrived is a fact about the issuer's own process, not a judgment about a source.<a href="#section-5.3.2-3" class="pilcrow">¶</a></p>
+<p id="section-5.3.2-4"><strong>Entry distinctness.</strong> No two entries in <code>sources</code> may record the same retrieval. Two entries record the same retrieval when they are identical in <code>url</code> and <code>retrieved_at</code> and, where both are pinned, also identical in <code>snippet_sha256</code> and <code>content_kind</code>. This rule ranges over every entry in <code>sources</code>, pinned and unpinned alike: <code>sources</code> carries one entry per item considered, an issuer MUST NOT omit an item it could not pin, and a second entry for one retrieval overstates <code>source_count</code>. For an unpinned entry <code>snippet_sha256</code> is <code>null</code> and <code>content_kind</code> is absent, so those members distinguish nothing and <code>url</code> with <code>retrieved_at</code> decides; an absent member is not equal to a present one. A pinned entry and an unpinned entry sharing <code>url</code> and <code>retrieved_at</code> are, by the same rule, one retrieval recorded twice. Two entries sharing <code>url</code>, <code>snippet_sha256</code>, and <code>content_kind</code> and differing only in <code>retrieved_at</code> record two legitimate retrievals of the same content and are not duplicates. Violation is malformed; gate decision = halt; reported condition <code>duplicate_bound_tuple</code>.<a href="#section-5.3.2-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="evidence-root-construction">
+<section id="section-5.3.3">
+          <h4 id="name-evidence-root-construction">
+<a href="#section-5.3.3" class="section-number selfRef">5.3.3. </a><a href="#name-evidence-root-construction" class="section-name selfRef">Evidence Root Construction</a>
+          </h4>
+<p id="section-5.3.3-1"><code>evidence_root</code> is a Merkle root over the pinned items only; unpinned items contribute nothing.<a href="#section-5.3.3-1" class="pilcrow">¶</a></p>
+<p id="section-5.3.3-2"><strong>Leaf.</strong> For each pinned item, in the canonical order defined below:<a href="#section-5.3.3-2" class="pilcrow">¶</a></p>
+<div class="lang-text sourcecode" id="section-5.3.3-3">
+<pre>leaf = SHA-256( "ao-evidence-leaf-v2" || 0x00
+                || url || 0x00
+                || snippet_sha256 || 0x00
+                || content_kind || 0x00
+                || retrieved_at )</pre><a href="#section-5.3.3-3" class="pilcrow">¶</a>
+</div>
+<p id="section-5.3.3-4">where <code>url</code> and <code>retrieved_at</code> are their UTF-8 bytes as carried, <code>snippet_sha256</code> is its 64 lowercase hexadecimal characters encoded UTF-8 (not the 32 raw bytes they represent), and <code>content_kind</code> is its UTF-8 bytes. No member may contain an octet <code>0x00</code>, so delimiter injection is unreachable. Every member the preimage binds MUST also appear in the canonical sort key below, and the sort key MUST bind no member the preimage does not; any future widening of the preimage MUST extend the sort key in the same revision.<a href="#section-5.3.3-4" class="pilcrow">¶</a></p>
+<p id="section-5.3.3-5"><strong>Interior node.</strong><a href="#section-5.3.3-5" class="pilcrow">¶</a></p>
+<div class="lang-text sourcecode" id="section-5.3.3-6">
+<pre>node = SHA-256( "ao-evidence-node-v1" || 0x00
+                || left || 0x00
+                || right )</pre><a href="#section-5.3.3-6" class="pilcrow">¶</a>
+</div>
+<p id="section-5.3.3-7">In the interior node, <code>left</code> and <code>right</code> are the 32 raw octets of the child digests, not their hexadecimal form. This differs from the leaf preimage deliberately: a leaf's members are values carried in the receipt as strings and enter as their UTF-8 bytes, whereas a node's children are outputs of this function and enter as the octets the function produced. The <code>0x00</code> separators in the node preimage are retained for consistency with the leaf form; unlike the leaf, they are not what makes the node preimage unambiguous, since both children are fixed-length 32-octet digests whose boundaries follow from position. A child digest may itself contain <code>0x00</code> octets, and this is harmless.<a href="#section-5.3.3-7" class="pilcrow">¶</a></p>
+<p id="section-5.3.3-8"><strong>Termination.</strong> When the pinned set contains exactly one item, <code>evidence_root</code> is that item's leaf; no interior node is formed. Applying the node function to a single leaf paired with itself is forbidden, for the same second-preimage reason the odd-node rule gives below.<a href="#section-5.3.3-8" class="pilcrow">¶</a></p>
+<p id="section-5.3.3-9"><strong>Odd node.</strong> When a level has an odd number of entries, the final entry is promoted unchanged to the next level, retaining its rightmost position. It MUST NOT be duplicated and paired with itself; duplication admits the well-known second-preimage ambiguity in which a tree with a duplicated final leaf and a tree with that leaf genuinely present twice produce the same root.<a href="#section-5.3.3-9" class="pilcrow">¶</a></p>
+<p id="section-5.3.3-10"><strong>Canonical order.</strong> Leaves are sorted ascending by <code>url</code>; where two entries share a <code>url</code>, by <code>snippet_sha256</code>; where they share both, by <code>content_kind</code>; and where they share all three, by <code>retrieved_at</code>. All four comparisons are bytewise over the UTF-8 encoding of the member as carried. The sort key is exactly the set of members bound by the leaf preimage, so two entries compare equal on the key only if their leaves are identical --- which the entry-distinctness rule above forbids within a well-formed set --- and the order is therefore total. Sorting makes the root independent of retrieval rank.<a href="#section-5.3.3-10" class="pilcrow">¶</a></p>
+<p id="section-5.3.3-11"><strong>Domain separation.</strong> The two distinct prefixes ensure a leaf hash can never be reinterpreted as an interior node, and that an evidence root can never collide with any other hash tree defined by this document or composed alongside it. When <code>pinned_count</code> is zero, <code>evidence_root</code> MUST be <code>null</code>; an implementation MUST NOT emit a root over an empty set.<a href="#section-5.3.3-11" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="evidence-limits">
+<section id="section-5.3.4">
+          <h4 id="name-what-an-evidence-set-does-n">
+<a href="#section-5.3.4" class="section-number selfRef">5.3.4. </a><a href="#name-what-an-evidence-set-does-n" class="section-name selfRef">What an Evidence Set Does Not Establish</a>
+          </h4>
+<p id="section-5.3.4-1">A pinned evidence set establishes that specific content was considered and that a verifier holding the same bytes can confirm it is the content that was judged. It establishes <strong>nothing</strong> about:<a href="#section-5.3.4-1" class="pilcrow">¶</a></p>
+<ul class="compact">
+<li class="compact" id="section-5.3.4-2.1">
+              <strong>Whether the source has since changed.</strong> A pinned digest lets a later holder of bytes determine whether they hold the bytes that were judged. It says nothing about whether the source at that URI has changed since, and a reader will take a weaker sentence the stronger way if this is not stated plainly.<a href="#section-5.3.4-2.1" class="pilcrow">¶</a>
+</li>
+            <li class="compact" id="section-5.3.4-2.2">
+              <strong>Completeness of disclosure.</strong> The set records what the issuer listed. This document forbids omitting a retrieved item, and nothing in the receipt can detect an omission; that is a rule against a false statement, not a mechanism that makes the statement's truth verifiable.<a href="#section-5.3.4-2.2" class="pilcrow">¶</a>
+</li>
+            <li class="compact" id="section-5.3.4-2.3">
+              <strong>The time of retrieval, independently vouched.</strong> <code>retrieved_at</code> is an issuer assertion with no external anchor. The digest therefore pins content as of a moment the issuer alone vouches for; an auditor years later holds the content and does not hold the moment.<a href="#section-5.3.4-2.3" class="pilcrow">¶</a>
+</li>
+            <li class="compact" id="section-5.3.4-2.4">
+              <strong>Unbiased selection.</strong> The format does not establish that a pinned subset was chosen without regard to the state being reported. What it establishes is that leaving a possessed item unpinned is a lie, and that any partial set makes no offline-recomputation claim.<a href="#section-5.3.4-2.4" class="pilcrow">¶</a>
+</li>
+            <li class="compact" id="section-5.3.4-2.5">
+              <strong>Why content was absent.</strong> <code>no_content_returned</code> records that no content bytes arrived. It does not distinguish a server that declined from an issuer that never requested, and the receipt cannot be made to: both are the same fact about the issuer's possession. This collapse is deliberate --- the possession rule reaches only items for which bytes actually arrived, and an issuer that never requested a source it should have requested is outside what this format establishes.<a href="#section-5.3.4-2.5" class="pilcrow">¶</a>
+</li>
+          </ul>
+</section>
+</div>
+<div id="evidence-independence">
+<section id="section-5.3.5">
+          <h4 id="name-independence">
+<a href="#section-5.3.5" class="section-number selfRef">5.3.5. </a><a href="#name-independence" class="section-name selfRef">Independence</a>
+          </h4>
+<p id="section-5.3.5-1">An issuer MAY include an <code>independence</code> member within <code>evidence_set</code>, naming a <code>method</code> identifier, a <code>distinct_registrable_domains</code> count among pinned sources, and an implementation-defined <code>score</code> or <code>null</code> if not computed. This document does not define how independence is computed, and deliberately does not: a specific heuristic frozen into a specification becomes un-implementable by parties whose corpora differ and cannot be revised at the speed the problem moves. What is specified is the obligation to declare the method by identifier, so that two receipts carrying independence measures can be compared only when they name the same method. A verifier MUST NOT compare <code>score</code> values across differing <code>method</code> identifiers, and MUST NOT treat the absence of an <code>independence</code> member as a defect.<a href="#section-5.3.5-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="verification-protocol">
+<section id="section-5.4">
+        <h3 id="name-verification-protocol">
+<a href="#section-5.4" class="section-number selfRef">5.4. </a><a href="#name-verification-protocol" class="section-name selfRef">Verification Protocol</a>
+        </h3>
+<p id="section-5.4-1">A relying party verifying a receipt MUST execute the following sequence and treat any failure as a malformed receipt with gate decision <code>halt</code>:<a href="#section-5.4-1" class="pilcrow">¶</a></p>
+<div class="lang-text sourcecode" id="section-5.4-2">
+<pre>1. Verify JWS signature against issuer's published JWKS
+   (RFC 7515).
+2. Resolve v_gate_mapping -&gt; fetch the named immutable
+   mapping document. MUST verify the SHA-256 digest of the
+   fetched document matches v_gate_mapping_hash (hex-encoded).
+   Digest mismatch -&gt; malformed; gate decision = halt. This
+   binding is mandatory; receipts without v_gate_mapping_hash
+   are malformed.
+3. Recompute candidate_recommendation from
+   (v_verdict, v_confidence, v_adversarial_result)
+   using the mapping's rules and the threshold recovered from
+   the mapping document. v_verdict's domain depends on which
+   revision issued the receipt -- this revision's four-value
+   vocabulary, or draft-krausz-verification-state-01's
+   supported/refuted/unverifiable/unknown domain for receipts
+   issued before this revision -- as identified by the named
+   mapping document.
+4. Confirm candidate_recommendation == v_recommendation.
+5. Compute candidate_gate = mapping(v_recommendation).
+6. Confirm candidate_gate == v_gate.
+7. If the receipt carries an evidence_set, resolve it per
+   Section 5.4.1's evidence-set step below. This step resolves
+   to "resolved" or "unknown" and never itself halts except
+   on the malformed conditions Section 5.4.1 lists.
+8. Verify exp/nbf against current time, subject to clock
+   tolerance.
+9. If all checks pass -&gt; receipt is valid AND internally
+   consistent under the named mapping. Any mismatch -&gt;
+   malformed; gate decision = halt.
+
+</pre><a href="#section-5.4-2" class="pilcrow">¶</a>
+</div>
+<p id="section-5.4-3">The relying party never trusts the issuer's runtime to have applied the mapping correctly. The signature binds inputs, outputs, and mapping identifier together; the verifier recomputes locally.<a href="#section-5.4-3" class="pilcrow">¶</a></p>
+<div id="evidence-set-resolution">
+<section id="section-5.4.1">
+          <h4 id="name-evidence-set-resolution-ste">
+<a href="#section-5.4.1" class="section-number selfRef">5.4.1. </a><a href="#name-evidence-set-resolution-ste" class="section-name selfRef">Evidence-Set Resolution Step</a>
+          </h4>
+<p id="section-5.4.1-1">A step defined in this document resolves to exactly one of two tokens: <code>resolved</code>, when the step's evidence requirements are met, or <code>unknown</code>, under the conditions stated below. An implementation MUST emit one of these two tokens for the evidence-set step and MUST NOT emit any other value.<a href="#section-5.4.1-1" class="pilcrow">¶</a></p>
+<p id="section-5.4.1-2">If the receipt carries an <code>evidence_set</code>, a relying party MUST resolve it as follows:<a href="#section-5.4.1-2" class="pilcrow">¶</a></p>
+<ol start="1" type="a" class="compact type-a" id="section-5.4.1-3">
+<li id="section-5.4.1-3.1">Verify <code>source_count</code>, <code>pinned_count</code>, <code>fully_pinned</code>, and set-level <code>retrieved_at</code> per <a href="#evidence-set-object" class="auto internal xref">Section 5.3.1</a> (falling back to the derivations there when a count is absent); verify every entry against <a href="#evidence-set-sources" class="auto internal xref">Section 5.3.2</a>, including the possession rule, the entry-distinctness rule, and the <code>pinned</code>/<code>content_kind</code>/<code>resource_sha256</code>/<code>retrieved_at</code>-form rules. Any inconsistency is a malformed receipt; gate decision = halt; the implementation reports the specific violated condition named in the rule it failed. When a receipt violates more than one condition, an implementation MUST halt and MAY name any one of the violated conditions, except where this document states a precedence explicitly.<a href="#section-5.4.1-3.1" class="pilcrow">¶</a>
+</li>
+            <li id="section-5.4.1-3.2">If <code>evidence_root</code> is non-null, recompute it from the <code>sources</code> entries per <a href="#evidence-root-construction" class="auto internal xref">Section 5.3.3</a> and compare. A mismatch is a malformed receipt; gate decision = halt; reported condition <code>root_not_recomputable_from_sources</code>. A pinned entry whose <code>snippet_sha256</code> is absent or <code>null</code> MUST be rejected here, before any root computation is attempted --- gate decision = halt; reported condition <code>snippet_sha256_absent_when_pinned</code> --- rather than allowed to reach root construction and surface as a downstream error.<a href="#section-5.4.1-3.2" class="pilcrow">¶</a>
+</li>
+            <li id="section-5.4.1-3.3">When <code>fully_pinned</code> is <code>false</code> (declared or derived), this step resolves <code>unknown</code>, and the receipt MUST NOT be presented as satisfying offline recomputation. This is a resolution of this step, not a member of the payload.<a href="#section-5.4.1-3.3" class="pilcrow">¶</a>
+</li>
+            <li id="section-5.4.1-3.4">If the verifier holds candidate content for a pinned item, compute its SHA-256 and compare with <code>snippet_sha256</code>. A mismatch resolves <code>unknown</code> for that item and MUST NOT halt. The verifier's report MUST carry a per-item reason for every entry in <code>sources</code>, pinned and unpinned alike, distinguishing <code>content_not_held</code> from <code>content_differs</code>; an unpinned entry's reason is trivially <code>content_not_held</code> and MUST NOT be omitted from the report for being trivial. This distinction belongs in the report, never in the <code>v_verdict</code> domain: a verifier holding different bytes knows its bytes differ and does not know why.<a href="#section-5.4.1-3.4" class="pilcrow">¶</a>
+</li>
+            <li id="section-5.4.1-3.5">A receipt carrying no <code>evidence_set</code> resolves <code>unknown</code> for this step and MUST NOT fail it. Receipts issued before this section existed remain valid and continue to verify exactly as before.<a href="#section-5.4.1-3.5" class="pilcrow">¶</a>
+</li>
+            <li id="section-5.4.1-3.6">A properly declared partial evidence set is not invalid and the receipt is not malformed. An implementation MUST NOT treat an <code>unknown</code> resolution under (c) or (d) as a validity failure or a rejection.<a href="#section-5.4.1-3.6" class="pilcrow">¶</a>
+</li>
+            <li id="section-5.4.1-3.7">A verifier MUST treat an <code>unknown</code> resolution as a distinct category and MUST NOT present it as a weaker or partial form of a satisfied offline-recomputation claim. A verifier that reports, displays, summarizes, or forwards an outcome MUST carry the distinction into whatever it emits.<a href="#section-5.4.1-3.7" class="pilcrow">¶</a>
+</li>
+          </ol>
+<p id="section-5.4.1-4">Steps (a) and (b) are checks on the receipt's internal consistency and are answerable offline by any verifier. Step (d) is a check against external content and is answerable only by a verifier that holds it; a verifier that cannot obtain the content has learned nothing about the receipt's validity and MUST NOT report that absence as a defect in the receipt.<a href="#section-5.4.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="claim-binding">
+<section id="section-5.5">
+        <h3 id="name-claim-binding">
+<a href="#section-5.5" class="section-number selfRef">5.5. </a><a href="#name-claim-binding" class="section-name selfRef">Claim Binding</a>
+        </h3>
+<p id="section-5.5-1">The verified claim MUST be bound to the receipt via <code>v_claim</code>:<a href="#section-5.5-1" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="section-5.5-2">
+<pre>"v_claim": {
+  "text": "string (OPTIONAL when caller marks input
+           as PII-sensitive)",
+  "hash": "hex-encoded SHA-256 of canonicalized claim
+           text (REQUIRED when text is omitted)"
+}
+
+</pre><a href="#section-5.5-2" class="pilcrow">¶</a>
+</div>
+<p id="section-5.5-3">Hash-only mode permits PII-sensitive verification while preserving the receipt's auditability --- the verifier can confirm a future caller's claim hash matches the issued receipt's bound hash without exposing the claim text.<a href="#section-5.5-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="receipt-envelope-example">
+<section id="section-5.6">
+        <h3 id="name-receipt-envelope-example">
+<a href="#section-5.6" class="section-number selfRef">5.6. </a><a href="#name-receipt-envelope-example" class="section-name selfRef">Receipt Envelope Example</a>
+        </h3>
+<p id="section-5.6-1">The following is a non-normative example of a receipt envelope payload illustrating the mandatory <code>v_gate_mapping_hash</code> binding alongside <code>v_gate_mapping</code>:<a href="#section-5.6-1" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="section-5.6-2">
+<pre>{
+  "iss": "https://verifier.example.com",
+  "sub": "claim:sha256:a3f1...",
+  "iat": 1748649600,
+  "exp": 1748736000,
+  "v_verdict": "verified",
+  "v_confidence": 0.91,
+  "v_adversarial_result": "resilient",
+  "v_recommendation": "confident_supported",
+  "v_gate": "act",
+  "v_gate_mapping": "v0.3.0-2026-05-30",
+  "v_gate_mapping_hash": "sha256:1ad513cd0cfcc1...",
+  "v_claim": {
+    "hash": "a3f1c2d4e5b6789012345678abcdef01..."
+  },
+  "evidence_set": {
+    "evidence_set_version": "ao-evidence-set-v1",
+    "retrieved_at": "2026-09-01T12:00:00.000Z",
+    "source_count": 2,
+    "pinned_count": 2,
+    "fully_pinned": true,
+    "evidence_root": "c9f2...",
+    "sources": [
+      {
+        "url": "https://example.com/report-a",
+        "snippet_sha256": "6f2c...",
+        "retrieved_at": "2026-09-01T12:00:00.000Z",
+        "pinned": true,
+        "content_kind": "snippet"
+      },
+      {
+        "url": "https://example.com/report-b",
+        "snippet_sha256": "a114...",
+        "retrieved_at": "2026-09-01T12:00:01.000Z",
+        "pinned": true,
+        "content_kind": "snippet"
+      }
+    ]
+  }
+}
+
+</pre><a href="#section-5.6-2" class="pilcrow">¶</a>
+</div>
+<p id="section-5.6-3">The <code>v_gate_mapping_hash</code> field carries the hex-encoded SHA-256 digest of the canonical serialization of the mapping document identified by <code>v_gate_mapping</code>. This field MUST be present in all conforming receipts; its absence is a malformed-receipt condition. The <code>evidence_set</code> member is illustrative and OPTIONAL; the digest values shown are truncated placeholders, not computed values, and MUST NOT be used as test vectors.<a href="#section-5.6-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="version-binding-rationale">
+<section id="section-5.7">
+        <h3 id="name-version-binding-rationale">
+<a href="#section-5.7" class="section-number selfRef">5.7. </a><a href="#name-version-binding-rationale" class="section-name selfRef">Version-Binding Rationale</a>
+        </h3>
+<p id="section-5.7-1">Gate-derivation rules will evolve. A receipt issued under mapping <code>v0.3.0-...</code> MUST remain verifiable as <em>correct-under-<code>v0.3.0</code></em> after a newer mapping ships. The mapping identifier in <code>v_gate_mapping</code> is the binding that makes this true: a verifier fetches the <em>same</em> mapping document the issuer used at issuance, regardless of newer revisions. Receipts never silently re-verify to a different gate.<a href="#section-5.7-1" class="pilcrow">¶</a></p>
+<p id="section-5.7-2">Mapping document publishers MUST treat published mappings as immutable. New rules ship under new mapping identifiers. Errata (typographical corrections only) MAY be appended to a published mapping document's metadata, but the normative rule tables MUST NOT change after first publication.<a href="#section-5.7-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="binary-halt-gate-semantics">
+<section id="section-6">
+      <h2 id="name-binary-halt-gate-semantics">
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-binary-halt-gate-semantics" class="section-name selfRef">Binary-Halt Gate Semantics</a>
+      </h2>
+<div id="decision-table">
+<section id="section-6.1">
+        <h3 id="name-decision-table">
+<a href="#section-6.1" class="section-number selfRef">6.1. </a><a href="#name-decision-table" class="section-name selfRef">Decision Table</a>
+        </h3>
+<p id="section-6.1-1">The reference mapping <code>v0.3.0-2026-05-30</code> defines the following decision table, restated against this revision's four-state vocabulary. Future mappings MAY tighten or extend this table; the structural shape (binary act/halt output derived from canonical recommendation) MUST be preserved. The recommendation and gate vocabulary (<code>confident_supported</code>, <code>un_probed_not_cleared</code>, and so on) is unchanged from <code>draft-krausz-verification-state-01</code> in this revision; see <a href="#open-issues" class="auto internal xref">Section 10</a>.<a href="#section-6.1-1" class="pilcrow">¶</a></p>
+<table class="center" id="table-2">
+          <caption><a href="#table-2" class="selfRef">Table 2</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">State</th>
+              <th class="text-left" rowspan="1" colspan="1">Conf.</th>
+              <th class="text-left" rowspan="1" colspan="1">Adversarial</th>
+              <th class="text-left" rowspan="1" colspan="1">Recommendation</th>
+              <th class="text-left" rowspan="1" colspan="1">Gate</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>verified</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">&gt;= thr</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>resilient</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>confident_supported</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>act</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>verified</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">&gt;= thr</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>not_checked</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>un_probed_not_cleared</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>halt</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>verified</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">any</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>vulnerable</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>vulnerable_supported</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>halt</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>verified</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">&lt; thr</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>resilient</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>weak_supported</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>halt</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>verified</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">&lt; thr</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>not_checked</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>weak_supported</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>halt</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>contradicted</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">any</td>
+              <td class="text-left" rowspan="1" colspan="1">any</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>refuted</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>halt</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>indeterminate</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">any</td>
+              <td class="text-left" rowspan="1" colspan="1">any</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>unverifiable</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>halt</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>not_evaluated</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">any</td>
+              <td class="text-left" rowspan="1" colspan="1">any</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>unverifiable</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>halt</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">error (see below)</td>
+              <td class="text-left" rowspan="1" colspan="1">n/a</td>
+              <td class="text-left" rowspan="1" colspan="1">n/a</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>error</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>halt</code>
+</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-6.1-3">Independent of the mapping table above: this revision requires that an issuer reporting <code>v_reason_code: instrument_failure</code> MUST derive <code>v_recommendation: error</code> and MUST derive <code>v_gate: halt</code>, regardless of which of the four states <code>instrument_failure</code> is attached to. This rule cannot be part of mapping <code>v0.3.0-2026-05-30</code> itself --- that mapping predates the reason-code vocabulary and, per <a href="#version-binding-rationale" class="auto internal xref">Section 5.7</a>, published mappings are immutable and MUST NOT be amended to add it. Applying this rule in practice therefore requires a future mapping revision that encodes reason-code-aware derivation explicitly; this is the gap Open Issue 4 (<a href="#open-issues" class="auto internal xref">Section 10</a>) names.<a href="#section-6.1-3" class="pilcrow">¶</a></p>
+<p id="section-6.1-4">This table maps the four states onto the same recommendation/gate structure <code>draft-krausz-verification-state-01</code> defined for its four raw-verdict values, one-for-one in declaration order (<code>verified</code> from <code>supported</code>, <code>contradicted</code> from <code>refuted</code>, <code>indeterminate</code> from <code>unverifiable</code>, <code>not_evaluated</code> from <code>unknown</code>). It does not yet give the recommendation layer its own reason-code-aware treatment; that is deferred, and named explicitly in <a href="#open-issues" class="auto internal xref">Section 10</a> rather than silently assumed.<a href="#section-6.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="threshold-rules">
+<section id="section-6.2">
+        <h3 id="name-threshold-rules">
+<a href="#section-6.2" class="section-number selfRef">6.2. </a><a href="#name-threshold-rules" class="section-name selfRef">Threshold Rules</a>
+        </h3>
+<p id="section-6.2-1">The confidence threshold used to derive <code>v_recommendation</code> is specified in the named mapping document, not in the individual receipt. Receipts reference the mapping by <code>v_gate_mapping</code> identifier, and the threshold is recovered from that mapping. This ensures that the threshold is auditable, versioned, and consistent across all receipts issued under the same mapping: two receipts under the same mapping ID MUST gate against the same threshold; threshold changes require a new mapping version with a new ID.<a href="#section-6.2-1" class="pilcrow">¶</a></p>
+<p id="section-6.2-2">For a strict fail-closed gate, un-probed adversarial state is not equivalent to <code>resilient</code> --- it represents uncertainty about a dimension that can be exploited by adversarial input. Per the fail-closed property, uncertainty MUST halt. A claim may be confidently supported on its face, but if adversarial probing was not performed, the confidence applies only to the base claim, not to the claim under adversarial pressure. The <code>un_probed_not_cleared</code> recommendation reflects this: the gate treats the absence of probing as a distinct unresolved risk, not as a cleared risk.<a href="#section-6.2-2" class="pilcrow">¶</a></p>
+<p id="section-6.2-3">Relying parties MAY require a higher threshold mapping for their own gate policies by requiring receipts under a different mapping ID that specifies a higher threshold. They MUST NOT treat a receipt as conformant under a mapping that specifies a different threshold than the one in that mapping document.<a href="#section-6.2-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="fail-closed-mandate">
+<section id="section-6.3">
+        <h3 id="name-fail-closed-mandate">
+<a href="#section-6.3" class="section-number selfRef">6.3. </a><a href="#name-fail-closed-mandate" class="section-name selfRef">Fail-Closed Mandate</a>
+        </h3>
+<p id="section-6.3-1">If a receipt is missing, malformed, expired, signature-invalid, or its mapping ID cannot be resolved, the relying party MUST treat the gate decision as <code>halt</code>. Implementations MUST NOT default to <code>act</code> under any error condition. This is the "impossible, not tedious" design principle: friction-based controls bypass under adversarial pressure; hard barriers do not.<a href="#section-6.3-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="multi-axis-freshness">
+<section id="section-7">
+      <h2 id="name-multi-axis-freshness">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-multi-axis-freshness" class="section-name selfRef">Multi-Axis Freshness</a>
+      </h2>
+<div id="three-independent-axes">
+<section id="section-7.1">
+        <h3 id="name-three-independent-axes">
+<a href="#section-7.1" class="section-number selfRef">7.1. </a><a href="#name-three-independent-axes" class="section-name selfRef">Three Independent Axes</a>
+        </h3>
+<p id="section-7.1-1">Verification receipts have three independent staleness axes, each with its own validity window:<a href="#section-7.1-1" class="pilcrow">¶</a></p>
+<table class="center" id="table-3">
+          <caption><a href="#table-3" class="selfRef">Table 3</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Axis</th>
+              <th class="text-left" rowspan="1" colspan="1">Field</th>
+              <th class="text-left" rowspan="1" colspan="1">Remediation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Signature</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>exp</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Key rotation; verifier MUST reject expired signatures</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Calibration</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>v_calibration.valid_until</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Recalibrate verifier pipeline against current anchor</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Evidence</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>evidence_set.retrieved_at</code> (OPTIONAL; falls back to per-source <code>retrieved_at</code> per <a href="#evidence-pinning" class="auto internal xref">Section 5.3</a> when the set-level member is absent)</td>
+              <td class="text-left" rowspan="1" colspan="1">Re-retrieve and re-pin evidence; usually shorter window than calibration</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-7.1-3">This revision anchors the evidence axis to <code>evidence_set.retrieved_at</code> rather than a separately declared <code>valid_until</code>. <code>v_evidence</code> and its <code>valid_until</code> convention are deprecated per <a href="#payload-claims-canonical-derived-mapping-bound" class="auto internal xref">Section 5.2</a>; a relying party computing evidence-axis staleness for a receipt that carries an <code>evidence_set</code> MUST use its <code>retrieved_at</code>, not a declared expiry, since freshness is a fact about when the evidence was captured rather than a duration the issuer asserts it remains good for.<a href="#section-7.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="staleness-semantics">
+<section id="section-7.2">
+        <h3 id="name-staleness-semantics">
+<a href="#section-7.2" class="section-number selfRef">7.2. </a><a href="#name-staleness-semantics" class="section-name selfRef">Staleness Semantics</a>
+        </h3>
+<ul class="compact">
+<li class="compact" id="section-7.2-1.1">
+            <strong>Stale signature</strong> --- Receipt is invalid; relying party MUST treat as <code>halt</code>.<a href="#section-7.2-1.1" class="pilcrow">¶</a>
+</li>
+          <li class="compact" id="section-7.2-1.2">
+            <strong>Stale calibration</strong> --- Receipt SHOULD be re-evaluated; relying party MAY honor as soft-stale per its own policy. Verifier issuers SHOULD publish recalibration cadence in metadata.<a href="#section-7.2-1.2" class="pilcrow">¶</a>
+</li>
+          <li class="compact" id="section-7.2-1.3">
+            <strong>Stale evidence</strong> --- Receipt SHOULD be re-evaluated. MAY be honored for retrospective audit purposes (e.g., post-incident review of a past action) but MUST NOT be honored as a gate signal for new actions.<a href="#section-7.2-1.3" class="pilcrow">¶</a>
+</li>
+        </ul>
+<p id="section-7.2-2">Each axis has a different remediation path; collapsing them into a single TTL would force the most-restrictive cadence to govern all three.<a href="#section-7.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="calibration-anchor-requirements">
+<section id="section-8">
+      <h2 id="name-calibration-anchor-requirem">
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-calibration-anchor-requirem" class="section-name selfRef">Calibration Anchor Requirements</a>
+      </h2>
+<div id="reproducibility-mandate">
+<section id="section-8.1">
+        <h3 id="name-reproducibility-mandate">
+<a href="#section-8.1" class="section-number selfRef">8.1. </a><a href="#name-reproducibility-mandate" class="section-name selfRef">Reproducibility Mandate</a>
+        </h3>
+<p id="section-8.1-1">Verifier issuers MUST publish:<a href="#section-8.1-1" class="pilcrow">¶</a></p>
+<ul class="compact">
+<li class="compact" id="section-8.1-2.1">Anchor dataset name and version.<a href="#section-8.1-2.1" class="pilcrow">¶</a>
+</li>
+          <li class="compact" id="section-8.1-2.2">Anchor seed (or seeded run identifier).<a href="#section-8.1-2.2" class="pilcrow">¶</a>
+</li>
+          <li class="compact" id="section-8.1-2.3">Anchor scoring methodology.<a href="#section-8.1-2.3" class="pilcrow">¶</a>
+</li>
+        </ul>
+<p id="section-8.1-3">Verifier issuers SHOULD publish a reference reproduction harness under a permissive open-source license (Apache 2.0, MIT, or BSD). A working reference implementation reproduced 57.6% on AVeriTeC <span>[<a href="#AVERITEC" class="cite xref">AVERITEC</a>]</span>, measured 28 May 2026 on the pre-migration Sonar-backed pipeline. It is available at <a href="https://github.com/TKCollective/agentoracle-eval-harness">https://github.com/TKCollective/agentoracle-eval-harness</a> as one example of conformance.<a href="#section-8.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="drift-detection">
+<section id="section-8.2">
+        <h3 id="name-drift-detection">
+<a href="#section-8.2" class="section-number selfRef">8.2. </a><a href="#name-drift-detection" class="section-name selfRef">Drift Detection</a>
+        </h3>
+<p id="section-8.2-1">Verifier issuers SHOULD publish a recalibration cadence in the JWKS metadata or the verifier's well-known endpoint. The <code>v_calibration.valid_until</code> field in receipts SHOULD reflect this cadence. Relying parties consuming receipts with stale calibration SHOULD log and surface the staleness rather than silently accept.<a href="#section-8.2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="relationship-to-related-work">
+<section id="section-9">
+      <h2 id="name-relationship-to-related-wor">
+<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-relationship-to-related-wor" class="section-name selfRef">Relationship to Related Work</a>
+      </h2>
+<div id="scitt">
+<section id="section-9.1">
+        <h3 id="name-scitt">
+<a href="#section-9.1" class="section-number selfRef">9.1. </a><a href="#name-scitt" class="section-name selfRef">SCITT</a>
+        </h3>
+<p id="section-9.1-1">RFC 9943 <span>[<a href="#RFC9943" class="cite xref">RFC9943</a>]</span> --- the SCITT (Supply Chain Integrity, Transparency, and Trust) architecture, published as a full RFC in June 2026 --- defines the SCITT signing and receipt-envelope architecture, superseding the individual/WG draft <code>draft-ietf-scitt-architecture</code> cited by <code>draft-krausz-verification-state-01</code>. This document is SCITT-compatible: a <code>verification.*</code> receipt MAY be wrapped in a SCITT envelope, and SCITT receipts MAY carry <code>verification.*</code> payloads. RFC 9943 specifies the signing infrastructure; this document specifies a gate primitive that may be transported via SCITT or via plain JWS.<a href="#section-9.1-1" class="pilcrow">¶</a></p>
+<p id="section-9.1-2">RFC 9942 <span>[<a href="#RFC9942" class="cite xref">RFC9942</a>]</span> defines CBOR Object Signing and Encryption (COSE) Receipts, also published June 2026. Where a SCITT transparency service issues a COSE Receipt over a <code>verification.*</code> payload, the two receipt layers are complementary and independently verifiable: the COSE Receipt attests registration in a transparency log; the <code>verification.*</code> JWS attests the pre-action gate decision itself. This document takes no normative dependency on RFC 9942 and does not require a relying party to consult a transparency log to verify a <code>verification.*</code> receipt on its own terms.<a href="#section-9.1-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="relationship-to-decision-records">
+<section id="section-9.2">
+        <h3 id="name-relationship-to-decision-re">
+<a href="#section-9.2" class="section-number selfRef">9.2. </a><a href="#name-relationship-to-decision-re" class="section-name selfRef">Relationship to Decision Records</a>
+        </h3>
+<p id="section-9.2-1">Related work on decision records for AI agent actions is in progress, notably <span>[<a href="#I-D.sirkkavaara-vaara-receipt" class="cite xref">I-D.sirkkavaara-vaara-receipt</a>]</span>. The two documents describe different things, and this document states its own boundary explicitly rather than leaving it to be inferred from adjacency:<a href="#section-9.2-1" class="pilcrow">¶</a></p>
+<p id="section-9.2-2">A pre-action verification record, as specified here, establishes whether the factual claims an action rests on were checked, against which evidence, and with what result --- which a decision record does not. See <span>[<a href="#I-D.sirkkavaara-vaara-receipt" class="cite xref">I-D.sirkkavaara-vaara-receipt</a>]</span> for related work; this document makes no claim about what that specification establishes, and neither format depends normatively on the other.<a href="#section-9.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="rats">
+<section id="section-9.3">
+        <h3 id="name-rats">
+<a href="#section-9.3" class="section-number selfRef">9.3. </a><a href="#name-rats" class="section-name selfRef">RATS</a>
+        </h3>
+<p id="section-9.3-1">RFC 9334 <span>[<a href="#RFC9334" class="cite xref">RFC9334</a>]</span> defines the Remote Attestation Architecture's Evidence-&gt;Verifier-&gt;Attestation Result-&gt;Relying Party vocabulary. A <code>verification.*</code> receipt is an Attestation Result whose gate field (<code>v_gate</code>) is the RP-consumable primitive. This document is consistent with the RATS vocabulary and may be considered a verification-specific Attestation Result profile.<a href="#section-9.3-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="w3c-vc-confidence-method">
+<section id="section-9.4">
+        <h3 id="name-w3c-vc-confidence-method">
+<a href="#section-9.4" class="section-number selfRef">9.4. </a><a href="#name-w3c-vc-confidence-method" class="section-name selfRef">W3C VC Confidence Method</a>
+        </h3>
+<p id="section-9.4-1">The W3C Verifiable Credentials Confidence Method <span>[<a href="#VC-CM" class="cite xref">VC-CM</a>]</span> defines confidence-as-a-verifiable-property within Verifiable Credentials. This document adopts the same pattern for <code>v_confidence</code> (signed metadata, not gating). Confidence is provenance; the gate is the contract. Alignment, not overlap.<a href="#section-9.4-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="vap-framework">
+<section id="section-9.5">
+        <h3 id="name-vap-framework">
+<a href="#section-9.5" class="section-number selfRef">9.5. </a><a href="#name-vap-framework" class="section-name selfRef">VAP Framework</a>
+        </h3>
+<p id="section-9.5-1">The Verifiable AI Provenance Framework (VAP) <span>[<a href="#VAP-FW" class="cite xref">VAP-FW</a>]</span> is an individual Internet-Draft providing an architectural coordination layer for evidentiary-grade decision trails. A <code>verification.*</code> receipt issuer MAY be considered a verifier profile under the VAP umbrella. This citation is pinned to <code>draft-kamimura-vap-framework-01</code> (21 July 2026); a future VAP revision may require this reference to be re-pinned.<a href="#section-9.5-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="mastercard-verifiable-intent-environment">
+<section id="section-9.6">
+        <h3 id="name-mastercard-verifiable-inten">
+<a href="#section-9.6" class="section-number selfRef">9.6. </a><a href="#name-mastercard-verifiable-inten" class="section-name selfRef">Mastercard Verifiable Intent (environment.*)</a>
+        </h3>
+<p id="section-9.6-1">The <code>environment.*</code> constraint family for pre-action attestation of environment state is specified in <span>[<a href="#ENV-STATE" class="cite xref">ENV-STATE</a>]</span>, as part of the Verifiable Intent framework <span>[<a href="#VINTENT" class="cite xref">VINTENT</a>]</span>. This document extends the constraint-family pattern to probabilistic predicates with calibration discipline, as a sibling family rather than a member entry. See <a href="#the-verification-constraint-family" class="auto internal xref">Section 4</a>.<a href="#section-9.6-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="differentiator-summary">
+<section id="section-9.7">
+        <h3 id="name-differentiator-summary">
+<a href="#section-9.7" class="section-number selfRef">9.7. </a><a href="#name-differentiator-summary" class="section-name selfRef">Differentiator Summary</a>
+        </h3>
+<p id="section-9.7-1">Pre-action fail-closed gate. Not signing machinery (covered by SCITT). Not confidence quantification (covered by W3C VC CM). Not just an Attestation Result (covered by RATS). The gate primitive itself, with the version-binding necessary to outlive ruleset evolution.<a href="#section-9.7-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="open-issues">
+<section id="section-10">
+      <h2 id="name-open-issues">
+<a href="#section-10" class="section-number selfRef">10. </a><a href="#name-open-issues" class="section-name selfRef">Open Issues</a>
+      </h2>
+<p id="section-10-1">This section names what this revision does not settle, so that it is tracked rather than silently assumed resolved.<a href="#section-10-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="compact type-1" id="section-10-2">
+<li id="section-10-2.1">
+          <strong>Independent implementation of evidence pinning is still pending.</strong> Every implementation run against the evidence-pinning rules to date (<a href="#evidence-pinning" class="auto internal xref">Section 5.3</a>) has extended an existing implementation rather than been built cold from the specification text alone. A from-text reconstruction is understood to be in progress. Until an independent cold build lands and is cross-checked, this document does not claim evidence pinning has had an independent implementation in the sense its own conformance discipline requires; that remains an open issue tracked here rather than a precondition for submission.<a href="#section-10-2.1" class="pilcrow">¶</a>
+</li>
+        <li id="section-10-2.2">
+          <strong>The malformed-condition enumeration diff.</strong> This document's evidence-pinning rules name a set of reported conditions (<code>pinned_absent_or_not_boolean</code>, <code>duplicate_bound_tuple</code>, <code>evidence_set_names_no_sources</code>, <code>set_retrieved_at_not_bytewise_least</code>, <code>retrieved_at_not_canonical_form</code>, <code>snippet_digest_present_for_full_resource</code>, <code>snippet_sha256_absent_when_pinned</code>, and others named inline above). Whether this list is complete against every malformation the specification text actually states has not been verified name-for-name against an independent enumeration, and remains open.<a href="#section-10-2.2" class="pilcrow">¶</a>
+</li>
+        <li id="section-10-2.3">
+          <strong>The pinned-and-unpinned duplicate-identity pair.</strong> A pinned entry and an unpinned entry sharing <code>url</code> and <code>retrieved_at</code> are treated as one retrieval recorded twice under the entry-distinctness rule of <a href="#evidence-set-sources" class="auto internal xref">Section 5.3.2</a>, but no conformance vector in the companion fixture corpus currently exercises that specific pair. Candidate for a future revision.<a href="#section-10-2.3" class="pilcrow">¶</a>
+</li>
+        <li id="section-10-2.4">
+          <strong>The recommendation and gate mapping vocabulary is unrenamed.</strong> <a href="#decision-table" class="auto internal xref">Section 6.1</a> maps the new four-state vocabulary onto <code>draft-krausz-verification-state-01</code>'s existing <code>v_recommendation</code> values (<code>confident_supported</code>, <code>un_probed_not_cleared</code>, and so on) one-for-one by position. Those values still read as though derived from a <code>supported</code>/<code>refuted</code> axis. Whether the recommendation layer should itself be restated in reason-code-aware terms is not resolved here.<a href="#section-10-2.4" class="pilcrow">¶</a>
+</li>
+        <li id="section-10-2.5">
+          <strong>REQUIRED members with a derivation fallback.</strong> <a href="#evidence-set-object" class="auto internal xref">Section 5.3.1</a> marks <code>source_count</code>, <code>pinned_count</code>, and <code>fully_pinned</code> as members of the <code>evidence_set</code> object while also specifying that a verifier MUST derive each from <code>sources</code> when it is absent. This document treats the two statements as compatible --- REQUIRED for the object's shape, with a stated fallback rather than a validation failure when an issuer omits one --- but a future revision should either soften the member table's language or state the fallback as the sole requirement.<a href="#section-10-2.5" class="pilcrow">¶</a>
+</li>
+        <li id="section-10-2.6">
+          <strong>The capture relationship, as stated in <a href="#the-four-states" class="auto internal xref">Section 3.1</a>, is this document's own formulation of a term used without further gloss in working-group discussion.</strong> Comments are invited on whether it matches that usage.<a href="#section-10-2.6" class="pilcrow">¶</a>
+</li>
+        <li id="section-10-2.7">
+          <strong>The <code>v_verdict</code> claim name is unrenamed.</strong> <a href="#payload-claims-canonical-derived-mapping-bound" class="auto internal xref">Section 5.2</a> gives the claim a new four-value domain this revision but keeps its existing wire name, <code>v_verdict</code>, rather than renaming it to <code>v_state</code> to match the vocabulary's own terminology, because a rename is a breaking wire change against every <code>draft-krausz-verification-state-01</code> implementer and against production issuance that emits <code>v_verdict</code> today. Whether and how to rename the claim is deferred to a future revision, pending an assessment of migration cost across existing implementers.<a href="#section-10-2.7" class="pilcrow">¶</a>
+</li>
+        <li id="section-10-2.8">
+          <strong>The media-type registration request is incomplete.</strong> <a href="#iana-considerations" class="auto internal xref">Section 12</a> names <code>verification-receipt+jws</code> as a media type to be registered but does not supply the RFC 6838 registration template or state the top-level media type (<code>application/</code>) the subtype registers under. A complete template is deferred to a future revision.<a href="#section-10-2.8" class="pilcrow">¶</a>
+</li>
+      </ol>
+</section>
+</div>
+<div id="security-considerations">
+<section id="section-11">
+      <h2 id="name-security-considerations">
+<a href="#section-11" class="section-number selfRef">11. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
+      </h2>
+<div id="composition-non-interference-with-environment-family">
+<section id="section-11.1">
+        <h3 id="name-composition-non-interferenc">
+<a href="#section-11.1" class="section-number selfRef">11.1. </a><a href="#name-composition-non-interferenc" class="section-name selfRef">Composition Non-Interference with environment.* Family</a>
+        </h3>
+<p id="section-11.1-1">When <code>verification.*</code> composes alongside <code>environment.*</code> on the same mandate, the ordering specified in <a href="#composition-rules" class="auto internal xref">Section 4.2</a> (environment.* short-circuits before verification.*) MUST hold. This document inherits that ordering directly from <span>[<a href="#ENV-STATE" class="cite xref">ENV-STATE</a>]</span> Section 5.5, which specifies that <code>environment.*</code> is not subject to ordering preemption by any other constraint family. A <code>verification.*</code> ACT outcome MUST NOT mask an <code>environment.*</code> HALT outcome; if <code>environment.*</code> halts on any constraint, that halt is final regardless of the <code>verification.*</code> state. Implementations MUST evaluate <code>environment.*</code> to its terminal state before evaluating any <code>verification.*</code> constraint, and a <code>verification.*</code> state SHALL NOT be reached if <code>environment.*</code> has already halted.<a href="#section-11.1-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="other-security-considerations">
+<section id="section-11.2">
+        <h3 id="name-other-security-consideratio">
+<a href="#section-11.2" class="section-number selfRef">11.2. </a><a href="#name-other-security-consideratio" class="section-name selfRef">Other Security Considerations</a>
+        </h3>
+<p id="section-11.2-1"><strong>Key compromise.</strong> Verifier issuers MUST rotate JWKS keys on a published cadence. Receipts signed under a compromised key remain verifiable against historical key state during the rotation horizon. RPs MUST honor key revocation lists where published.<a href="#section-11.2-1" class="pilcrow">¶</a></p>
+<p id="section-11.2-2"><strong>Replay attacks.</strong> Receipts include <code>iat</code> and <code>exp</code>. RPs MUST verify both against current time, subject to clock tolerance. Claim-binding via <code>v_claim.hash</code> provides resistance to receipt-reuse against a different claim payload.<a href="#section-11.2-2" class="pilcrow">¶</a></p>
+<p id="section-11.2-3"><strong>Confidence inflation attacks.</strong> A verifier issuer who inflates <code>v_confidence</code> to push more receipts to <code>act</code> would diverge from their published calibration anchor. The reproducibility mandate (<a href="#calibration-anchor-requirements" class="auto internal xref">Section 8</a>) makes this detectable. RPs SHOULD periodically sample receipts against the issuer's published harness.<a href="#section-11.2-3" class="pilcrow">¶</a></p>
+<p id="section-11.2-4"><strong>Selective disclosure.</strong> Hash-only claim binding (<a href="#claim-binding" class="auto internal xref">Section 5.5</a>) permits PII-sensitive verification without exposing claim text in the receipt envelope.<a href="#section-11.2-4" class="pilcrow">¶</a></p>
+<p id="section-11.2-5"><strong>Downgrade attacks.</strong> A future relying party MUST NOT accept a v0.3-spec receipt against a v0.4-spec gate. The receipt format version is implicitly bound by <code>v_gate_mapping</code>; mismatches between expected and signed mapping IDs are malformed-receipt conditions per <a href="#verification-protocol" class="auto internal xref">Section 5.4</a>.<a href="#section-11.2-5" class="pilcrow">¶</a></p>
+<p id="section-11.2-6"><strong>Mapping document tampering.</strong> Receipts MUST bind to a content-addressed mapping via the <code>v_gate_mapping_hash</code> field (SHA-256). Mapping documents MUST be hosted such that the SHA-256 digest of the canonical serialization is stable and independently verifiable (e.g., at a content-addressed URL or via a git-tagged manifest). Verifier implementations MUST verify the SHA-256 digest of the fetched mapping document against <code>v_gate_mapping_hash</code> before use; a digest mismatch MUST result in gate decision <code>halt</code>. A relying party that cannot independently verify the mapping document's hash MUST treat the receipt as malformed.<a href="#section-11.2-6" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="iana-considerations">
+<section id="section-12">
+      <h2 id="name-iana-considerations">
+<a href="#section-12" class="section-number selfRef">12. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+      </h2>
+<p id="section-12-1">This document requests the following IANA registrations:<a href="#section-12-1" class="pilcrow">¶</a></p>
+<p id="section-12-2"><strong>Media type:</strong> <code>verification-receipt+jws</code> (to be registered in the IANA Media Types registry following the procedures of RFC 6838).<a href="#section-12-2" class="pilcrow">¶</a></p>
+<p id="section-12-3"><strong>JWT claim names:</strong> <code>v_verdict</code>, <code>v_reason_code</code>, <code>v_subject</code>, <code>v_confidence</code>, <code>v_adversarial_result</code>, <code>v_recommendation</code>, <code>v_gate</code>, <code>v_gate_mapping</code>, <code>v_gate_mapping_hash</code>, <code>v_method</code>, <code>v_calibration</code>, <code>evidence_set</code>, <code>v_claim</code> (to be registered in the JSON Web Token Claims registry; <code>v_verdict</code> was already registrable under <code>draft-krausz-verification-state-01</code>, and this revision changes its domain per <a href="#verification-state-vocabulary" class="auto internal xref">Section 3</a> rather than replacing the claim name). <code>v_sources_used</code> and <code>v_evidence</code> remain registrable for the receipts issued under <code>draft-krausz-verification-state-01</code> that carry them, and are marked DEPRECATED for new issuance per <a href="#payload-claims-canonical-derived-mapping-bound" class="auto internal xref">Section 5.2</a> rather than withdrawn from the registry.<a href="#section-12-3" class="pilcrow">¶</a></p>
+<p id="section-12-4"><strong>Well-known URI:</strong> Verification issuers using HTTPS SHOULD publish their JWKS at <code>/.well-known/jwks.json</code> per existing <span>[<a href="#RFC7517" class="cite xref">RFC7517</a>]</span> Section 4.7 conventions. No new well-known URI is requested.<a href="#section-12-4" class="pilcrow">¶</a></p>
+<p id="section-12-5">The <code>verification.*</code> and <code>environment.*</code> constraint families are related sibling namespaces. Coordination on a joint constraint-family registry shared with the <code>environment.*</code> family (<span>[<a href="#ENV-STATE" class="cite xref">ENV-STATE</a>]</span>) is deferred to all interested parties (Krausz, Borthwick, Msebenzi) for resolution outside the scope of this document. This document does not commit to a specific registry structure, nor does it assert agreement from the <code>environment.*</code> authors on any registry arrangement. The cross-referencing between <code>verification.*</code> and <code>environment.*</code> as related constraint families stands as documented, independent of any future registry decision.<a href="#section-12-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<section id="section-13">
+      <h2 id="name-informative-references">
+<a href="#section-13" class="section-number selfRef">13. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
+      </h2>
+<dl class="references">
+<dt id="ANTHROPIC-ZT">[ANTHROPIC-ZT]</dt>
+      <dd>
+<span class="refAuthor">Anthropic</span>, <span class="refTitle">"Zero Trust for AI Agents: A security framework for deploying autonomous AI agents in the enterprise"</span>, <span class="refContent">PDF, 36 pages</span>, <time datetime="2026-05" class="refDate">May 2026</time>. </dd>
+<dd class="break"></dd>
+<dt id="AVERITEC">[AVERITEC]</dt>
+      <dd>
+<span class="refAuthor">Schlichtkrull, M.</span>, <span class="refTitle">"AVeriTeC: A Dataset for Real-World Claim Verification with Evidence from the Web"</span>, <time datetime="2024" class="refDate">2024</time>. </dd>
+<dd class="break"></dd>
+<dt id="ENV-STATE">[ENV-STATE]</dt>
+      <dd>
+<span class="refAuthor">Borthwick, D.</span> and <span class="refAuthor">M. Msebenzi</span>, <span class="refTitle">"Verifiable Intent --- environment.* Constraint Family"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-borthwick-msebenzi-environment-state-02</span>, <time datetime="2026-08-27" class="refDate">27 August 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-borthwick-msebenzi-environment-state-02">https://datatracker.ietf.org/doc/html/draft-borthwick-msebenzi-environment-state-02</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC2119">[RFC2119]</dt>
+      <dd>
+<span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Key words for use in RFCs to Indicate Requirement Levels"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 2119</span>, <span class="seriesInfo">DOI 10.17487/RFC2119</span>, <time datetime="1997-03" class="refDate">March 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc2119">https://www.rfc-editor.org/info/rfc2119</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7515">[RFC7515]</dt>
+      <dd>
+<span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Bradley, J.</span>, and <span class="refAuthor">N. Sakimura</span>, <span class="refTitle">"JSON Web Signature (JWS)"</span>, <span class="seriesInfo">RFC 7515</span>, <span class="seriesInfo">DOI 10.17487/RFC7515</span>, <time datetime="2015-05" class="refDate">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc7515">https://www.rfc-editor.org/info/rfc7515</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7517">[RFC7517]</dt>
+      <dd>
+<span class="refAuthor">Jones, M.</span>, <span class="refTitle">"JSON Web Key (JWK)"</span>, <span class="seriesInfo">RFC 7517</span>, <span class="seriesInfo">DOI 10.17487/RFC7517</span>, <time datetime="2015-05" class="refDate">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc7517">https://www.rfc-editor.org/info/rfc7517</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7518">[RFC7518]</dt>
+      <dd>
+<span class="refAuthor">Jones, M.</span>, <span class="refTitle">"JSON Web Algorithms (JWA)"</span>, <span class="seriesInfo">RFC 7518</span>, <span class="seriesInfo">DOI 10.17487/RFC7518</span>, <time datetime="2015-05" class="refDate">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc7518">https://www.rfc-editor.org/info/rfc7518</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7519">[RFC7519]</dt>
+      <dd>
+<span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Bradley, J.</span>, and <span class="refAuthor">N. Sakimura</span>, <span class="refTitle">"JSON Web Token (JWT)"</span>, <span class="seriesInfo">RFC 7519</span>, <span class="seriesInfo">DOI 10.17487/RFC7519</span>, <time datetime="2015-05" class="refDate">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc7519">https://www.rfc-editor.org/info/rfc7519</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8037">[RFC8037]</dt>
+      <dd>
+<span class="refAuthor">Liusvaara, I.</span>, <span class="refTitle">"CFRG Elliptic Curve Diffie-Hellman (ECDH) and Signatures in JSON Object Signing and Encryption (JOSE)"</span>, <span class="seriesInfo">RFC 8037</span>, <span class="seriesInfo">DOI 10.17487/RFC8037</span>, <time datetime="2017-01" class="refDate">January 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8037">https://www.rfc-editor.org/info/rfc8037</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8174">[RFC8174]</dt>
+      <dd>
+<span class="refAuthor">Leiba, B.</span>, <span class="refTitle">"Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 8174</span>, <span class="seriesInfo">DOI 10.17487/RFC8174</span>, <time datetime="2017-05" class="refDate">May 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8174">https://www.rfc-editor.org/info/rfc8174</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9334">[RFC9334]</dt>
+      <dd>
+<span class="refAuthor">Birkholz, H.</span>, <span class="refAuthor">Thaler, D.</span>, <span class="refAuthor">Richardson, M.</span>, <span class="refAuthor">Smith, N.</span>, and <span class="refAuthor">W. Pan</span>, <span class="refTitle">"Remote ATtestation procedureS (RATS) Architecture"</span>, <span class="seriesInfo">RFC 9334</span>, <span class="seriesInfo">DOI 10.17487/RFC9334</span>, <time datetime="2023-01" class="refDate">January 2023</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc9334">https://www.rfc-editor.org/info/rfc9334</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9942">[RFC9942]</dt>
+      <dd>
+<span class="refAuthor">Steele, O.</span>, <span class="refAuthor">Birkholz, H.</span>, <span class="refAuthor">Delignat-Lavaud, A.</span>, and <span class="refAuthor">C. Fournet</span>, <span class="refTitle">"CBOR Object Signing and Encryption (COSE) Receipts"</span>, <span class="seriesInfo">RFC 9942</span>, <span class="seriesInfo">DOI 10.17487/RFC9942</span>, <time datetime="2026-06" class="refDate">June 2026</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc9942">https://www.rfc-editor.org/info/rfc9942</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9943">[RFC9943]</dt>
+      <dd>
+<span class="refAuthor">Birkholz, H.</span>, <span class="refAuthor">Delignat-Lavaud, A.</span>, <span class="refAuthor">Fournet, C.</span>, <span class="refAuthor">Deshpande, Y.</span>, and <span class="refAuthor">S. Lasker</span>, <span class="refTitle">"An Architecture for Trustworthy and Transparent Digital Supply Chains"</span>, <span class="seriesInfo">RFC 9943</span>, <span class="seriesInfo">DOI 10.17487/RFC9943</span>, <time datetime="2026-06" class="refDate">June 2026</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc9943">https://www.rfc-editor.org/info/rfc9943</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.sirkkavaara-vaara-receipt">[I-D.sirkkavaara-vaara-receipt]</dt>
+      <dd>
+<span class="refAuthor">Sirkkavaara, H.</span>, <span class="refTitle">"The Vaara Receipt: A Recomputable Receipt Format for Decisions About Autonomous Actions"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-sirkkavaara-vaara-receipt-11</span>, <time datetime="2026-09-18" class="refDate">18 September 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-sirkkavaara-vaara-receipt-11">https://datatracker.ietf.org/doc/html/draft-sirkkavaara-vaara-receipt-11</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="VAP-FW">[VAP-FW]</dt>
+      <dd>
+<span class="refAuthor">Kamimura, T.</span>, <span class="refTitle">"Verifiable AI Provenance Framework (VAP): An Architectural Framework for Evidentiary-Grade AI Decision Trails"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-kamimura-vap-framework-01</span>, <time datetime="2026-07" class="refDate">July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-kamimura-vap-framework-01">https://datatracker.ietf.org/doc/html/draft-kamimura-vap-framework-01</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="VC-CM">[VC-CM]</dt>
+      <dd>
+<span class="refAuthor">World Wide Web Consortium</span>, <span class="refTitle">"Verifiable Credentials Confidence Method"</span>, <span class="refContent">W3C Working Draft</span>, <time datetime="2024" class="refDate">2024</time>. </dd>
+<dd class="break"></dd>
+<dt id="VINTENT">[VINTENT]</dt>
+    <dd>
+<span class="refAuthor">Verifiable Intent Working Group</span>, <span class="refTitle">"Verifiable Intent --- Constraint Type Definitions and Validation Rules"</span>, <span class="refContent">Verifiable Intent Working Group Draft v0.1</span>, <time datetime="2026-02" class="refDate">February 2026</time>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+<div id="acknowledgments">
+<section id="appendix-A">
+      <h2 id="name-acknowledgments">
+<a href="#name-acknowledgments" class="section-name selfRef">Acknowledgments</a>
+      </h2>
+<p id="appendix-A-1">This revision's evidence-pinning and four-state vocabulary work drew on review, defect reports, and external comparison from a number of people, each credited here for their specific, actual contribution rather than a generic thanks:<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+<ul class="compact">
+<li class="compact" id="appendix-A-2.1">
+          <strong>Michael Msebenzi</strong> (headlessoracle/LembaGang) reconstructed the evidence-pinning rules by extending an existing implementation across revisions 6 through 8, identified the arithmetic and encoding defects recorded across the findings referenced in <a href="#evidence-pinning" class="auto internal xref">Section 5.3</a>, and independently reran cross-format verification of the composed receipt envelope to VALID after each correction. His work is the largest single source of the corrections this document incorporates, and is also the reason <a href="#open-issues" class="auto internal xref">Section 10</a> distinguishes confirmed-by-extension from a cold build.<a href="#appendix-A-2.1" class="pilcrow">¶</a>
+</li>
+        <li class="compact" id="appendix-A-2.2">
+          <strong>Pote (poteshniy)</strong> identified the 3-of-5 pinned-evidence defect, proposed the <code>signed_only</code>-to-<code>bytes_attested</code> rename adopted in the evidence-pinning rules, signed off on revision 7, and separately reviewed the v0.4 extension queue, surfacing the optional-<code>typ</code>, filtered-canonicalization, attacker-selected-snapshot, unsigned-anchor, underspecified-proof, and null-ambiguity findings that shaped the sealed-evidence review branch.<a href="#appendix-A-2.2" class="pilcrow">¶</a>
+</li>
+        <li class="compact" id="appendix-A-2.3">
+          <strong>Pablo Play</strong> proposed an alternate reading of Finding 35 that is preserved in the evidence-pinning rules, and is undertaking the from-text cold reconstruction of the evidence-pinning specification that <a href="#open-issues" class="auto internal xref">Section 10</a> tracks as an open item.<a href="#appendix-A-2.3" class="pilcrow">¶</a>
+</li>
+        <li class="compact" id="appendix-A-2.4">
+          <strong>Melchiorre Oliva</strong> ran the natural experiment behind <a href="#melchiorre-clause" class="auto internal xref">Section 3.1.1</a> --- a live measurement across two hosts returning 3,008 negative results on one and zero on the other under HTTP 429 conditions, committed 16 September 2026 --- and is the source of the operative test this document adopts for enumerating status codes behind a negative before it is published.<a href="#appendix-A-2.4" class="pilcrow">¶</a>
+</li>
+        <li class="compact" id="appendix-A-2.5">
+          <strong>navigatorbuilds</strong> (Elara Protocol) supplied the Status/Check/Verdict roll-up example that <a href="#subject-clause" class="auto internal xref">Section 3.2</a> generalizes from, and separately audited thirteen production call sites of their own three-outcome verifier's absence-side state, confirming by direct count that the finding/absence distinction this document draws in <a href="#the-four-states" class="auto internal xref">Section 3.1</a> matches how that state has actually been used in already-published rows.<a href="#appendix-A-2.5" class="pilcrow">¶</a>
+</li>
+        <li class="compact" id="appendix-A-2.6">
+          <strong>babyblueviper1</strong> confirmed, in the same cross-project naming discussion, that their own conformance-registry taxonomy had no published enum requiring remapping under the finding/absence split, and endorsed that split as the correct cut.<a href="#appendix-A-2.6" class="pilcrow">¶</a>
+</li>
+        <li class="compact" id="appendix-A-2.7">
+          <strong>Marcus Still</strong> (stillmarcus24) published a four-state verification taxonomy --- <code>AGREE</code>/<code>DISAGREE</code>/<code>INDETERMINATE</code>/<code>NOT_EVALUATED</code>, with a ten-case executable acceptance contract, in x402 TSC issue #4 --- which served as this document's external compatibility reference point for its own four-state design. He confirmed 7 of 7 absence-side production call sites at commit <code>901ca6a</code>, then endorsed the four states plus reason-code mechanism adopted in <a href="#the-four-states" class="auto internal xref">Section 3.1</a> on x402 TSC issue #4 on 2026-09-20.<a href="#appendix-A-2.7" class="pilcrow">¶</a>
+</li>
+        <li class="compact" id="appendix-A-2.8">
+          <strong>Henri Sirkkavaara</strong> proposed the shape of the boundary statement in <a href="#relationship-to-decision-records" class="auto internal xref">Section 9.2</a> --- that it state what a pre-action verification record establishes that a decision record does not, and stop there, without characterizing his own <span>[<a href="#I-D.sirkkavaara-vaara-receipt" class="cite xref">I-D.sirkkavaara-vaara-receipt</a>]</span> specification.<a href="#appendix-A-2.8" class="pilcrow">¶</a>
+</li>
+      </ul>
+</section>
+</div>
+<div id="authors-addresses">
+<section id="appendix-B">
+      <h2 id="name-authors-address">
+<a href="#name-authors-address" class="section-name selfRef">Author's Address</a>
+      </h2>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Joe Krausz</span></div>
+<div dir="auto" class="left"><span class="org">TK Collective LLC</span></div>
+<div dir="auto" class="left"><span class="country-name">United States of America</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:joe@tanilo.io" class="email">joe@tanilo.io</a>
+</div>
+</address>
+</section>
+</div>
+<script>const toc = document.getElementById("toc");
+toc.querySelector("h2").addEventListener("click", e => {
+  toc.classList.toggle("active");
+});
+toc.querySelector("nav").addEventListener("click", e => {
+  toc.classList.remove("active");
+});
+</script>
+</body>
+</html>
