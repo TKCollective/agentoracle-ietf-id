@@ -1201,7 +1201,13 @@ Internet-Draft            verification.* family           September 2026
        entry is not an object, no member check for that entry is
        evaluated.  More generally, a condition is not evaluated if any
        member it takes as input failed its own type or form check; the
-       failed member's own condition is reported instead.
+       failed member's own condition is reported instead.  Under this
+       rule, a single malformed retrieved_at suppresses
+       set_retrieved_at_not_bytewise_least and duplicate_bound_tuple for
+       the whole set; this loses nothing, because the receipt already
+       halts as malformed on retrieved_at_not_canonical_form --- the
+       rule changes which set of conditions is reported, never the
+       verdict.
    b.  If evidence_root is non-null, recompute it from the sources
        entries per Section 5.3.3 and compare.  A mismatch is a malformed
        receipt; gate decision = halt; reported condition
@@ -1220,12 +1226,6 @@ Internet-Draft            verification.* family           September 2026
        report MUST carry a per-item reason for every entry in sources,
        pinned and unpinned alike, naming exactly one of content_matches
        (the verifier holds content whose SHA-256 equals snippet_sha256),
-       content_not_held, and content_differs; an unpinned entry's reason
-       is trivially content_not_held and MUST NOT be omitted from the
-       report for being trivial.  This distinction belongs in the
-       report, never in the v_verdict domain: a verifier holding
-       different bytes knows its bytes differ and does not know why.
-
 
 
 
@@ -1234,6 +1234,11 @@ Krausz                    Expires 26 March 2027                [Page 22]
 Internet-Draft            verification.* family           September 2026
 
 
+       content_not_held, and content_differs; an unpinned entry's reason
+       is trivially content_not_held and MUST NOT be omitted from the
+       report for being trivial.  This distinction belongs in the
+       report, never in the v_verdict domain: a verifier holding
+       different bytes knows its bytes differ and does not know why.
    e.  A receipt carrying no evidence_set resolves unknown for this step
        and MUST NOT fail it.  Receipts issued before this section
        existed remain valid and continue to verify exactly as before.
@@ -1277,11 +1282,6 @@ Internet-Draft            verification.* family           September 2026
        checks of (h) makes the receipt malformed, with gate decision
        halt, whatever else applies; otherwise any unknown under (c),
        (d), (e), (h), or (i) makes the step unknown; the step resolves
-       resolved only when neither applies.  An unknown condition MUST
-       NOT mask a malformed condition among the rules this section
-       requires to be evaluated.
-
-
 
 
 
@@ -1290,6 +1290,9 @@ Krausz                    Expires 26 March 2027                [Page 23]
 Internet-Draft            verification.* family           September 2026
 
 
+       resolved only when neither applies.  An unknown condition MUST
+       NOT mask a malformed condition among the rules this section
+       requires to be evaluated.
    k.  A verifier evaluates this step in this order: (e), and if the
        receipt carries no evidence_set the step resolves unknown and
        evaluation stops; the version-independent structural checks of
@@ -1335,9 +1338,6 @@ Internet-Draft            verification.* family           September 2026
    +--------------------------------------------+---------+-----------+
    | evidence_root_present_with_no_pinned_items | 5.3.1   | malformed |
    +--------------------------------------------+---------+-----------+
-   | evidence_root_absent_with_pinned_items     | 5.3.1   | malformed |
-   +--------------------------------------------+---------+-----------+
-   | evidence_set_names_no_sources              | 5.3.1   | malformed |
 
 
 
@@ -1346,6 +1346,9 @@ Krausz                    Expires 26 March 2027                [Page 24]
 Internet-Draft            verification.* family           September 2026
 
 
+   | evidence_root_absent_with_pinned_items     | 5.3.1   | malformed |
+   +--------------------------------------------+---------+-----------+
+   | evidence_set_names_no_sources              | 5.3.1   | malformed |
    +--------------------------------------------+---------+-----------+
    | sources_not_array                          | 5.3.1   | malformed |
    +--------------------------------------------+---------+-----------+
@@ -1392,15 +1395,14 @@ Internet-Draft            verification.* family           September 2026
    |                                            | (d)     | reason    |
    +--------------------------------------------+---------+-----------+
 
-               Table 2: Evidence-set conditions and reasons
-
-
 
 
 Krausz                    Expires 26 March 2027                [Page 25]
 
 Internet-Draft            verification.* family           September 2026
 
+
+               Table 2: Evidence-set conditions and reasons
 
 5.5.  Claim Binding
 
@@ -1423,8 +1425,6 @@ Internet-Draft            verification.* family           September 2026
    The following is a non-normative example of a receipt envelope
    payload illustrating the mandatory v_gate_mapping_hash binding
    alongside v_gate_mapping:
-
-
 
 
 

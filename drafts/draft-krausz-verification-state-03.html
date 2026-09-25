@@ -21,19 +21,19 @@
 <meta content="draft-krausz-verification-state-03" name="ietf.draft">
 <!-- Generator version information:
   xml2rfc 3.34.0
-    Python 3.12.8
-    ConfigArgParse 1.7.5
+    Python 3.14.3
+    ConfigArgParse 1.7.7
     google-i18n-address 3.1.1
     intervaltree 3.2.1
     Jinja2 3.1.6
-    lxml 6.1.1
+    lxml 6.1.3
     natsort 8.4.0
-    platformdirs 4.10.0
+    platformdirs 4.11.12
     pycountry 26.2.16
-    pypdf 6.12.2
+    pypdf 6.19.0
     PyYAML 6.0.3
     requests 2.34.2
-    wcwidth 0.7.0
+    wcwidth 0.9.1
 -->
 <link href="draft-krausz-verification-state-03.xml" rel="alternate" type="application/rfc+xml">
 <link href="#copyright" rel="license">
@@ -2024,7 +2024,7 @@ li > p:last-of-type:only-child {
 <p id="section-5.4.1-1">A step defined in this document resolves to exactly one of two tokens: <code>resolved</code>, when the step's evidence requirements are met, or <code>unknown</code>, under the conditions stated below. An implementation MUST emit one of these two tokens for the evidence-set step and MUST NOT emit any other value.<a href="#section-5.4.1-1" class="pilcrow">¶</a></p>
 <p id="section-5.4.1-2">If the receipt carries an <code>evidence_set</code>, a relying party MUST resolve it as follows:<a href="#section-5.4.1-2" class="pilcrow">¶</a></p>
 <ol start="1" type="a" class="compact type-a" id="section-5.4.1-3">
-<li id="section-5.4.1-3.1">Verify <code>source_count</code>, <code>pinned_count</code>, <code>fully_pinned</code>, and set-level <code>retrieved_at</code> per <a href="#evidence-set-object" class="auto internal xref">Section 5.3.1</a> (falling back to the derivations there when a count is absent); verify every entry against <a href="#evidence-set-sources" class="auto internal xref">Section 5.3.2</a>, including the possession rule, the entry-distinctness rule, and the <code>pinned</code>/<code>content_kind</code>/<code>resource_sha256</code>/<code>retrieved_at</code>-form rules. Any inconsistency is a malformed receipt; gate decision = halt; the implementation reports the specific violated condition named in the rule it failed. The rules checked here include the NUL exclusion rule and every condition listed in the registry at the end of this section. When a receipt violates more than one condition, an implementation MUST halt and MUST report every violated condition, not only the first it finds; conformance compares the set of reported conditions, never their order. A check that presupposes a member's type is not evaluated where that type check failed: when <code>sources</code> is not an array, no per-entry check and no count check against <code>len(sources)</code> is evaluated, and when an entry is not an object, no member check for that entry is evaluated. More generally, a condition is not evaluated if any member it takes as input failed its own type or form check; the failed member's own condition is reported instead.<a href="#section-5.4.1-3.1" class="pilcrow">¶</a>
+<li id="section-5.4.1-3.1">Verify <code>source_count</code>, <code>pinned_count</code>, <code>fully_pinned</code>, and set-level <code>retrieved_at</code> per <a href="#evidence-set-object" class="auto internal xref">Section 5.3.1</a> (falling back to the derivations there when a count is absent); verify every entry against <a href="#evidence-set-sources" class="auto internal xref">Section 5.3.2</a>, including the possession rule, the entry-distinctness rule, and the <code>pinned</code>/<code>content_kind</code>/<code>resource_sha256</code>/<code>retrieved_at</code>-form rules. Any inconsistency is a malformed receipt; gate decision = halt; the implementation reports the specific violated condition named in the rule it failed. The rules checked here include the NUL exclusion rule and every condition listed in the registry at the end of this section. When a receipt violates more than one condition, an implementation MUST halt and MUST report every violated condition, not only the first it finds; conformance compares the set of reported conditions, never their order. A check that presupposes a member's type is not evaluated where that type check failed: when <code>sources</code> is not an array, no per-entry check and no count check against <code>len(sources)</code> is evaluated, and when an entry is not an object, no member check for that entry is evaluated. More generally, a condition is not evaluated if any member it takes as input failed its own type or form check; the failed member's own condition is reported instead. Under this rule, a single malformed <code>retrieved_at</code> suppresses <code>set_retrieved_at_not_bytewise_least</code> and <code>duplicate_bound_tuple</code> for the whole set; this loses nothing, because the receipt already halts as malformed on <code>retrieved_at_not_canonical_form</code> --- the rule changes which set of conditions is reported, never the verdict.<a href="#section-5.4.1-3.1" class="pilcrow">¶</a>
 </li>
             <li id="section-5.4.1-3.2">If <code>evidence_root</code> is non-null, recompute it from the <code>sources</code> entries per <a href="#evidence-root-construction" class="auto internal xref">Section 5.3.3</a> and compare. A mismatch is a malformed receipt; gate decision = halt; reported condition <code>root_not_recomputable_from_sources</code>. A pinned entry whose <code>snippet_sha256</code> is absent or <code>null</code> has already halted under (a) --- reported condition <code>snippet_sha256_absent_when_pinned</code>, checked per entry whether or not <code>evidence_root</code> is <code>null</code> --- and so never reaches root construction or surfaces as a downstream error.<a href="#section-5.4.1-3.2" class="pilcrow">¶</a>
 </li>

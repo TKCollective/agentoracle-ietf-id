@@ -130,3 +130,31 @@ The evaluation order in (k) named the version-independent structural checks of (
 ## Security Considerations addition (babyblueviper1's F7 acceptance, 2026-09-25)
 
 On accepting F7 (an unsupported `evidence_set_version` resolves `unknown`, reversing his cold-build implementation's `malformed` choice), babyblueviper1 noted the reversal's effect is the same as (e): an issuer who wants to avoid the malformed halt can already leave out `evidence_set` entirely, so naming an unsupported version gives it nothing that omission doesn't, and asked that this be said in Security Considerations so a reader doesn't take `evidence_set_version_unsupported` for an escape hatch rather than the same no-evidence `unknown` category. Added as a new paragraph in "Other Security Considerations". Credit: babyblueviper1.
+
+## (a) states what whole-check suppression costs (babyblueviper1, 2026-09-25)
+
+babyblueviper1 accepted the whole-check reading ([tsc#4, 2026-09-25](https://github.com/x402-foundation/tsc/issues/4#issuecomment-5837288024)) and pointed out one consequence that needed saying so nobody reads it as a gap. His clause is added to (a), right after the whole-check sentence:
+
+> Under this rule, a single malformed `retrieved_at` suppresses `set_retrieved_at_not_bytewise_least` and `duplicate_bound_tuple` for the whole set; this loses nothing, because the receipt already halts as malformed on `retrieved_at_not_canonical_form` --- the rule changes which set of conditions is reported, never the verdict.
+
+This is a clarification. It doesn't change which receipts pass or which set is reported; it only states a consequence the whole-check sentence already has. Credit: babyblueviper1.
+
+## Conformance vectors for the report-all and (k)-stop rules (babyblueviper1, 2026-09-25)
+
+These are the five vectors babyblueviper1 said he'd add when he moves his cold checker to -03 ([tsc#4](https://github.com/x402-foundation/tsc/issues/4#issuecomment-5837288024)). The expected sets follow from -03 §5.4.1(a) and (k) as written on this branch. Conformance compares the reported set, never its order.
+
+| Vector | Input (what's malformed) | Rule | Expected reported set |
+|---|---|---|---|
+| case 1 | One entry with `pinned: "yes"`, a non-null `snippet_sha256`, `pinned_count: 1`, `fully_pinned: true` | (a) whole-check | `{pinned_absent_or_not_boolean}` |
+| case 2 | Entry `retrieved_at` values `["2026-09-01T00:00:00.000Z", "2026-9-1"]`, set-level `retrieved_at` equal to the first | (a) whole-check | `{retrieved_at_not_canonical_form}` |
+| (k) stop 1 | `evidence_set` present and not a JSON object | (k), structural check of (h) | `{evidence_set_not_object}` |
+| (k) stop 2 | `evidence_set_version` absent | (k), structural check of (h) | `{evidence_set_version_absent_or_not_string}` |
+| (k) stop 3 | `evidence_set_version` present and not a string | (k), structural check of (h) | `{evidence_set_version_absent_or_not_string}` |
+
+Each one is malformed, so the gate decision is halt.
+
+- **Case 1:** `pinned` failed its type check, so no rule that takes it as input is evaluated. That rules out the branch rules (`snippet_sha256_*`, `content_kind_*`) and the count checks (`pinned_count_mismatch`, `fully_pinned_mismatch`).
+- **Case 2:** `"2026-9-1"` failed its form check. So `set_retrieved_at_not_bytewise_least` and `duplicate_bound_tuple` are not evaluated for the set, even though `"2026-9-1"` sorts before the set-level value bytewise.
+- **The (k) stops:** version-specific rules never run. Stops 2 and 3 share one condition name, because -03 names absent and not-a-string as one condition.
+
+Credit: babyblueviper1, both cases and all three stop vectors.
