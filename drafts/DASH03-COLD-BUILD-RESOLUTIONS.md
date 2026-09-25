@@ -106,3 +106,27 @@ Every finding below is babyblueviper1's, from the cold build at [`ecdbeb8`](http
 | F12 | Nothing defines `resolved` for a fully pinned set that was never content-checked, and nothing combines per-item results | (i): `resolved` only when fully pinned, the root recomputes, and every item is `content_matches` | His strict reading adopted |
 
 The two closed Open Issues items can only be marked closed after this lands. They are item 1 (independent cold build pending) and item 2 (condition enumeration not checked name for name). That edit is queued, not applied, because this branch is §5.3/§5.4.1 only.
+
+## Two more report-all suppression cases (babyblueviper1, 2026-09-25)
+
+After the first round above landed on this branch, babyblueviper1 read the rendered -03 text and found the same class of nondeterminism the (a) fix was meant to close, in two places the fix's named examples (`sources` not an array; an entry not an object) didn't cover: [tsc#4, 2026-09-25](https://github.com/x402-foundation/tsc/issues/4#issuecomment-5827285607).
+
+1. **`pinned` not a boolean** (`pinned_absent_or_not_boolean`). `pinned` decides which per-entry branch rules apply (`snippet_sha256_absent_when_pinned` vs. `snippet_sha256_present_when_unpinned`, and the `content_kind` rules) and feeds `pinned_count_mismatch` and `fully_pinned_mismatch`. Without a general suppression rule, one conformant reader could report only `{pinned_absent_or_not_boolean}` for a malformed `pinned` value while another goes on to evaluate the branch and count rules against it and reports a larger set — both readings conformant to the -02 text, and disagreeing.
+2. **An entry's `retrieved_at` not in canonical form** (`retrieved_at_not_canonical_form`). That value feeds `set_retrieved_at_not_bytewise_least` and is one of the fields `duplicate_bound_tuple` compares. Without the general rule, one reader could carry the malformed value into those comparisons and another could exclude it, again producing conformant but differing sets.
+
+-03 closes both the same way it closed the two named cases: (a) now states the rule generally — "a condition is not evaluated if any member it takes as input failed its own type or form check; the failed member's own condition is reported instead" — rather than only the two instances -02's cold-build round named. This is a clarification, not a normative change: it doesn't change which receipts pass, only which set a report-all conformant verifier is required to produce for these two inputs.
+
+| Case | Malformed input | Reported set under -03 |
+|---|---|---|
+| 1 | `pinned` present and not a boolean | `{pinned_absent_or_not_boolean}` |
+| 2 | An entry's `retrieved_at` present but not canonical RFC 3339 form | `{retrieved_at_not_canonical_form}` |
+
+Credit: babyblueviper1, both cases and the general fix.
+
+## (k) closes a gap of its own (babyblueviper1, 2026-09-25)
+
+The evaluation order in (k) named the version-independent structural checks of (h) as a step but didn't say what happens when one of them fails — silent on whether a failure there halts evaluation before the version check runs. babyblueviper1's suggested wording, adopted verbatim: "...the version-independent structural checks of (h); if either fails, the receipt is malformed, the step reports that condition alone, and evaluation stops; the version check of (h)...". Without it, one reader could stop at the structural failure and another could continue to the version check and beyond, producing different reported sets for the same malformed receipt. Credit: babyblueviper1.
+
+## Security Considerations addition (babyblueviper1's F7 acceptance, 2026-09-25)
+
+On accepting F7 (an unsupported `evidence_set_version` resolves `unknown`, reversing his cold-build implementation's `malformed` choice), babyblueviper1 noted the reversal's effect is the same as (e): an issuer who wants to avoid the malformed halt can already leave out `evidence_set` entirely, so naming an unsupported version gives it nothing that omission doesn't, and asked that this be said in Security Considerations so a reader doesn't take `evidence_set_version_unsupported` for an escape hatch rather than the same no-evidence `unknown` category. Added as a new paragraph in "Other Security Considerations". Credit: babyblueviper1.

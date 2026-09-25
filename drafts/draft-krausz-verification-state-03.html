@@ -10,7 +10,7 @@
        This document specifies the  verification.*  constraint family --- a pre-action, fail-closed gate primitive for AI agent decisions, sibling in shape to the  environment.*  family used in Verifiable Intent specifications. A  verification.*  receipt is a JSON Web Signature (JWS) signed artifact carrying a canonical input, a derived binary  act / halt  output, and a versioned mapping identifier that binds them. A relying party recomputes the gate locally from signed primitives under the named mapping; the verifier never trusts the issuer's runtime. 
        This revision replaces the raw verdict domain of  draft-krausz-verification-state-01  ( supported / refuted / unverifiable / unknown ) with a four-state vocabulary ---  verified ,  contradicted ,  indeterminate , and  not_evaluated  --- together with a reason-code mechanism that separates a state's substance from a verifier's own instrument failure, and with an admissibility gate applied before a state is ever assigned. It adds evidence pinning: a receipt MAY carry an  evidence_set  block that content-addresses the sources considered during verification, so that a verdict can be recomputed offline from the receipt and the pinned bytes alone, without depending on a live retrieval provider. Freshness is anchored to the evidence's own  retrieved_at  timestamp rather than a separately declared validity window. This shape provides decision explainability and traceability evidence aligned with EU AI Act Article 12 record-keeping obligations and with the Decision Explainability tier of an industry Zero Trust for AI Agents framework published in 2026. The format is forward-compatible across mapping revisions: receipts signed under one mapping ID remain verifiable as correct-under-that-mapping after newer mappings ship. The vectors that content-address a mapping document or an evidence set are historical, digest-anchored artifacts and are unchanged by this revision; nothing in this document alters a previously issued digest. 
     " name="description">
-<meta content="xml2rfc 3.34.1" name="generator">
+<meta content="xml2rfc 3.34.0" name="generator">
 <meta content="agent" name="keyword">
 <meta content="verification" name="keyword">
 <meta content="receipt" name="keyword">
@@ -20,20 +20,20 @@
 <meta content="evidence pinning" name="keyword">
 <meta content="draft-krausz-verification-state-03" name="ietf.draft">
 <!-- Generator version information:
-  xml2rfc 3.34.1
-    Python 3.14.3
-    ConfigArgParse 1.7.7
+  xml2rfc 3.34.0
+    Python 3.12.8
+    ConfigArgParse 1.7.5
     google-i18n-address 3.1.1
     intervaltree 3.2.1
     Jinja2 3.1.6
-    lxml 6.1.3
+    lxml 6.1.1
     natsort 8.4.0
-    platformdirs 4.11.12
+    platformdirs 4.10.0
     pycountry 26.2.16
-    pypdf 6.19.0
+    pypdf 6.12.2
     PyYAML 6.0.3
     requests 2.34.2
-    wcwidth 0.9.1
+    wcwidth 0.7.0
 -->
 <link href="draft-krausz-verification-state-03.xml" rel="alternate" type="application/rfc+xml">
 <link href="#copyright" rel="license">
@@ -358,10 +358,6 @@ table p {
   /* XXX to avoid bottom margin on table row signifiers. If paragraphs should
      be allowed within tables more generally, it would be far better to select on a class. */
   margin: 0;
-}
-sub,
-sup {
- white-space: nowrap;
 }
 
 /* pilcrow */
@@ -1069,9 +1065,6 @@ aside > p {
 @media print {
   figcaption, table caption {
     page-break-before: avoid;
-  }
-  table {
-    page-break-inside: avoid;
   }
 }
 /* Font size adjustments for print */
@@ -2031,7 +2024,7 @@ li > p:last-of-type:only-child {
 <p id="section-5.4.1-1">A step defined in this document resolves to exactly one of two tokens: <code>resolved</code>, when the step's evidence requirements are met, or <code>unknown</code>, under the conditions stated below. An implementation MUST emit one of these two tokens for the evidence-set step and MUST NOT emit any other value.<a href="#section-5.4.1-1" class="pilcrow">¶</a></p>
 <p id="section-5.4.1-2">If the receipt carries an <code>evidence_set</code>, a relying party MUST resolve it as follows:<a href="#section-5.4.1-2" class="pilcrow">¶</a></p>
 <ol start="1" type="a" class="compact type-a" id="section-5.4.1-3">
-<li id="section-5.4.1-3.1">Verify <code>source_count</code>, <code>pinned_count</code>, <code>fully_pinned</code>, and set-level <code>retrieved_at</code> per <a href="#evidence-set-object" class="auto internal xref">Section 5.3.1</a> (falling back to the derivations there when a count is absent); verify every entry against <a href="#evidence-set-sources" class="auto internal xref">Section 5.3.2</a>, including the possession rule, the entry-distinctness rule, and the <code>pinned</code>/<code>content_kind</code>/<code>resource_sha256</code>/<code>retrieved_at</code>-form rules. Any inconsistency is a malformed receipt; gate decision = halt; the implementation reports the specific violated condition named in the rule it failed. The rules checked here include the NUL exclusion rule and every condition listed in the registry at the end of this section. When a receipt violates more than one condition, an implementation MUST halt and MUST report every violated condition, not only the first it finds; conformance compares the set of reported conditions, never their order. A check that presupposes a member's type is not evaluated where that type check failed: when <code>sources</code> is not an array, no per-entry check and no count check against <code>len(sources)</code> is evaluated, and when an entry is not an object, no member check for that entry is evaluated.<a href="#section-5.4.1-3.1" class="pilcrow">¶</a>
+<li id="section-5.4.1-3.1">Verify <code>source_count</code>, <code>pinned_count</code>, <code>fully_pinned</code>, and set-level <code>retrieved_at</code> per <a href="#evidence-set-object" class="auto internal xref">Section 5.3.1</a> (falling back to the derivations there when a count is absent); verify every entry against <a href="#evidence-set-sources" class="auto internal xref">Section 5.3.2</a>, including the possession rule, the entry-distinctness rule, and the <code>pinned</code>/<code>content_kind</code>/<code>resource_sha256</code>/<code>retrieved_at</code>-form rules. Any inconsistency is a malformed receipt; gate decision = halt; the implementation reports the specific violated condition named in the rule it failed. The rules checked here include the NUL exclusion rule and every condition listed in the registry at the end of this section. When a receipt violates more than one condition, an implementation MUST halt and MUST report every violated condition, not only the first it finds; conformance compares the set of reported conditions, never their order. A check that presupposes a member's type is not evaluated where that type check failed: when <code>sources</code> is not an array, no per-entry check and no count check against <code>len(sources)</code> is evaluated, and when an entry is not an object, no member check for that entry is evaluated. More generally, a condition is not evaluated if any member it takes as input failed its own type or form check; the failed member's own condition is reported instead.<a href="#section-5.4.1-3.1" class="pilcrow">¶</a>
 </li>
             <li id="section-5.4.1-3.2">If <code>evidence_root</code> is non-null, recompute it from the <code>sources</code> entries per <a href="#evidence-root-construction" class="auto internal xref">Section 5.3.3</a> and compare. A mismatch is a malformed receipt; gate decision = halt; reported condition <code>root_not_recomputable_from_sources</code>. A pinned entry whose <code>snippet_sha256</code> is absent or <code>null</code> has already halted under (a) --- reported condition <code>snippet_sha256_absent_when_pinned</code>, checked per entry whether or not <code>evidence_root</code> is <code>null</code> --- and so never reaches root construction or surfaces as a downstream error.<a href="#section-5.4.1-3.2" class="pilcrow">¶</a>
 </li>
@@ -2051,7 +2044,7 @@ li > p:last-of-type:only-child {
 </li>
             <li id="section-5.4.1-3.10">When conditions of different kinds apply to the same receipt, malformed outranks <code>unknown</code>, and <code>unknown</code> outranks <code>resolved</code>: any malformed condition reported under (a), (b), or the structural checks of (h) makes the receipt malformed, with gate decision halt, whatever else applies; otherwise any <code>unknown</code> under (c), (d), (e), (h), or (i) makes the step <code>unknown</code>; the step resolves <code>resolved</code> only when neither applies. An <code>unknown</code> condition MUST NOT mask a malformed condition among the rules this section requires to be evaluated.<a href="#section-5.4.1-3.10" class="pilcrow">¶</a>
 </li>
-            <li id="section-5.4.1-3.11">A verifier evaluates this step in this order: (e), and if the receipt carries no <code>evidence_set</code> the step resolves <code>unknown</code> and evaluation stops; the version-independent structural checks of (h); the version check of (h), and if the version is unsupported the step resolves <code>unknown</code> and evaluation stops; (a), reporting every condition; (b), only if (a) reported none; (d) for every entry, only if (b) reported none; then (c) and (i) determine the token, combined under (j). Paragraphs (f) and (g) constrain how any result is treated and presented. The order fixes which rules are evaluated; it never lets an <code>unknown</code> reached earlier suppress a malformed condition that this order requires to be evaluated.<a href="#section-5.4.1-3.11" class="pilcrow">¶</a>
+            <li id="section-5.4.1-3.11">A verifier evaluates this step in this order: (e), and if the receipt carries no <code>evidence_set</code> the step resolves <code>unknown</code> and evaluation stops; the version-independent structural checks of (h); if either fails, the receipt is malformed, the step reports that condition alone, and evaluation stops; the version check of (h), and if the version is unsupported the step resolves <code>unknown</code> and evaluation stops; (a), reporting every condition; (b), only if (a) reported none; (d) for every entry, only if (b) reported none; then (c) and (i) determine the token, combined under (j). Paragraphs (f) and (g) constrain how any result is treated and presented. The order fixes which rules are evaluated; it never lets an <code>unknown</code> reached earlier suppress a malformed condition that this order requires to be evaluated.<a href="#section-5.4.1-3.11" class="pilcrow">¶</a>
 </li>
           </ol>
 <p id="section-5.4.1-4">Steps (a), (b), and (h) are checks on the receipt's internal consistency and are answerable offline by any verifier. Step (d) is a check against external content and is answerable only by a verifier that holds it; a verifier that cannot obtain the content has learned nothing about the receipt's validity and MUST NOT report that absence as a defect in the receipt.<a href="#section-5.4.1-4" class="pilcrow">¶</a></p>
@@ -2766,6 +2759,7 @@ li > p:last-of-type:only-child {
 <p id="section-11.2-4"><strong>Selective disclosure.</strong> Hash-only claim binding (<a href="#claim-binding" class="auto internal xref">Section 5.5</a>) permits PII-sensitive verification without exposing claim text in the receipt envelope.<a href="#section-11.2-4" class="pilcrow">¶</a></p>
 <p id="section-11.2-5"><strong>Downgrade attacks.</strong> A future relying party MUST NOT accept a v0.3-spec receipt against a v0.4-spec gate. The receipt format version is implicitly bound by <code>v_gate_mapping</code>; mismatches between expected and signed mapping IDs are malformed-receipt conditions per <a href="#verification-protocol" class="auto internal xref">Section 5.4</a>.<a href="#section-11.2-5" class="pilcrow">¶</a></p>
 <p id="section-11.2-6"><strong>Mapping document tampering.</strong> Receipts MUST bind to a content-addressed mapping via the <code>v_gate_mapping_hash</code> field (SHA-256). Mapping documents MUST be hosted such that the SHA-256 digest of the canonical serialization is stable and independently verifiable (e.g., at a content-addressed URL or via a git-tagged manifest). Verifier implementations MUST verify the SHA-256 digest of the fetched mapping document against <code>v_gate_mapping_hash</code> before use; a digest mismatch MUST result in gate decision <code>halt</code>. A relying party that cannot independently verify the mapping document's hash MUST treat the receipt as malformed.<a href="#section-11.2-6" class="pilcrow">¶</a></p>
+<p id="section-11.2-7"><strong>No escape via an unsupported evidence-set version.</strong> An unsupported <code>evidence_set_version</code> resolves <code>unknown</code> exactly as an omitted <code>evidence_set</code> does, carried as the same distinct <code>unknown</code> category that paragraph (g) of <a href="#evidence-set-resolution" class="auto internal xref">Section 5.4.1</a> requires, so it offers no escape from the malformed halt that a present, malformed <code>evidence_set</code> would otherwise trigger.<a href="#section-11.2-7" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>

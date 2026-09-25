@@ -123,7 +123,7 @@ Internet-Draft            verification.* family           September 2026
        5.3.5.  Independence  . . . . . . . . . . . . . . . . . . . .  20
      5.4.  Verification Protocol . . . . . . . . . . . . . . . . . .  21
        5.4.1.  Evidence-Set Resolution Step  . . . . . . . . . . . .  21
-     5.5.  Claim Binding . . . . . . . . . . . . . . . . . . . . . .  25
+     5.5.  Claim Binding . . . . . . . . . . . . . . . . . . . . . .  26
      5.6.  Receipt Envelope Example  . . . . . . . . . . . . . . . .  26
      5.7.  Version-Binding Rationale . . . . . . . . . . . . . . . .  28
    6.  Binary-Halt Gate Semantics  . . . . . . . . . . . . . . . . .  28
@@ -152,7 +152,7 @@ Internet-Draft            verification.* family           September 2026
    12. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  37
    13. Informative References  . . . . . . . . . . . . . . . . . . .  37
    Acknowledgments . . . . . . . . . . . . . . . . . . . . . . . . .  39
-   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  40
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  41
 
 1.  Introduction
 
@@ -1199,7 +1199,9 @@ Internet-Draft            verification.* family           September 2026
        check failed: when sources is not an array, no per-entry check
        and no count check against len(sources) is evaluated, and when an
        entry is not an object, no member check for that entry is
-       evaluated.
+       evaluated.  More generally, a condition is not evaluated if any
+       member it takes as input failed its own type or form check; the
+       failed member's own condition is reported instead.
    b.  If evidence_root is non-null, recompute it from the sources
        entries per Section 5.3.3 and compare.  A mismatch is a malformed
        receipt; gate decision = halt; reported condition
@@ -1223,9 +1225,7 @@ Internet-Draft            verification.* family           September 2026
        report for being trivial.  This distinction belongs in the
        report, never in the v_verdict domain: a verifier holding
        different bytes knows its bytes differ and does not know why.
-   e.  A receipt carrying no evidence_set resolves unknown for this step
-       and MUST NOT fail it.  Receipts issued before this section
-       existed remain valid and continue to verify exactly as before.
+
 
 
 
@@ -1234,6 +1234,9 @@ Krausz                    Expires 26 March 2027                [Page 22]
 Internet-Draft            verification.* family           September 2026
 
 
+   e.  A receipt carrying no evidence_set resolves unknown for this step
+       and MUST NOT fail it.  Receipts issued before this section
+       existed remain valid and continue to verify exactly as before.
    f.  A properly declared partial evidence set is not invalid and the
        receipt is not malformed.  An implementation MUST NOT treat an
        unknown resolution under (c), (d), (h), or (i) as a validity
@@ -1277,11 +1280,8 @@ Internet-Draft            verification.* family           September 2026
        resolved only when neither applies.  An unknown condition MUST
        NOT mask a malformed condition among the rules this section
        requires to be evaluated.
-   k.  A verifier evaluates this step in this order: (e), and if the
-       receipt carries no evidence_set the step resolves unknown and
-       evaluation stops; the version-independent structural checks of
-       (h); the version check of (h), and if the version is unsupported
-       the step resolves unknown and evaluation stops; (a), reporting
+
+
 
 
 
@@ -1290,12 +1290,19 @@ Krausz                    Expires 26 March 2027                [Page 23]
 Internet-Draft            verification.* family           September 2026
 
 
-       every condition; (b), only if (a) reported none; (d) for every
-       entry, only if (b) reported none; then (c) and (i) determine the
-       token, combined under (j).  Paragraphs (f) and (g) constrain how
-       any result is treated and presented.  The order fixes which rules
-       are evaluated; it never lets an unknown reached earlier suppress
-       a malformed condition that this order requires to be evaluated.
+   k.  A verifier evaluates this step in this order: (e), and if the
+       receipt carries no evidence_set the step resolves unknown and
+       evaluation stops; the version-independent structural checks of
+       (h); if either fails, the receipt is malformed, the step reports
+       that condition alone, and evaluation stops; the version check of
+       (h), and if the version is unsupported the step resolves unknown
+       and evaluation stops; (a), reporting every condition; (b), only
+       if (a) reported none; (d) for every entry, only if (b) reported
+       none; then (c) and (i) determine the token, combined under (j).
+       Paragraphs (f) and (g) constrain how any result is treated and
+       presented.  The order fixes which rules are evaluated; it never
+       lets an unknown reached earlier suppress a malformed condition
+       that this order requires to be evaluated.
 
    Steps (a), (b), and (h) are checks on the receipt's internal
    consistency and are answerable offline by any verifier.  Step (d) is
@@ -1331,13 +1338,6 @@ Internet-Draft            verification.* family           September 2026
    | evidence_root_absent_with_pinned_items     | 5.3.1   | malformed |
    +--------------------------------------------+---------+-----------+
    | evidence_set_names_no_sources              | 5.3.1   | malformed |
-   +--------------------------------------------+---------+-----------+
-   | sources_not_array                          | 5.3.1   | malformed |
-   +--------------------------------------------+---------+-----------+
-   | source_entry_not_object                    | 5.3.2   | malformed |
-   +--------------------------------------------+---------+-----------+
-   | url_absent_or_not_string                   | 5.3.2   | malformed |
-   +--------------------------------------------+---------+-----------+
 
 
 
@@ -1346,6 +1346,13 @@ Krausz                    Expires 26 March 2027                [Page 24]
 Internet-Draft            verification.* family           September 2026
 
 
+   +--------------------------------------------+---------+-----------+
+   | sources_not_array                          | 5.3.1   | malformed |
+   +--------------------------------------------+---------+-----------+
+   | source_entry_not_object                    | 5.3.2   | malformed |
+   +--------------------------------------------+---------+-----------+
+   | url_absent_or_not_string                   | 5.3.2   | malformed |
+   +--------------------------------------------+---------+-----------+
    | snippet_sha256_absent_when_pinned          | 5.3.2   | malformed |
    +--------------------------------------------+---------+-----------+
    | snippet_sha256_member_absent               | 5.3.2   | malformed |
@@ -1387,13 +1394,6 @@ Internet-Draft            verification.* family           September 2026
 
                Table 2: Evidence-set conditions and reasons
 
-5.5.  Claim Binding
-
-   The verified claim MUST be bound to the receipt via v_claim:
-
-
-
-
 
 
 
@@ -1401,6 +1401,10 @@ Krausz                    Expires 26 March 2027                [Page 25]
 
 Internet-Draft            verification.* family           September 2026
 
+
+5.5.  Claim Binding
+
+   The verified claim MUST be bound to the receipt via v_claim:
 
    "v_claim": {
      "text": "string (OPTIONAL when caller marks input
@@ -1419,10 +1423,6 @@ Internet-Draft            verification.* family           September 2026
    The following is a non-normative example of a receipt envelope
    payload illustrating the mandatory v_gate_mapping_hash binding
    alongside v_gate_mapping:
-
-
-
-
 
 
 
@@ -2023,6 +2023,13 @@ Internet-Draft            verification.* family           September 2026
    independently verify the mapping document's hash MUST treat the
    receipt as malformed.
 
+   *No escape via an unsupported evidence-set version.* An unsupported
+   evidence_set_version resolves unknown exactly as an omitted
+   evidence_set does, carried as the same distinct unknown category that
+   paragraph (g) of Section 5.4.1 requires, so it offers no escape from
+   the malformed halt that a present, malformed evidence_set would
+   otherwise trigger.
+
 12.  IANA Considerations
 
    This document requests the following IANA registrations:
@@ -2058,13 +2065,6 @@ Internet-Draft            verification.* family           September 2026
 
 13.  Informative References
 
-   [ANTHROPIC-ZT]
-              Anthropic, "Zero Trust for AI Agents: A security framework
-              for deploying autonomous AI agents in the enterprise",
-              PDF, 36 pages, May 2026.
-
-   [AVERITEC] Schlichtkrull, M., "AVeriTeC: A Dataset for Real-World
-              Claim Verification with Evidence from the Web", 2024.
 
 
 
@@ -2073,6 +2073,14 @@ Krausz                    Expires 26 March 2027                [Page 37]
 
 Internet-Draft            verification.* family           September 2026
 
+
+   [ANTHROPIC-ZT]
+              Anthropic, "Zero Trust for AI Agents: A security framework
+              for deploying autonomous AI agents in the enterprise",
+              PDF, 36 pages, May 2026.
+
+   [AVERITEC] Schlichtkrull, M., "AVeriTeC: A Dataset for Real-World
+              Claim Verification with Evidence from the Web", 2024.
 
    [ENV-STATE]
               Borthwick, D. and M. Msebenzi, "Verifiable Intent ---
@@ -2112,6 +2120,16 @@ Internet-Draft            verification.* family           September 2026
               2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
               May 2017, <https://www.rfc-editor.org/info/rfc8174>.
 
+
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 38]
+
+Internet-Draft            verification.* family           September 2026
+
+
    [RFC9334]  Birkholz, H., Thaler, D., Richardson, M., Smith, N., and
               W. Pan, "Remote ATtestation procedureS (RATS)
               Architecture", RFC 9334, DOI 10.17487/RFC9334, January
@@ -2121,14 +2139,6 @@ Internet-Draft            verification.* family           September 2026
               Fournet, "CBOR Object Signing and Encryption (COSE)
               Receipts", RFC 9942, DOI 10.17487/RFC9942, June 2026,
               <https://www.rfc-editor.org/info/rfc9942>.
-
-
-
-
-Krausz                    Expires 26 March 2027                [Page 38]
-
-Internet-Draft            verification.* family           September 2026
-
 
    [RFC9943]  Birkholz, H., Delignat-Lavaud, A., Fournet, C., Deshpande,
               Y., and S. Lasker, "An Architecture for Trustworthy and
@@ -2168,6 +2178,14 @@ Acknowledgments
    *  *Michael Msebenzi* (headlessoracle/LembaGang) reconstructed the
       evidence-pinning rules by extending an existing implementation
       across revisions 6 through 8, identified the arithmetic and
+
+
+
+Krausz                    Expires 26 March 2027                [Page 39]
+
+Internet-Draft            verification.* family           September 2026
+
+
       encoding defects recorded across the findings referenced in
       Section 5.3, and independently reran cross-format verification of
       the composed receipt envelope to VALID after each correction.  His
@@ -2178,14 +2196,6 @@ Acknowledgments
       proposed the signed_only-to-bytes_attested rename adopted in the
       evidence-pinning rules, signed off on revision 7, and separately
       reviewed the v0.4 extension queue, surfacing the optional-typ,
-
-
-
-Krausz                    Expires 26 March 2027                [Page 39]
-
-Internet-Draft            verification.* family           September 2026
-
-
       filtered-canonicalization, attacker-selected-snapshot, unsigned-
       anchor, underspecified-proof, and null-ambiguity findings that
       shaped the sealed-evidence review branch.
@@ -2224,6 +2234,14 @@ Internet-Draft            verification.* family           September 2026
       there, without characterizing his own
       [I-D.sirkkavaara-vaara-receipt] specification.
 
+
+
+
+Krausz                    Expires 26 March 2027                [Page 40]
+
+Internet-Draft            verification.* family           September 2026
+
+
 Author's Address
 
    Joe Krausz
@@ -2237,4 +2255,42 @@ Author's Address
 
 
 
-Krausz                    Expires 26 March 2027                [Page 40]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 41]
