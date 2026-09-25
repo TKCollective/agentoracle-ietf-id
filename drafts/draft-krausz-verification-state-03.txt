@@ -1,0 +1,2240 @@
+
+
+
+
+Network Working Group                                          J. Krausz
+Internet-Draft                                         TK Collective LLC
+Intended status: Informational                         22 September 2026
+Expires: 26 March 2027
+
+
+ The verification.* Constraint Family: Pre-Action Fail-Closed Gates for
+                           AI Agent Decisions
+                   draft-krausz-verification-state-03
+
+Abstract
+
+   This document specifies the verification.* constraint family --- a
+   pre-action, fail-closed gate primitive for AI agent decisions,
+   sibling in shape to the environment.* family used in Verifiable
+   Intent specifications.  A verification.* receipt is a JSON Web
+   Signature (JWS) signed artifact carrying a canonical input, a derived
+   binary act/halt output, and a versioned mapping identifier that binds
+   them.  A relying party recomputes the gate locally from signed
+   primitives under the named mapping; the verifier never trusts the
+   issuer's runtime.
+
+   This revision replaces the raw verdict domain of draft-krausz-
+   verification-state-01 (supported/refuted/unverifiable/unknown) with a
+   four-state vocabulary --- verified, contradicted, indeterminate, and
+   not_evaluated --- together with a reason-code mechanism that
+   separates a state's substance from a verifier's own instrument
+   failure, and with an admissibility gate applied before a state is
+   ever assigned.  It adds evidence pinning: a receipt MAY carry an
+   evidence_set block that content-addresses the sources considered
+   during verification, so that a verdict can be recomputed offline from
+   the receipt and the pinned bytes alone, without depending on a live
+   retrieval provider.  Freshness is anchored to the evidence's own
+   retrieved_at timestamp rather than a separately declared validity
+   window.  This shape provides decision explainability and traceability
+   evidence aligned with EU AI Act Article 12 record-keeping obligations
+   and with the Decision Explainability tier of an industry Zero Trust
+   for AI Agents framework published in 2026.  The format is forward-
+   compatible across mapping revisions: receipts signed under one
+   mapping ID remain verifiable as correct-under-that-mapping after
+   newer mappings ship.  The vectors that content-address a mapping
+   document or an evidence set are historical, digest-anchored artifacts
+   and are unchanged by this revision; nothing in this document alters a
+   previously issued digest.
+
+
+
+
+
+
+
+Krausz                    Expires 26 March 2027                 [Page 1]
+
+Internet-Draft            verification.* family           September 2026
+
+
+Status of This Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF).  Note that other groups may also distribute
+   working documents as Internet-Drafts.  The list of current Internet-
+   Drafts is at https://datatracker.ietf.org/drafts/current/.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   This Internet-Draft will expire on 26 March 2027.
+
+Copyright Notice
+
+   Copyright (c) 2026 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents (https://trustee.ietf.org/
+   license-info) in effect on the date of publication of this document.
+   Please review these documents carefully, as they describe your rights
+   and restrictions with respect to this document.  Code Components
+   extracted from this document must include Revised BSD License text as
+   described in Section 4.e of the Trust Legal Provisions and are
+   provided without warranty as described in the Revised BSD License.
+
+Table of Contents
+
+   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   3
+     1.1.  Requirements Language . . . . . . . . . . . . . . . . . .   5
+     1.2.  Scope . . . . . . . . . . . . . . . . . . . . . . . . . .   5
+   2.  Terminology . . . . . . . . . . . . . . . . . . . . . . . . .   5
+   3.  Verification State Vocabulary . . . . . . . . . . . . . . . .   7
+     3.1.  The Four States and the Capture Relationship  . . . . . .   7
+       3.1.1.  Enumerating the Negatives Behind an Indeterminate
+               Count . . . . . . . . . . . . . . . . . . . . . . . .   8
+     3.2.  The Subject Clause  . . . . . . . . . . . . . . . . . . .   9
+     3.3.  Admissibility as a Gate, Not a State  . . . . . . . . . .   9
+   4.  The verification.* Constraint Family  . . . . . . . . . . . .   9
+     4.1.  Sibling-not-Member Relationship to environment.*  . . . .   9
+     4.2.  Composition Rules . . . . . . . . . . . . . . . . . . . .  10
+   5.  Receipt Format  . . . . . . . . . . . . . . . . . . . . . . .  10
+     5.1.  JWS Envelope  . . . . . . . . . . . . . . . . . . . . . .  11
+
+
+
+Krausz                    Expires 26 March 2027                 [Page 2]
+
+Internet-Draft            verification.* family           September 2026
+
+
+     5.2.  Payload Claims --- Canonical, Derived, Mapping-Bound  . .  11
+     5.3.  Evidence Pinning  . . . . . . . . . . . . . . . . . . . .  13
+       5.3.1.  The evidence_set Member . . . . . . . . . . . . . . .  13
+       5.3.2.  Source Entries  . . . . . . . . . . . . . . . . . . .  15
+       5.3.3.  Evidence Root Construction  . . . . . . . . . . . . .  18
+       5.3.4.  What an Evidence Set Does Not Establish . . . . . . .  19
+       5.3.5.  Independence  . . . . . . . . . . . . . . . . . . . .  20
+     5.4.  Verification Protocol . . . . . . . . . . . . . . . . . .  21
+       5.4.1.  Evidence-Set Resolution Step  . . . . . . . . . . . .  21
+     5.5.  Claim Binding . . . . . . . . . . . . . . . . . . . . . .  25
+     5.6.  Receipt Envelope Example  . . . . . . . . . . . . . . . .  26
+     5.7.  Version-Binding Rationale . . . . . . . . . . . . . . . .  28
+   6.  Binary-Halt Gate Semantics  . . . . . . . . . . . . . . . . .  28
+     6.1.  Decision Table  . . . . . . . . . . . . . . . . . . . . .  28
+     6.2.  Threshold Rules . . . . . . . . . . . . . . . . . . . . .  30
+     6.3.  Fail-Closed Mandate . . . . . . . . . . . . . . . . . . .  30
+   7.  Multi-Axis Freshness  . . . . . . . . . . . . . . . . . . . .  30
+     7.1.  Three Independent Axes  . . . . . . . . . . . . . . . . .  30
+     7.2.  Staleness Semantics . . . . . . . . . . . . . . . . . . .  31
+   8.  Calibration Anchor Requirements . . . . . . . . . . . . . . .  31
+     8.1.  Reproducibility Mandate . . . . . . . . . . . . . . . . .  32
+     8.2.  Drift Detection . . . . . . . . . . . . . . . . . . . . .  32
+   9.  Relationship to Related Work  . . . . . . . . . . . . . . . .  32
+     9.1.  SCITT . . . . . . . . . . . . . . . . . . . . . . . . . .  32
+     9.2.  Relationship to Decision Records  . . . . . . . . . . . .  33
+     9.3.  RATS  . . . . . . . . . . . . . . . . . . . . . . . . . .  33
+     9.4.  W3C VC Confidence Method  . . . . . . . . . . . . . . . .  33
+     9.5.  VAP Framework . . . . . . . . . . . . . . . . . . . . . .  33
+     9.6.  Mastercard Verifiable Intent (environment.*)  . . . . . .  34
+     9.7.  Differentiator Summary  . . . . . . . . . . . . . . . . .  34
+   10. Open Issues . . . . . . . . . . . . . . . . . . . . . . . . .  34
+   11. Security Considerations . . . . . . . . . . . . . . . . . . .  35
+     11.1.  Composition Non-Interference with environment.*
+            Family . . . . . . . . . . . . . . . . . . . . . . . . .  36
+     11.2.  Other Security Considerations  . . . . . . . . . . . . .  36
+   12. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  37
+   13. Informative References  . . . . . . . . . . . . . . . . . . .  37
+   Acknowledgments . . . . . . . . . . . . . . . . . . . . . . . . .  39
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  40
+
+1.  Introduction
+
+   AI agents increasingly take economic and operational actions on
+   probabilistic input.  A customer-service agent posts content; a
+   procurement agent commits to a supplier; a research agent files a
+   regulatory report.  Each action is preceded by a factual claim the
+   agent believes to be true.  Today, the infrastructure verifying
+   whether the claim is true _before_ the agent acts on it is fragmented
+
+
+
+Krausz                    Expires 26 March 2027                 [Page 3]
+
+Internet-Draft            verification.* family           September 2026
+
+
+   across operator logs (after-the-fact), confidence scores (soft
+   signals), and ad-hoc validation pipelines (not interoperable).
+
+   This document specifies the verification.* constraint family: a pre-
+   action, fail-closed gate primitive shaped identically to the
+   environment.* family used in Verifiable Intent specifications
+   [VINTENT], but applied to probabilistic predicates rather than
+   boolean state.  A verification.* receipt asserts, for a specific
+   claim under a specific ruleset at a specific moment, whether an agent
+   SHOULD proceed or halt.  The receipt is JWS-signed [RFC7515] and
+   structured such that a relying party can recompute the gate decision
+   locally from signed primitives, without trusting the issuer's
+   runtime.
+
+   The four properties this primitive needs to satisfy together:
+
+   1.  *Pre-action.* The verification happens before the action.
+   2.  *Fail-closed.* Anything ambiguous halts; "impossible, not
+       tedious."
+   3.  *Third-party recomputable.* The verifier never trusts the
+       issuer's runtime; signature binds inputs, outputs, and mapping
+       identifier together.
+   4.  *Forward-compatible.* Receipts signed under one ruleset remain
+       verifiable as correct-under-that-ruleset even after newer
+       rulesets ship.
+
+   Property 3 is the load-bearing one and the one most existing
+   primitives stop short of.  SCITT [RFC9943] signs receipts (necessary
+   but not sufficient).  W3C Verifiable Credentials Confidence Method
+   [VC-CM] exposes confidence as a verifiable property (useful but not
+   gating).  RATS [RFC9334] provides the Evidence->Verifier->AR->RP
+   vocabulary (matched here).  None fully recompose the gate verdict
+   from signed inputs.  Property 4 is the one that becomes a footgun if
+   skipped: rule changes silently invalidate or mis-verify old
+   artifacts.
+
+   This document is complementary to security frameworks for AI agent
+   deployment, including the Zero Trust framework for AI Agents
+   published by Anthropic in May 2026 [ANTHROPIC-ZT], which names
+   decision explainability as non-optional for regulated AI systems.
+   The verification.* constraint family is one credible artifact shape
+   for satisfying that explainability requirement.
+
+
+
+
+
+
+
+
+
+Krausz                    Expires 26 March 2027                 [Page 4]
+
+Internet-Draft            verification.* family           September 2026
+
+
+1.1.  Requirements Language
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+   "OPTIONAL" in this document are to be interpreted as described in BCP
+   14 [RFC2119] [RFC8174] when, and only when, they appear in all
+   capitals, as shown here.
+
+1.2.  Scope
+
+   In scope:
+
+   *  Gate semantics for pre-action verification of factual claims.
+   *  Receipt envelope format and required claims.
+   *  Calibration anchor requirements and discipline.
+   *  Multi-axis freshness model.
+   *  Verification protocol for relying parties.
+
+   Out of scope:
+
+   *  Signing key management policy (defers to JWKS standards).
+   *  Specific verifier implementations or model architectures.
+   *  Claim-extraction techniques (how a claim is identified from agent
+      input/output).
+   *  Adversarial-probe methodology specifics.
+
+2.  Terminology
+
+   *Verifier* --- Entity issuing a verification receipt.
+
+   *Relying Party (RP)* --- Agent or downstream system consuming the
+   receipt at a gate.
+
+   *Gate* --- The decision point in the RP's code path where act / halt
+   is consumed.
+
+   *Calibration anchor* --- The dataset and seed defining confidence
+   semantics for the verifier's pipeline.
+
+   *Multi-axis freshness* --- Signature, calibration, and evidence each
+   carry independent staleness exposure.  As of this revision the
+   evidence axis is computed from evidence_set.retrieved_at rather than
+   from a separately declared validity window; see Section 7.
+
+
+
+
+
+
+
+
+Krausz                    Expires 26 March 2027                 [Page 5]
+
+Internet-Draft            verification.* family           September 2026
+
+
+   *State (raw)* --- One of verified, contradicted, indeterminate,
+   not_evaluated.  See Section 3 for the full vocabulary, its reason
+   codes, and the admissibility gate applied before a state is assigned.
+   This replaces the supported/refuted/unverifiable/unknown domain of
+   draft-krausz-verification-state-01.
+
+   *Reason code* --- A machine-readable qualifier carried alongside a
+   reported state that distinguishes how the state was reached.  See
+   Section 3.
+
+   *Subject* --- The specific observation --- not the code, verifier, or
+   vantage point that produced it --- that a reported state describes.
+   See Section 3.2.
+
+   *Admissibility* --- A gate applied to an observation before
+   evaluation: whether the observation counts at all.  Distinct from the
+   four states, which describe the outcome of evaluating an admitted
+   observation.  See Section 3.3.
+
+   *Recommendation (canonical)* --- One of confident_supported,
+   un_probed_not_cleared, vulnerable_supported, weak_supported, refuted,
+   unverifiable, error.  Derived from primitives under the named
+   mapping.  The mapping's own vocabulary is retained unchanged from
+   draft-krausz-verification-state-01 pending a future revision; see
+   Section 10.
+
+   *Gate (derived)* --- act or halt.  Derived from recommendation under
+   the named mapping.
+
+   *Mapping document* --- A published, immutable document specifying how
+   recommendations are derived from primitives and how gates are derived
+   from recommendations.  Identified by a stable string identifier
+   (e.g., v0.3.0-2026-05-30).
+
+   *Evidence item* --- A single retrieved source considered during
+   verification, identified by its URI and, when pinned, by a
+   cryptographic digest of the retrieved content.
+
+   *Evidence set* --- The complete, unordered collection of evidence
+   items considered during one verification, together with the metadata
+   that makes it recomputable.
+
+   *Pinned* --- An evidence item is pinned when the receipt carries a
+   digest of the retrieved content, such that a verifier holding the
+   same content can confirm it is the content that was judged.  An item
+   carrying a URI alone is *not* pinned.
+
+
+
+
+
+Krausz                    Expires 26 March 2027                 [Page 6]
+
+Internet-Draft            verification.* family           September 2026
+
+
+   *Offline recomputation* --- Re-derivation of a verification outcome
+   from the receipt, the referenced mapping document, and the pinned
+   evidence content alone, without contacting the issuer or any
+   retrieval provider.
+
+3.  Verification State Vocabulary
+
+   This section replaces the raw verdict domain of draft-krausz-
+   verification-state-01 with a four-state vocabulary, a reason-code
+   mechanism, a generalized subject clause, and an admissibility gate
+   applied before any state is assigned.  It reflects working-group
+   discussion current as of 2026-09-22, including wg-identity #21 and
+   tsc #4 threads.
+
+3.1.  The Four States and the Capture Relationship
+
+   A verifier reports exactly one of four states for an admitted
+   observation:
+
+   *  verified --- the claim was checked against evidence and the
+      evidence supports it.
+   *  contradicted --- the claim was checked against evidence and the
+      evidence is inconsistent with it.
+   *  indeterminate --- the claim was checked and the check did not
+      resolve to either of the above.  See below for the reason codes
+      that distinguish why.
+   *  not_evaluated --- no check was performed.
+
+   These four supersede draft-krausz-verification-state-01's supported /
+   refuted / unverifiable / unknown domain one-for-one in that order;
+   see Section 10 for what this renaming does and does not settle about
+   the downstream recommendation and gate mapping.
+
+   *Capture relationship.* A state is not a free-standing value.  A
+   receipt MUST capture a state together with (a) the subject it
+   describes (Section 3.2) and (b) a reason code, when this section
+   requires one for that state.  A bare state carried without an
+   identified subject is not evaluable under this vocabulary and MUST be
+   treated by a relying party as if the state were absent.  The
+   evidence_set block of Section 5.3, where present, is the record of
+   what was captured; the state is the record of what capturing it
+   established.
+
+   *Instrument failure.* A verifier reporting any of the four states
+   MUST distinguish reaching that state through evaluation from failing
+   to evaluate because the verifier's own instrument failed.  An
+   implementation that could not complete its check --- a timeout, a
+   crashed dependency, a malformed internal input --- MUST NOT report
+
+
+
+Krausz                    Expires 26 March 2027                 [Page 7]
+
+Internet-Draft            verification.* family           September 2026
+
+
+   indeterminate or any other state as though it were a substantive
+   finding.  It MUST report the state the observation would otherwise
+   carry (typically not_evaluated, or indeterminate where a partial
+   check ran before failing) together with the reason code
+   instrument_failure. instrument_failure is available under all four
+   states for exactly this purpose: it marks the state as unreliable on
+   account of the verifier's own tooling, not as a genuine result about
+   the subject.
+
+   *Reason codes under indeterminate.* Two further reason codes
+   distinguish why a check that ran did not resolve:
+
+   *  divergence --- the check ran and found a divergence between
+      sources or signals that the verifier cannot attribute to either
+      side.
+   *  absence --- the check ran and produced no signal at all.  This
+      name is retained from prior working-group usage rather than
+      renamed, because the absence of a signal is a distinct and
+      previously-established meaning that a synonym would obscure.
+
+   A verifier MUST choose divergence or absence for every indeterminate
+   report that is not an instrument failure; the two are not
+   interchangeable, and collapsing them discards exactly the distinction
+   this section exists to preserve.
+
+3.1.1.  Enumerating the Negatives Behind an Indeterminate Count
+
+   Committed 2026-09-16 as a direct consequence of a natural experiment
+   comparing HTTP 429 responses across two hosts, one returning over
+   three thousand and the other returning zero, where the zero count was
+   a fact about the requester's own standing with the host and not about
+   the host's behavior:
+
+   Before an implementation or a report built on this vocabulary
+   publishes any count of the form "N subjects are not doing X," it MUST
+   enumerate the status codes behind the negatives.  A negative built
+   from a status about the asker --- the verifier's own instrument,
+   vantage point, or standing --- is not a negative about the subject
+   being observed, and MUST be attributed to instrument_failure or
+   absence as appropriate rather than folded into a substantive
+   contradicted or indeterminate count.
+
+
+
+
+
+
+
+
+
+
+Krausz                    Expires 26 March 2027                 [Page 8]
+
+Internet-Draft            verification.* family           September 2026
+
+
+3.2.  The Subject Clause
+
+   The subject of a state carrying an open attribution question between
+   the artifact being evaluated and the evaluator that produced the
+   state is a property of the observation, not of the code, verifier, or
+   vantage point that produced it.  A verifier reporting such a state
+   MUST name what it observed, because the same signal observed from a
+   different vantage is a different fact.
+
+   This clause generalizes a narrower formulation originally scoped to
+   not_evaluated alone.  A roll-up in which canonicalization
+   disagreement and a forged signature both terminate in the same
+   reported outcome shows that the same attribution question arises
+   wherever a state's cause could be either the artifact or the
+   evaluator, not only where no evaluation was performed.  The clause
+   therefore applies to indeterminate and contradicted reports carrying
+   an unresolved artifact-vs-evaluator question exactly as it applies to
+   not_evaluated.
+
+3.3.  Admissibility as a Gate, Not a State
+
+   Admissibility is a gate applied to an observation before evaluation:
+   does this observation count at all.  It is evaluated prior to, and
+   independently of, the four states in Section 3.1, and it is *not* a
+   fifth state alongside them.
+
+   An observation excluded at the admissibility gate (for example, one
+   excluded on reconnaissance or scope grounds) never reaches state
+   assignment and MUST NOT be reported using any of the four states.
+   Admissibility and state occupy different axes: an admitted
+   observation is then, and only then, evaluated to one of verified,
+   contradicted, indeterminate, or not_evaluated.
+
+4.  The verification.* Constraint Family
+
+4.1.  Sibling-not-Member Relationship to environment.*
+
+       +===========+======================+=======================+
+       | Property  | environment.*        | verification.*        |
+       +===========+======================+=======================+
+       | Predicate | Boolean (state       | Probabilistic in      |
+       |           | matches or does not) | [0,1]                 |
+       +-----------+----------------------+-----------------------+
+       | Threshold | Oracle-defined,      | Calibration-anchored, |
+       | ownership | fixed-semantic       | mapping-versioned     |
+       +-----------+----------------------+-----------------------+
+       | Freshness | Single TTL           | Multi-axis            |
+       +-----------+----------------------+-----------------------+
+
+
+
+Krausz                    Expires 26 March 2027                 [Page 9]
+
+Internet-Draft            verification.* family           September 2026
+
+
+       | Gate      | Binary halt          | Binary halt           |
+       | shape     |                      |                       |
+       +-----------+----------------------+-----------------------+
+
+                                 Table 1
+
+   Both families produce a binary fail-closed gate primitive.  They
+   differ in predicate shape (boolean vs probabilistic) and threshold
+   provenance (fixed vs calibration-anchored).  This difference is
+   sufficient to warrant a sibling family rather than a member entry
+   under environment.*: probabilistic predicates require calibration
+   discipline that boolean predicates do not, and the version-binding
+   mechanism described in Section 5 is specific to mappings between
+   probabilistic primitives and binary outputs.
+
+   Read sibling-to-sibling: environment.* attests a deterministic read
+   of the world (state matches or does not, with a fixed-semantic
+   threshold), while verification.* attests an irreducibly probabilistic
+   statement about a proposition (calibration-anchored confidence over a
+   claim, with a mapping-versioned threshold).  Both produce the same
+   binary gate output; they differ in what kind of fact the threshold is
+   being applied to.  This split is structural: the receipt envelope,
+   JCS canonicalization, signed-primitives discipline, and offline-
+   verifiable-against-published-JWKS verification model are identical
+   across the two families.  See [ENV-STATE] for the world-state-read
+   sibling.
+
+4.2.  Composition Rules
+
+   *Conjunction:* Multiple verification.* constraints in a single
+   mandate combine with AND (orthogonal+conjunctive).  All constraints
+   MUST resolve to act for the action to proceed.
+
+   *Ordering with environment.*:* environment.* constraints MUST short-
+   circuit before verification.* constraints per [ENV-STATE]
+   Section 5.5.  Environment evaluation is typically cheaper (no oracle
+   roundtrip) and a failed environment constraint moots the
+   verification.  See also Section 11 for the non-interference security
+   property this ordering provides.
+
+5.  Receipt Format
+
+
+
+
+
+
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 10]
+
+Internet-Draft            verification.* family           September 2026
+
+
+5.1.  JWS Envelope
+
+   Verification receipts MUST be issued as JSON Web Signatures (JWS)
+   [RFC7515].  Both compact serialization and JSON serialization
+   (flattened form) are conforming.  The v0.3 reference fixture pair
+   uses JWS JSON (flattened) serialization because it preserves the
+   protected/unprotected/signature object structure the verification
+   protocol walks (Section 5.4); compact serialization remains valid for
+   profiles that prefer it.  A relying party MUST accept both
+   serializations.
+
+   *  alg: A conforming implementation MUST accept both EdDSA (Ed25519,
+      [RFC8037]) and ES256 ([RFC7518]).  The v0.3 reference fixture pair
+      signs with EdDSA; ES256 remains valid for profiles that prefer it.
+      Other algorithms are optional and SHOULD follow the IANA JOSE
+      Algorithms registry.
+   *  kid: MUST resolve to a key in the issuer's published JWKS
+      [RFC7517] at /.well-known/jwks.json unless an alternate JWKS
+      location is published in the issuer's metadata.
+   *  typ: verification-receipt+jws.
+
+5.2.  Payload Claims --- Canonical, Derived, Mapping-Bound
+
+   The payload signs three structurally distinct field groups plus their
+   bindings.
+
+   *Canonical input (signed primitives):*
+
+   *  v_verdict (string, REQUIRED) --- One of verified, contradicted,
+      indeterminate, not_evaluated, per Section 3.  This revision
+      changes the field's domain from draft-krausz-verification-state-
+      01's supported/refuted/unverifiable/unknown values to this four-
+      value vocabulary, one-for-one in that order; the claim name
+      v_verdict itself is unchanged and continues to be emitted by
+      existing issuers.  A rename of the claim to v_state, to align the
+      wire name with this vocabulary's own terminology, is deferred to a
+      future revision pending an assessment of the migration cost across
+      existing draft-krausz-verification-state-01 implementers; see
+      Section 10.
+   *  v_reason_code (string, REQUIRED when Section 3 requires one for
+      the reported v_verdict, OPTIONAL otherwise) --- One of
+      instrument_failure (available under any state), or, when v_verdict
+      is indeterminate and the reason is not instrument_failure, exactly
+      one of divergence or absence.
+
+
+
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 11]
+
+Internet-Draft            verification.* family           September 2026
+
+
+   *  v_subject (string, REQUIRED when v_verdict carries an open
+      attribution question per Section 3.2, OPTIONAL otherwise) ---
+      Names the specific observation the state describes, so that the
+      same signal reported from a different vantage is identifiable as a
+      different fact.
+   *  v_confidence (number, REQUIRED) --- Float in [0, 1].
+   *  v_adversarial_result (string, REQUIRED) --- One of resilient,
+      vulnerable, not_checked.
+
+   *Canonical derived (signed):*
+
+   *  v_recommendation (string, REQUIRED) --- One of
+      confident_supported, un_probed_not_cleared, vulnerable_supported,
+      weak_supported, refuted, unverifiable, error.  Derived
+      deterministically from the canonical input under the named
+      mapping.
+
+   *Derived output (signed):*
+
+   *  v_gate (string, REQUIRED) --- One of act, halt.  Derived from
+      v_recommendation under the named mapping.
+
+   *Binding (signed):*
+
+   *  v_gate_mapping (string, REQUIRED) --- Stable identifier of the
+      published mapping document used at issuance (e.g.,
+      v0.3.0-2026-05-30).  The mapping document is immutable after
+      publication; future revisions ship as new identifiers.
+   *  v_gate_mapping_hash (string, REQUIRED) --- SHA-256 hex digest of
+      the canonical serialization of the mapping document identified by
+      v_gate_mapping.  MUST be present in every receipt.  Receipts MUST
+      bind to a content-addressed mapping; the absence of
+      v_gate_mapping_hash is a malformed-receipt condition and MUST
+      result in gate decision halt.
+   *  v_claim (object, REQUIRED) --- Binds the verified claim to the
+      receipt.  See Section 5.5.
+
+   *Provenance (signed, not gating):*
+
+   *  v_method (string, OPTIONAL) --- Self-describing verifier pipeline
+      identifier.
+   *  v_calibration (object, OPTIONAL) --- Calibration anchor metadata.
+      See Section 8.
+
+
+
+
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 12]
+
+Internet-Draft            verification.* family           September 2026
+
+
+   *  v_sources_used (array of strings, DEPRECATED) --- Source labels
+      actually consulted in this evaluation.  Deprecated by this
+      revision in favor of evidence_set.sources (Section 5.3), which
+      names sources with content-addressing rather than free-text
+      labels.  An issuer MAY still emit this member for backward
+      compatibility; a relying party MUST NOT treat its absence as a
+      defect, and MUST NOT treat its presence as evidence pinning.
+   *  v_evidence (string, DEPRECATED) --- URI pointer to evidence
+      corpus, if persisted.  Deprecated by this revision in favor of
+      evidence_set (Section 5.3), which pins content rather than
+      pointing at a live location.  An issuer MAY still emit this member
+      for backward compatibility; a relying party MUST NOT treat its
+      absence as a defect.
+   *  evidence_set (object, OPTIONAL) --- Content-addressed record of
+      the sources considered during verification.  See Section 5.3 for
+      its full structure.
+
+   *Standard JWT claims [RFC7519]:*
+
+   *  iss (REQUIRED), sub (RECOMMENDED), iat (REQUIRED), exp (REQUIRED),
+      nbf (OPTIONAL).
+
+5.3.  Evidence Pinning
+
+   A verification.* receipt pins *the rule* applied (via
+   v_gate_mapping_hash) but, absent this section, carries sources as
+   bare URIs.  Recomputing a state therefore requires re-retrieving
+   them, which is neither deterministic (the same URI returns different
+   bytes over time) nor durable (a retrieval provider can retire).  A
+   receipt without evidence pinning is a pointer to evidence, not a
+   record of it.  This section closes that gap by letting a receipt
+   carry a content-addressed evidence_set.  Throughout, the evidence
+   block states what was judged; it never states what the judgment was
+   --- v_verdict and its reason code are untouched by anything in this
+   section.
+
+5.3.1.  The evidence_set Member
+
+   A receipt payload MAY carry an evidence_set member.  When present it
+   MUST be an object with the following members; a present evidence_set
+   that is not a JSON object is malformed; gate decision = halt;
+   reported condition evidence_set_not_object.
+
+   evidence_set_version (string):
+      Version identifier for this block's semantics.  This document
+      defines "ao-evidence-set-v1".  MUST be present and a string; a
+      value that is absent, null, or not a string is malformed; gate
+      decision = halt; reported condition
+
+
+
+Krausz                    Expires 26 March 2027                [Page 13]
+
+Internet-Draft            verification.* family           September 2026
+
+
+      evidence_set_version_absent_or_not_string.  A string naming a
+      version the verifier does not implement is not malformed;
+      Section 5.4.1 paragraph (h) resolves it.
+
+   retrieved_at (RFC 3339 timestamp):
+      MUST equal the bytewise-least retrieved_at among *all* entries in
+      sources, pinned and unpinned alike, comparing the UTF-8 bytes of
+      the member as carried.  Well-defined because sources is non-empty
+      and every entry carries the member.  A value that is not the
+      bytewise-least such value is malformed; gate decision = halt;
+      reported condition set_retrieved_at_not_bytewise_least.
+
+   source_count (integer):
+      Total number of evidence items considered.  MUST equal
+      len(sources); reported condition on violation:
+      source_count_mismatch.  A present evidence_set MUST carry at least
+      one entry in sources, so source_count is greater than zero.  An
+      issuer with no sources to report MUST omit evidence_set entirely;
+      Section 5.4 resolves that case as unknown for the evidence step
+      without failing it.
+
+   pinned_count (integer):
+      Number of entries with pinned: true.  MUST equal that number
+      exactly; a value that differs from it, in either direction, is
+      malformed; gate decision = halt; reported condition
+      pinned_count_mismatch.  (Exact equality implies the former bound,
+      less than or equal to source_count.)
+
+   fully_pinned (boolean):
+      true if and only if pinned_count equals source_count and
+      source_count is greater than zero.  A declared value that differs
+      from this derivation is malformed; gate decision = halt; reported
+      condition fully_pinned_mismatch.
+
+   evidence_root (string or null):
+      Merkle root over the pinned items per Section 5.3.3, or null when
+      pinned_count is zero.  MUST be non-null when pinned_count is
+      greater than zero.  Reported conditions on violation:
+      evidence_root_present_with_no_pinned_items (non-null with no
+      pinned entry) and evidence_root_absent_with_pinned_items (null
+      with at least one pinned entry).
+
+   sources (array):
+      One entry per evidence item, per Section 5.3.2.  A sources member
+      that is absent, null, or an empty array is malformed; gate
+      decision = halt; reported condition evidence_set_names_no_sources.
+      A sources member that is present but not an array is malformed;
+      gate decision = halt; reported condition sources_not_array.
+
+
+
+Krausz                    Expires 26 March 2027                [Page 14]
+
+Internet-Draft            verification.* family           September 2026
+
+
+   fully_pinned is stated rather than left to be derived, so a reader
+   can determine that a set is partial without recounting the array.
+   Partial pinning is an honest state and is not a defect; concealing it
+   is.  Zero pinned items is legal and is not an empty set: an
+   evidence_set naming three sources, none pinned and each carrying a
+   valid unpinned_reason, is well-formed, its evidence_root is null, and
+   its fully_pinned is false.  The prohibition is on a set naming no
+   sources, never on one that pins none.
+
+   *Fallback when a count is declared absent.* When source_count is
+   absent, its operand for any check in this section is len(sources).
+   When pinned_count is absent, its operand is the count of entries with
+   pinned: true (well-defined because pinned is REQUIRED and boolean per
+   Section 5.3.2).  When source_count, pinned_count, and fully_pinned
+   are all absent, resolution derives all three the same way and MUST
+   NOT halt for want of the declared members: validation and resolution
+   alike are not skipped merely because a member that could be
+   reconstructed from sources was not declared.  When the set-level
+   retrieved_at is absent, its operand is the bytewise-least entry-level
+   retrieved_at, so that freshness is judged by the oldest evidence in
+   the set rather than the newest.  Because retrieved_at is REQUIRED on
+   every entry, a set with no valid entry-level value cannot reach this
+   derivation: each entry's own check under Section 5.3.2 halts first.
+
+5.3.2.  Source Entries
+
+   Each entry in sources MUST be an object (reported condition on
+   violation: source_entry_not_object) with:
+
+   url (string, REQUIRED):
+      The URI used for retrieval, carried without normalization --- no
+      case folding, percent-encoding changes, query reordering, or
+      trailing-slash adjustment.  A url that is absent, null, or not a
+      string is malformed; gate decision = halt; reported condition
+      url_absent_or_not_string.
+
+   snippet_sha256 (string or null, REQUIRED):
+      Lowercase hex SHA-256 of the retrieved content bytes exactly as
+      received --- no transcoding, trimming, whitespace collapsing, case
+      folding, or Unicode normalization --- or null if not pinned.
+      There is no character-encoding step: the digest is over bytes, not
+      over text.  The member MUST be present on every entry.  Each of
+      the following is malformed; gate decision = halt; checked per
+      entry whether or not evidence_root is null: on a pinned entry, a
+      snippet_sha256 that is absent or null
+      (snippet_sha256_absent_when_pinned); on an unpinned entry, an
+      absent member (snippet_sha256_member_absent); on an unpinned
+      entry, a non-null value (snippet_sha256_present_when_unpinned),
+
+
+
+Krausz                    Expires 26 March 2027                [Page 15]
+
+Internet-Draft            verification.* family           September 2026
+
+
+      because a digest on an entry that declares no content bytes were
+      received contradicts that declaration; and a non-null value that
+      is not exactly 64 lowercase hexadecimal characters
+      (snippet_sha256_not_lowercase_hex64).
+
+   retrieved_at (RFC 3339 timestamp, REQUIRED):
+      Retrieval time for this item.  MUST be in UTC with the Z
+      designator and exactly three fractional-second digits.  This
+      canonical form is required for every entry, pinned and unpinned
+      alike, evaluated before any branch on pinned, because the sort in
+      Section 5.3.3 and the set-level comparison above are both
+      bytewise.  The value MUST also denote a valid instant: month 01--
+      12, a day that exists in that month and year, hour 00--23, minute
+      00--59, and second 00--59.  A seconds field of 60 is not
+      permitted; this canonical form does not represent leap seconds.
+      Reported condition on violation of any part of this paragraph:
+      retrieved_at_not_canonical_form.
+
+   pinned (boolean, REQUIRED):
+      MUST be exactly the JSON value true or false.  An entry where
+      pinned is absent, null, or of any type other than boolean is
+      malformed; gate decision = halt; reported condition
+      pinned_absent_or_not_boolean.  This closes the domain to exactly
+      two values before any rule in this document that ranges "over
+      every entry, pinned and unpinned alike" is evaluated.
+
+   content_kind (string or absent/null, REQUIRED when pinned is
+   true):
+      One of snippet, excerpt, full_resource, naming what the digest
+      covers.  On an unpinned entry, content_kind MUST be absent or null
+      (the two are equivalent); on a pinned entry it MUST be present.
+      Reported conditions on violation:
+      content_kind_absent_or_invalid_when_pinned (pinned entry, member
+      absent, null, or outside the three-value domain) and
+      content_kind_present_when_unpinned (unpinned entry, member present
+      and non-null).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 16]
+
+Internet-Draft            verification.* family           September 2026
+
+
+   resource_sha256 (string, OPTIONAL):
+      Digest of the full resource, where the full resource was also
+      obtained.  When present, MUST be exactly 64 lowercase hexadecimal
+      characters; reported condition on violation:
+      resource_sha256_not_lowercase_hex64.  MUST be absent when
+      content_kind is full_resource (in that case snippet_sha256 already
+      is that digest).  This rule ranges over every entry regardless of
+      pinned: an unpinned entry carrying content_kind: full_resource
+      together with a non-null resource_sha256 is malformed under the
+      same rule as a pinned one.  Reported condition:
+      resource_sha256_present_for_full_resource.  (Named
+      snippet_digest_present_for_full_resource in draft-krausz-
+      verification-state-02; the member at fault is resource_sha256.)
+
+   unpinned_reason (string, REQUIRED when pinned is false):
+      One of no_content_returned (the retrieval attempt returned no
+      content bytes --- covers refusal, paywall interception, robots
+      exclusion, and transport failure alike) or provider_metadata_only
+      (the retrieval surface returned metadata about a resource without
+      its content).
+
+   *Possession, not composition.* An issuer MUST pin every evidence item
+   for which it received content bytes; pinned MAY be false only where
+   no content bytes were received for that item.  The digest is computed
+   over the content bytes as received, before or alongside any
+   judgement; whether the bytes are kept afterward is irrelevant to
+   pinning.  An item with pinned: false and no unpinned_reason, or a
+   value outside the two-value domain above, is malformed; gate decision
+   = halt; reported condition unpinned_reason_absent_or_invalid.  An
+   issuer that received content bytes for an item and declares either
+   unpinned_reason value has signed a false statement: the format cannot
+   verify possession from the receipt, but it converts selective pinning
+   from a permitted state into a lie.  A composition rule --- pin every
+   source that refutes the state --- cannot be written, because
+   "refutes" is the issuer's own classification; possession is different
+   in kind because whether bytes arrived is a fact about the issuer's
+   own process, not a judgment about a source.
+
+   *Entry distinctness.* No two entries in sources may record the same
+   retrieval.  Two entries record the same retrieval when they are
+   identical in url and retrieved_at and, where both are pinned, also
+   identical in snippet_sha256 and content_kind.  This rule ranges over
+   every entry in sources, pinned and unpinned alike: sources carries
+   one entry per item considered, an issuer MUST NOT omit an item it
+   could not pin, and a second entry for one retrieval overstates
+   source_count.  For an unpinned entry snippet_sha256 is null and
+   content_kind is absent, so those members distinguish nothing and url
+   with retrieved_at decides; an absent member is not equal to a present
+
+
+
+Krausz                    Expires 26 March 2027                [Page 17]
+
+Internet-Draft            verification.* family           September 2026
+
+
+   one.  A pinned entry and an unpinned entry sharing url and
+   retrieved_at are, by the same rule, one retrieval recorded twice.
+   Two entries sharing url, snippet_sha256, and content_kind and
+   differing only in retrieved_at record two legitimate retrievals of
+   the same content and are not duplicates.  Violation is malformed;
+   gate decision = halt; reported condition duplicate_bound_tuple.
+
+   *NUL exclusion.* No url, snippet_sha256, content_kind, or
+   retrieved_at value in any entry, pinned or unpinned, may contain the
+   octet 0x00 in its UTF-8 encoding.  A JSON string can carry U+0000, so
+   this is a rule a verifier checks, not a property it may assume.
+   Violation is malformed; gate decision = halt; reported condition
+   member_contains_nul.  Section 5.3.3 relies on this rule.
+
+5.3.3.  Evidence Root Construction
+
+   evidence_root is a Merkle root over the pinned items only; unpinned
+   items contribute nothing.
+
+   *Leaf.* For each pinned item, in the canonical order defined below:
+
+   leaf = SHA-256( "ao-evidence-leaf-v2" || 0x00
+                   || url || 0x00
+                   || snippet_sha256 || 0x00
+                   || content_kind || 0x00
+                   || retrieved_at )
+
+   where url and retrieved_at are their UTF-8 bytes as carried,
+   snippet_sha256 is its 64 lowercase hexadecimal characters encoded
+   UTF-8 (not the 32 raw bytes they represent), and content_kind is its
+   UTF-8 bytes.  The NUL exclusion rule of Section 5.3.2 forbids an
+   octet 0x00 in any of these members, and is checked before root
+   construction, so delimiter injection is unreachable.  Every member
+   the preimage binds MUST also appear in the canonical sort key below,
+   and the sort key MUST bind no member the preimage does not; any
+   future widening of the preimage MUST extend the sort key in the same
+   revision.
+
+   *Interior node.*
+
+   node = SHA-256( "ao-evidence-node-v1" || 0x00
+                   || left || 0x00
+                   || right )
+
+   In the interior node, left and right are the 32 raw octets of the
+   child digests, not their hexadecimal form.  This differs from the
+   leaf preimage deliberately: a leaf's members are values carried in
+   the receipt as strings and enter as their UTF-8 bytes, whereas a
+
+
+
+Krausz                    Expires 26 March 2027                [Page 18]
+
+Internet-Draft            verification.* family           September 2026
+
+
+   node's children are outputs of this function and enter as the octets
+   the function produced.  The 0x00 separators in the node preimage are
+   retained for consistency with the leaf form; unlike the leaf, they
+   are not what makes the node preimage unambiguous, since both children
+   are fixed-length 32-octet digests whose boundaries follow from
+   position.  A child digest may itself contain 0x00 octets, and this is
+   harmless.
+
+   *Termination.* When the pinned set contains exactly one item,
+   evidence_root is that item's leaf; no interior node is formed.
+   Applying the node function to a single leaf paired with itself is
+   forbidden, for the same second-preimage reason the odd-node rule
+   gives below.
+
+   *Odd node.* When a level has an odd number of entries, the final
+   entry is promoted unchanged to the next level, retaining its
+   rightmost position.  It MUST NOT be duplicated and paired with
+   itself; duplication admits the well-known second-preimage ambiguity
+   in which a tree with a duplicated final leaf and a tree with that
+   leaf genuinely present twice produce the same root.
+
+   *Canonical order.* Leaves are sorted ascending by url; where two
+   entries share a url, by snippet_sha256; where they share both, by
+   content_kind; and where they share all three, by retrieved_at.  All
+   four comparisons are bytewise over the UTF-8 encoding of the member
+   as carried.  The sort key is exactly the set of members bound by the
+   leaf preimage, so two entries compare equal on the key only if their
+   leaves are identical --- which the entry-distinctness rule above
+   forbids within a well-formed set --- and the order is therefore
+   total.  Sorting makes the root independent of retrieval rank.
+
+   *Domain separation.* The two distinct prefixes ensure a leaf hash can
+   never be reinterpreted as an interior node, and that an evidence root
+   can never collide with any other hash tree defined by this document
+   or composed alongside it.  When pinned_count is zero, evidence_root
+   MUST be null; an implementation MUST NOT emit a root over an empty
+   set.
+
+5.3.4.  What an Evidence Set Does Not Establish
+
+   A pinned evidence set establishes that specific content was
+   considered and that a verifier holding the same bytes can confirm it
+   is the content that was judged.  It establishes *nothing* about:
+
+
+
+
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 19]
+
+Internet-Draft            verification.* family           September 2026
+
+
+   *  *Whether the source has since changed.* A pinned digest lets a
+      later holder of bytes determine whether they hold the bytes that
+      were judged.  It says nothing about whether the source at that URI
+      has changed since, and a reader will take a weaker sentence the
+      stronger way if this is not stated plainly.
+   *  *Completeness of disclosure.* The set records what the issuer
+      listed.  This document forbids omitting a retrieved item, and
+      nothing in the receipt can detect an omission; that is a rule
+      against a false statement, not a mechanism that makes the
+      statement's truth verifiable.
+   *  *The time of retrieval, independently vouched.* retrieved_at is an
+      issuer assertion with no external anchor.  The digest therefore
+      pins content as of a moment the issuer alone vouches for; an
+      auditor years later holds the content and does not hold the
+      moment.
+   *  *Unbiased selection.* The format does not establish that a pinned
+      subset was chosen without regard to the state being reported.
+      What it establishes is that leaving a possessed item unpinned is a
+      lie, and that any partial set makes no offline-recomputation
+      claim.
+   *  *Why content was absent.* no_content_returned records that no
+      content bytes arrived.  It does not distinguish a server that
+      declined from an issuer that never requested, and the receipt
+      cannot be made to: both are the same fact about the issuer's
+      possession.  This collapse is deliberate --- the possession rule
+      reaches only items for which bytes actually arrived, and an issuer
+      that never requested a source it should have requested is outside
+      what this format establishes.
+
+5.3.5.  Independence
+
+   An issuer MAY include an independence member within evidence_set,
+   naming a method identifier, a distinct_registrable_domains count
+   among pinned sources, and an implementation-defined score or null if
+   not computed.  This document does not define how independence is
+   computed, and deliberately does not: a specific heuristic frozen into
+   a specification becomes un-implementable by parties whose corpora
+   differ and cannot be revised at the speed the problem moves.  What is
+   specified is the obligation to declare the method by identifier, so
+   that two receipts carrying independence measures can be compared only
+   when they name the same method.  A verifier MUST NOT compare score
+   values across differing method identifiers, and MUST NOT treat the
+   absence of an independence member as a defect.
+
+
+
+
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 20]
+
+Internet-Draft            verification.* family           September 2026
+
+
+5.4.  Verification Protocol
+
+   A relying party verifying a receipt MUST execute the following
+   sequence and treat any failure as a malformed receipt with gate
+   decision halt:
+
+   1. Verify JWS signature against issuer's published JWKS
+      (RFC 7515).
+   2. Resolve v_gate_mapping -> fetch the named immutable
+      mapping document. MUST verify the SHA-256 digest of the
+      fetched document matches v_gate_mapping_hash (hex-encoded).
+      Digest mismatch -> malformed; gate decision = halt. This
+      binding is mandatory; receipts without v_gate_mapping_hash
+      are malformed.
+   3. Recompute candidate_recommendation from
+      (v_verdict, v_confidence, v_adversarial_result)
+      using the mapping's rules and the threshold recovered from
+      the mapping document. v_verdict's domain depends on which
+      revision issued the receipt -- this revision's four-value
+      vocabulary, or draft-krausz-verification-state-01's
+      supported/refuted/unverifiable/unknown domain for receipts
+      issued before this revision -- as identified by the named
+      mapping document.
+   4. Confirm candidate_recommendation == v_recommendation.
+   5. Compute candidate_gate = mapping(v_recommendation).
+   6. Confirm candidate_gate == v_gate.
+   7. If the receipt carries an evidence_set, resolve it per
+      Section 5.4.1's evidence-set step below. This step resolves
+      to "resolved" or "unknown" and never itself halts except
+      on the malformed conditions Section 5.4.1 lists.
+   8. Verify exp/nbf against current time, subject to clock
+      tolerance.
+   9. If all checks pass -> receipt is valid AND internally
+      consistent under the named mapping. Any mismatch ->
+      malformed; gate decision = halt.
+
+   The relying party never trusts the issuer's runtime to have applied
+   the mapping correctly.  The signature binds inputs, outputs, and
+   mapping identifier together; the verifier recomputes locally.
+
+5.4.1.  Evidence-Set Resolution Step
+
+   A step defined in this document resolves to exactly one of two
+   tokens: resolved, when the step's evidence requirements are met, or
+   unknown, under the conditions stated below.  An implementation MUST
+   emit one of these two tokens for the evidence-set step and MUST NOT
+   emit any other value.
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 21]
+
+Internet-Draft            verification.* family           September 2026
+
+
+   If the receipt carries an evidence_set, a relying party MUST resolve
+   it as follows:
+
+   a.  Verify source_count, pinned_count, fully_pinned, and set-level
+       retrieved_at per Section 5.3.1 (falling back to the derivations
+       there when a count is absent); verify every entry against
+       Section 5.3.2, including the possession rule, the entry-
+       distinctness rule, and the pinned/content_kind/resource_sha256/
+       retrieved_at-form rules.  Any inconsistency is a malformed
+       receipt; gate decision = halt; the implementation reports the
+       specific violated condition named in the rule it failed.  The
+       rules checked here include the NUL exclusion rule and every
+       condition listed in the registry at the end of this section.
+       When a receipt violates more than one condition, an
+       implementation MUST halt and MUST report every violated
+       condition, not only the first it finds; conformance compares the
+       set of reported conditions, never their order.  A check that
+       presupposes a member's type is not evaluated where that type
+       check failed: when sources is not an array, no per-entry check
+       and no count check against len(sources) is evaluated, and when an
+       entry is not an object, no member check for that entry is
+       evaluated.
+   b.  If evidence_root is non-null, recompute it from the sources
+       entries per Section 5.3.3 and compare.  A mismatch is a malformed
+       receipt; gate decision = halt; reported condition
+       root_not_recomputable_from_sources.  A pinned entry whose
+       snippet_sha256 is absent or null has already halted under (a) ---
+       reported condition snippet_sha256_absent_when_pinned, checked per
+       entry whether or not evidence_root is null --- and so never
+       reaches root construction or surfaces as a downstream error.
+   c.  When fully_pinned is false (declared or derived), this step
+       resolves unknown, and the receipt MUST NOT be presented as
+       satisfying offline recomputation.  This is a resolution of this
+       step, not a member of the payload.
+   d.  If the verifier holds candidate content for a pinned item,
+       compute its SHA-256 and compare with snippet_sha256.  A mismatch
+       resolves unknown for that item and MUST NOT halt.  The verifier's
+       report MUST carry a per-item reason for every entry in sources,
+       pinned and unpinned alike, naming exactly one of content_matches
+       (the verifier holds content whose SHA-256 equals snippet_sha256),
+       content_not_held, and content_differs; an unpinned entry's reason
+       is trivially content_not_held and MUST NOT be omitted from the
+       report for being trivial.  This distinction belongs in the
+       report, never in the v_verdict domain: a verifier holding
+       different bytes knows its bytes differ and does not know why.
+   e.  A receipt carrying no evidence_set resolves unknown for this step
+       and MUST NOT fail it.  Receipts issued before this section
+       existed remain valid and continue to verify exactly as before.
+
+
+
+Krausz                    Expires 26 March 2027                [Page 22]
+
+Internet-Draft            verification.* family           September 2026
+
+
+   f.  A properly declared partial evidence set is not invalid and the
+       receipt is not malformed.  An implementation MUST NOT treat an
+       unknown resolution under (c), (d), (h), or (i) as a validity
+       failure or a rejection.
+   g.  A verifier MUST treat an unknown resolution as a distinct
+       category and MUST NOT present it as a weaker or partial form of a
+       satisfied offline-recomputation claim.  A verifier that reports,
+       displays, summarizes, or forwards an outcome MUST carry the
+       distinction into whatever it emits.
+   h.  If evidence_set_version is a string naming a version the verifier
+       does not implement, this step resolves unknown with reason
+       evidence_set_version_unsupported, and evaluation of every
+       version-specific rule stops: the verifier MUST NOT evaluate (a)
+       through (d) or (i), and MUST NOT report any condition those rules
+       define, because their meaning is fixed by the version it does not
+       implement.  Only the version-independent structural checks still
+       run: that evidence_set is an object (evidence_set_not_object) and
+       that evidence_set_version is present and a string
+       (evidence_set_version_absent_or_not_string).  A failure of either
+       is malformed; gate decision = halt.  An unsupported version is a
+       limitation of the verifier, not a defect in the receipt.  This
+       document defines one version, ao-evidence-set-v1.
+   i.  This step resolves resolved only when all of the following hold:
+       (a) and (b) report no condition; fully_pinned is true; and the
+       per-item reason under (d) is content_matches for every entry in
+       sources.  Per-item results combine by conjunction: one
+       content_not_held or content_differs makes the step unknown.  In
+       every other case that is not malformed, this step resolves
+       unknown.  A fully pinned receipt whose root recomputes but for
+       which the verifier holds no content therefore resolves unknown,
+       meaning not yet recomputed; it still establishes that the issuer
+       signed a commitment to exactly these bytes, which becomes
+       testable when matching content is obtained.  As step 7 of
+       Section 5.4 states, an unknown resolution does not halt the gate.
+   j.  When conditions of different kinds apply to the same receipt,
+       malformed outranks unknown, and unknown outranks resolved: any
+       malformed condition reported under (a), (b), or the structural
+       checks of (h) makes the receipt malformed, with gate decision
+       halt, whatever else applies; otherwise any unknown under (c),
+       (d), (e), (h), or (i) makes the step unknown; the step resolves
+       resolved only when neither applies.  An unknown condition MUST
+       NOT mask a malformed condition among the rules this section
+       requires to be evaluated.
+   k.  A verifier evaluates this step in this order: (e), and if the
+       receipt carries no evidence_set the step resolves unknown and
+       evaluation stops; the version-independent structural checks of
+       (h); the version check of (h), and if the version is unsupported
+       the step resolves unknown and evaluation stops; (a), reporting
+
+
+
+Krausz                    Expires 26 March 2027                [Page 23]
+
+Internet-Draft            verification.* family           September 2026
+
+
+       every condition; (b), only if (a) reported none; (d) for every
+       entry, only if (b) reported none; then (c) and (i) determine the
+       token, combined under (j).  Paragraphs (f) and (g) constrain how
+       any result is treated and presented.  The order fixes which rules
+       are evaluated; it never lets an unknown reached earlier suppress
+       a malformed condition that this order requires to be evaluated.
+
+   Steps (a), (b), and (h) are checks on the receipt's internal
+   consistency and are answerable offline by any verifier.  Step (d) is
+   a check against external content and is answerable only by a verifier
+   that holds it; a verifier that cannot obtain the content has learned
+   nothing about the receipt's validity and MUST NOT report that absence
+   as a defect in the receipt.
+
+   The conditions and reasons defined for evidence sets are:
+
+   +============================================+=========+===========+
+   | Name                                       | Defined | Outcome   |
+   |                                            | in      |           |
+   |                                            | section |           |
+   +============================================+=========+===========+
+   | evidence_set_not_object                    | 5.3.1   | malformed |
+   +--------------------------------------------+---------+-----------+
+   | evidence_set_version_absent_or_not_string  | 5.3.1   | malformed |
+   +--------------------------------------------+---------+-----------+
+   | evidence_set_version_unsupported           | 5.4.1   | unknown   |
+   |                                            | (h)     |           |
+   +--------------------------------------------+---------+-----------+
+   | set_retrieved_at_not_bytewise_least        | 5.3.1   | malformed |
+   +--------------------------------------------+---------+-----------+
+   | source_count_mismatch                      | 5.3.1   | malformed |
+   +--------------------------------------------+---------+-----------+
+   | pinned_count_mismatch                      | 5.3.1   | malformed |
+   +--------------------------------------------+---------+-----------+
+   | fully_pinned_mismatch                      | 5.3.1   | malformed |
+   +--------------------------------------------+---------+-----------+
+   | evidence_root_present_with_no_pinned_items | 5.3.1   | malformed |
+   +--------------------------------------------+---------+-----------+
+   | evidence_root_absent_with_pinned_items     | 5.3.1   | malformed |
+   +--------------------------------------------+---------+-----------+
+   | evidence_set_names_no_sources              | 5.3.1   | malformed |
+   +--------------------------------------------+---------+-----------+
+   | sources_not_array                          | 5.3.1   | malformed |
+   +--------------------------------------------+---------+-----------+
+   | source_entry_not_object                    | 5.3.2   | malformed |
+   +--------------------------------------------+---------+-----------+
+   | url_absent_or_not_string                   | 5.3.2   | malformed |
+   +--------------------------------------------+---------+-----------+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 24]
+
+Internet-Draft            verification.* family           September 2026
+
+
+   | snippet_sha256_absent_when_pinned          | 5.3.2   | malformed |
+   +--------------------------------------------+---------+-----------+
+   | snippet_sha256_member_absent               | 5.3.2   | malformed |
+   +--------------------------------------------+---------+-----------+
+   | snippet_sha256_present_when_unpinned       | 5.3.2   | malformed |
+   +--------------------------------------------+---------+-----------+
+   | snippet_sha256_not_lowercase_hex64         | 5.3.2   | malformed |
+   +--------------------------------------------+---------+-----------+
+   | retrieved_at_not_canonical_form            | 5.3.2   | malformed |
+   +--------------------------------------------+---------+-----------+
+   | pinned_absent_or_not_boolean               | 5.3.2   | malformed |
+   +--------------------------------------------+---------+-----------+
+   | content_kind_absent_or_invalid_when_pinned | 5.3.2   | malformed |
+   +--------------------------------------------+---------+-----------+
+   | content_kind_present_when_unpinned         | 5.3.2   | malformed |
+   +--------------------------------------------+---------+-----------+
+   | resource_sha256_not_lowercase_hex64        | 5.3.2   | malformed |
+   +--------------------------------------------+---------+-----------+
+   | resource_sha256_present_for_full_resource  | 5.3.2   | malformed |
+   +--------------------------------------------+---------+-----------+
+   | unpinned_reason_absent_or_invalid          | 5.3.2   | malformed |
+   +--------------------------------------------+---------+-----------+
+   | duplicate_bound_tuple                      | 5.3.2   | malformed |
+   +--------------------------------------------+---------+-----------+
+   | member_contains_nul                        | 5.3.2   | malformed |
+   +--------------------------------------------+---------+-----------+
+   | root_not_recomputable_from_sources         | 5.4.1   | malformed |
+   |                                            | (b)     |           |
+   +--------------------------------------------+---------+-----------+
+   | content_matches                            | 5.4.1   | per-item  |
+   |                                            | (d)     | reason    |
+   +--------------------------------------------+---------+-----------+
+   | content_not_held                           | 5.4.1   | per-item  |
+   |                                            | (d)     | reason    |
+   +--------------------------------------------+---------+-----------+
+   | content_differs                            | 5.4.1   | per-item  |
+   |                                            | (d)     | reason    |
+   +--------------------------------------------+---------+-----------+
+
+               Table 2: Evidence-set conditions and reasons
+
+5.5.  Claim Binding
+
+   The verified claim MUST be bound to the receipt via v_claim:
+
+
+
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 25]
+
+Internet-Draft            verification.* family           September 2026
+
+
+   "v_claim": {
+     "text": "string (OPTIONAL when caller marks input
+              as PII-sensitive)",
+     "hash": "hex-encoded SHA-256 of canonicalized claim
+              text (REQUIRED when text is omitted)"
+   }
+
+   Hash-only mode permits PII-sensitive verification while preserving
+   the receipt's auditability --- the verifier can confirm a future
+   caller's claim hash matches the issued receipt's bound hash without
+   exposing the claim text.
+
+5.6.  Receipt Envelope Example
+
+   The following is a non-normative example of a receipt envelope
+   payload illustrating the mandatory v_gate_mapping_hash binding
+   alongside v_gate_mapping:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 26]
+
+Internet-Draft            verification.* family           September 2026
+
+
+   {
+     "iss": "https://verifier.example.com",
+     "sub": "claim:sha256:a3f1...",
+     "iat": 1748649600,
+     "exp": 1748736000,
+     "v_verdict": "verified",
+     "v_confidence": 0.91,
+     "v_adversarial_result": "resilient",
+     "v_recommendation": "confident_supported",
+     "v_gate": "act",
+     "v_gate_mapping": "v0.3.0-2026-05-30",
+     "v_gate_mapping_hash": "sha256:1ad513cd0cfcc1...",
+     "v_claim": {
+       "hash": "a3f1c2d4e5b6789012345678abcdef01..."
+     },
+     "evidence_set": {
+       "evidence_set_version": "ao-evidence-set-v1",
+       "retrieved_at": "2026-09-01T12:00:00.000Z",
+       "source_count": 2,
+       "pinned_count": 2,
+       "fully_pinned": true,
+       "evidence_root": "c9f2...",
+       "sources": [
+         {
+           "url": "https://example.com/report-a",
+           "snippet_sha256": "6f2c...",
+           "retrieved_at": "2026-09-01T12:00:00.000Z",
+           "pinned": true,
+           "content_kind": "snippet"
+         },
+         {
+           "url": "https://example.com/report-b",
+           "snippet_sha256": "a114...",
+           "retrieved_at": "2026-09-01T12:00:01.000Z",
+           "pinned": true,
+           "content_kind": "snippet"
+         }
+       ]
+     }
+   }
+
+   The v_gate_mapping_hash field carries the hex-encoded SHA-256 digest
+   of the canonical serialization of the mapping document identified by
+   v_gate_mapping.  This field MUST be present in all conforming
+   receipts; its absence is a malformed-receipt condition.  The
+   evidence_set member is illustrative and OPTIONAL; the digest values
+   shown are truncated placeholders, not computed values, and MUST NOT
+   be used as test vectors.
+
+
+
+Krausz                    Expires 26 March 2027                [Page 27]
+
+Internet-Draft            verification.* family           September 2026
+
+
+5.7.  Version-Binding Rationale
+
+   Gate-derivation rules will evolve.  A receipt issued under mapping
+   v0.3.0-... MUST remain verifiable as _correct-under-v0.3.0_ after a
+   newer mapping ships.  The mapping identifier in v_gate_mapping is the
+   binding that makes this true: a verifier fetches the _same_ mapping
+   document the issuer used at issuance, regardless of newer revisions.
+   Receipts never silently re-verify to a different gate.
+
+   Mapping document publishers MUST treat published mappings as
+   immutable.  New rules ship under new mapping identifiers.  Errata
+   (typographical corrections only) MAY be appended to a published
+   mapping document's metadata, but the normative rule tables MUST NOT
+   change after first publication.
+
+6.  Binary-Halt Gate Semantics
+
+6.1.  Decision Table
+
+   The reference mapping v0.3.0-2026-05-30 defines the following
+   decision table, restated against this revision's four-state
+   vocabulary.  Future mappings MAY tighten or extend this table; the
+   structural shape (binary act/halt output derived from canonical
+   recommendation) MUST be preserved.  The recommendation and gate
+   vocabulary (confident_supported, un_probed_not_cleared, and so on) is
+   unchanged from draft-krausz-verification-state-01 in this revision;
+   see Section 10.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 28]
+
+Internet-Draft            verification.* family           September 2026
+
+
+   +===============+========+=============+=======================+====+
+   | State         | Conf.  | Adversarial | Recommendation        |Gate|
+   +===============+========+=============+=======================+====+
+   | verified      | >=     | resilient   | confident_supported   |act |
+   |               | thr    |             |                       |    |
+   +---------------+--------+-------------+-----------------------+----+
+   | verified      | >=     | not_checked | un_probed_not_cleared |halt|
+   |               | thr    |             |                       |    |
+   +---------------+--------+-------------+-----------------------+----+
+   | verified      | any    | vulnerable  | vulnerable_supported  |halt|
+   +---------------+--------+-------------+-----------------------+----+
+   | verified      | < thr  | resilient   | weak_supported        |halt|
+   +---------------+--------+-------------+-----------------------+----+
+   | verified      | < thr  | not_checked | weak_supported        |halt|
+   +---------------+--------+-------------+-----------------------+----+
+   | contradicted  | any    | any         | refuted               |halt|
+   +---------------+--------+-------------+-----------------------+----+
+   | indeterminate | any    | any         | unverifiable          |halt|
+   +---------------+--------+-------------+-----------------------+----+
+   | not_evaluated | any    | any         | unverifiable          |halt|
+   +---------------+--------+-------------+-----------------------+----+
+   | error (see    | n/a    | n/a         | error                 |halt|
+   | below)        |        |             |                       |    |
+   +---------------+--------+-------------+-----------------------+----+
+
+                                  Table 3
+
+   Independent of the mapping table above: this revision requires that
+   an issuer reporting v_reason_code: instrument_failure MUST derive
+   v_recommendation: error and MUST derive v_gate: halt, regardless of
+   which of the four states instrument_failure is attached to.  This
+   rule cannot be part of mapping v0.3.0-2026-05-30 itself --- that
+   mapping predates the reason-code vocabulary and, per Section 5.7,
+   published mappings are immutable and MUST NOT be amended to add it.
+   Applying this rule in practice therefore requires a future mapping
+   revision that encodes reason-code-aware derivation explicitly; this
+   is the gap Open Issue 4 (Section 10) names.
+
+   This table maps the four states onto the same recommendation/gate
+   structure draft-krausz-verification-state-01 defined for its four
+   raw-verdict values, one-for-one in declaration order (verified from
+   supported, contradicted from refuted, indeterminate from
+   unverifiable, not_evaluated from unknown).  It does not yet give the
+   recommendation layer its own reason-code-aware treatment; that is
+   deferred, and named explicitly in Section 10 rather than silently
+   assumed.
+
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 29]
+
+Internet-Draft            verification.* family           September 2026
+
+
+6.2.  Threshold Rules
+
+   The confidence threshold used to derive v_recommendation is specified
+   in the named mapping document, not in the individual receipt.
+   Receipts reference the mapping by v_gate_mapping identifier, and the
+   threshold is recovered from that mapping.  This ensures that the
+   threshold is auditable, versioned, and consistent across all receipts
+   issued under the same mapping: two receipts under the same mapping ID
+   MUST gate against the same threshold; threshold changes require a new
+   mapping version with a new ID.
+
+   For a strict fail-closed gate, un-probed adversarial state is not
+   equivalent to resilient --- it represents uncertainty about a
+   dimension that can be exploited by adversarial input.  Per the fail-
+   closed property, uncertainty MUST halt.  A claim may be confidently
+   supported on its face, but if adversarial probing was not performed,
+   the confidence applies only to the base claim, not to the claim under
+   adversarial pressure.  The un_probed_not_cleared recommendation
+   reflects this: the gate treats the absence of probing as a distinct
+   unresolved risk, not as a cleared risk.
+
+   Relying parties MAY require a higher threshold mapping for their own
+   gate policies by requiring receipts under a different mapping ID that
+   specifies a higher threshold.  They MUST NOT treat a receipt as
+   conformant under a mapping that specifies a different threshold than
+   the one in that mapping document.
+
+6.3.  Fail-Closed Mandate
+
+   If a receipt is missing, malformed, expired, signature-invalid, or
+   its mapping ID cannot be resolved, the relying party MUST treat the
+   gate decision as halt.  Implementations MUST NOT default to act under
+   any error condition.  This is the "impossible, not tedious" design
+   principle: friction-based controls bypass under adversarial pressure;
+   hard barriers do not.
+
+7.  Multi-Axis Freshness
+
+7.1.  Three Independent Axes
+
+   Verification receipts have three independent staleness axes, each
+   with its own validity window:
+
+
+
+
+
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 30]
+
+Internet-Draft            verification.* family           September 2026
+
+
+     +=============+=============================+==================+
+     | Axis        | Field                       | Remediation      |
+     +=============+=============================+==================+
+     | Signature   | exp                         | Key rotation;    |
+     |             |                             | verifier MUST    |
+     |             |                             | reject expired   |
+     |             |                             | signatures       |
+     +-------------+-----------------------------+------------------+
+     | Calibration | v_calibration.valid_until   | Recalibrate      |
+     |             |                             | verifier         |
+     |             |                             | pipeline against |
+     |             |                             | current anchor   |
+     +-------------+-----------------------------+------------------+
+     | Evidence    | evidence_set.retrieved_at   | Re-retrieve and  |
+     |             | (OPTIONAL; falls back to    | re-pin evidence; |
+     |             | per-source retrieved_at per | usually shorter  |
+     |             | Section 5.3 when the set-   | window than      |
+     |             | level member is absent)     | calibration      |
+     +-------------+-----------------------------+------------------+
+
+                                 Table 4
+
+   This revision anchors the evidence axis to evidence_set.retrieved_at
+   rather than a separately declared valid_until. v_evidence and its
+   valid_until convention are deprecated per Section 5.2; a relying
+   party computing evidence-axis staleness for a receipt that carries an
+   evidence_set MUST use its retrieved_at, not a declared expiry, since
+   freshness is a fact about when the evidence was captured rather than
+   a duration the issuer asserts it remains good for.
+
+7.2.  Staleness Semantics
+
+   *  *Stale signature* --- Receipt is invalid; relying party MUST treat
+      as halt.
+   *  *Stale calibration* --- Receipt SHOULD be re-evaluated; relying
+      party MAY honor as soft-stale per its own policy.  Verifier
+      issuers SHOULD publish recalibration cadence in metadata.
+   *  *Stale evidence* --- Receipt SHOULD be re-evaluated.  MAY be
+      honored for retrospective audit purposes (e.g., post-incident
+      review of a past action) but MUST NOT be honored as a gate signal
+      for new actions.
+
+   Each axis has a different remediation path; collapsing them into a
+   single TTL would force the most-restrictive cadence to govern all
+   three.
+
+8.  Calibration Anchor Requirements
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 31]
+
+Internet-Draft            verification.* family           September 2026
+
+
+8.1.  Reproducibility Mandate
+
+   Verifier issuers MUST publish:
+
+   *  Anchor dataset name and version.
+   *  Anchor seed (or seeded run identifier).
+   *  Anchor scoring methodology.
+
+   Verifier issuers SHOULD publish a reference reproduction harness
+   under a permissive open-source license (Apache 2.0, MIT, or BSD).  A
+   working reference implementation reproduced 57.6% on AVeriTeC
+   [AVERITEC], measured 28 May 2026 on the pre-migration Sonar-backed
+   pipeline.  It is available at https://github.com/TKCollective/
+   agentoracle-eval-harness (https://github.com/TKCollective/
+   agentoracle-eval-harness) as one example of conformance.
+
+8.2.  Drift Detection
+
+   Verifier issuers SHOULD publish a recalibration cadence in the JWKS
+   metadata or the verifier's well-known endpoint.  The
+   v_calibration.valid_until field in receipts SHOULD reflect this
+   cadence.  Relying parties consuming receipts with stale calibration
+   SHOULD log and surface the staleness rather than silently accept.
+
+9.  Relationship to Related Work
+
+9.1.  SCITT
+
+   RFC 9943 [RFC9943] --- the SCITT (Supply Chain Integrity,
+   Transparency, and Trust) architecture, published as a full RFC in
+   June 2026 --- defines the SCITT signing and receipt-envelope
+   architecture, superseding the individual/WG draft draft-ietf-scitt-
+   architecture cited by draft-krausz-verification-state-01.  This
+   document is SCITT-compatible: a verification.* receipt MAY be wrapped
+   in a SCITT envelope, and SCITT receipts MAY carry verification.*
+   payloads.  RFC 9943 specifies the signing infrastructure; this
+   document specifies a gate primitive that may be transported via SCITT
+   or via plain JWS.
+
+   RFC 9942 [RFC9942] defines CBOR Object Signing and Encryption (COSE)
+   Receipts, also published June 2026.  Where a SCITT transparency
+   service issues a COSE Receipt over a verification.* payload, the two
+   receipt layers are complementary and independently verifiable: the
+   COSE Receipt attests registration in a transparency log; the
+   verification.* JWS attests the pre-action gate decision itself.  This
+   document takes no normative dependency on RFC 9942 and does not
+   require a relying party to consult a transparency log to verify a
+   verification.* receipt on its own terms.
+
+
+
+Krausz                    Expires 26 March 2027                [Page 32]
+
+Internet-Draft            verification.* family           September 2026
+
+
+9.2.  Relationship to Decision Records
+
+   Related work on decision records for AI agent actions is in progress,
+   notably [I-D.sirkkavaara-vaara-receipt].  The two documents describe
+   different things, and this document states its own boundary
+   explicitly rather than leaving it to be inferred from adjacency:
+
+   A pre-action verification record, as specified here, establishes
+   whether the factual claims an action rests on were checked, against
+   which evidence, and with what result --- which a decision record does
+   not.  See [I-D.sirkkavaara-vaara-receipt] for related work; this
+   document makes no claim about what that specification establishes,
+   and neither format depends normatively on the other.
+
+9.3.  RATS
+
+   RFC 9334 [RFC9334] defines the Remote Attestation Architecture's
+   Evidence->Verifier->Attestation Result->Relying Party vocabulary.  A
+   verification.* receipt is an Attestation Result whose gate field
+   (v_gate) is the RP-consumable primitive.  This document is consistent
+   with the RATS vocabulary and may be considered a verification-
+   specific Attestation Result profile.
+
+9.4.  W3C VC Confidence Method
+
+   The W3C Verifiable Credentials Confidence Method [VC-CM] defines
+   confidence-as-a-verifiable-property within Verifiable Credentials.
+   This document adopts the same pattern for v_confidence (signed
+   metadata, not gating).  Confidence is provenance; the gate is the
+   contract.  Alignment, not overlap.
+
+9.5.  VAP Framework
+
+   The Verifiable AI Provenance Framework (VAP) [VAP-FW] is an
+   individual Internet-Draft providing an architectural coordination
+   layer for evidentiary-grade decision trails.  A verification.*
+   receipt issuer MAY be considered a verifier profile under the VAP
+   umbrella.  This citation is pinned to draft-kamimura-vap-framework-01
+   (21 July 2026); a future VAP revision may require this reference to
+   be re-pinned.
+
+
+
+
+
+
+
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 33]
+
+Internet-Draft            verification.* family           September 2026
+
+
+9.6.  Mastercard Verifiable Intent (environment.*)
+
+   The environment.* constraint family for pre-action attestation of
+   environment state is specified in [ENV-STATE], as part of the
+   Verifiable Intent framework [VINTENT].  This document extends the
+   constraint-family pattern to probabilistic predicates with
+   calibration discipline, as a sibling family rather than a member
+   entry.  See Section 4.
+
+9.7.  Differentiator Summary
+
+   Pre-action fail-closed gate.  Not signing machinery (covered by
+   SCITT).  Not confidence quantification (covered by W3C VC CM).  Not
+   just an Attestation Result (covered by RATS).  The gate primitive
+   itself, with the version-binding necessary to outlive ruleset
+   evolution.
+
+10.  Open Issues
+
+   This section names what this revision does not settle, so that it is
+   tracked rather than silently assumed resolved.
+
+   1.  *Independent implementation of evidence pinning is still
+       pending.* Every implementation run against the evidence-pinning
+       rules to date (Section 5.3) has extended an existing
+       implementation rather than been built cold from the specification
+       text alone.  A from-text reconstruction is understood to be in
+       progress.  Until an independent cold build lands and is cross-
+       checked, this document does not claim evidence pinning has had an
+       independent implementation in the sense its own conformance
+       discipline requires; that remains an open issue tracked here
+       rather than a precondition for submission.
+   2.  *The malformed-condition enumeration diff.* This document's
+       evidence-pinning rules name a set of reported conditions
+       (pinned_absent_or_not_boolean, duplicate_bound_tuple,
+       evidence_set_names_no_sources,
+       set_retrieved_at_not_bytewise_least,
+       retrieved_at_not_canonical_form,
+       snippet_digest_present_for_full_resource,
+       snippet_sha256_absent_when_pinned, and others named inline
+       above).  Whether this list is complete against every malformation
+       the specification text actually states has not been verified
+       name-for-name against an independent enumeration, and remains
+       open.
+
+
+
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 34]
+
+Internet-Draft            verification.* family           September 2026
+
+
+   3.  *The pinned-and-unpinned duplicate-identity pair.* A pinned entry
+       and an unpinned entry sharing url and retrieved_at are treated as
+       one retrieval recorded twice under the entry-distinctness rule of
+       Section 5.3.2, but no conformance vector in the companion fixture
+       corpus currently exercises that specific pair.  Candidate for a
+       future revision.
+   4.  *The recommendation and gate mapping vocabulary is unrenamed.*
+       Section 6.1 maps the new four-state vocabulary onto draft-krausz-
+       verification-state-01's existing v_recommendation values
+       (confident_supported, un_probed_not_cleared, and so on) one-for-
+       one by position.  Those values still read as though derived from
+       a supported/refuted axis.  Whether the recommendation layer
+       should itself be restated in reason-code-aware terms is not
+       resolved here.
+   5.  *REQUIRED members with a derivation fallback.* Section 5.3.1
+       marks source_count, pinned_count, and fully_pinned as members of
+       the evidence_set object while also specifying that a verifier
+       MUST derive each from sources when it is absent.  This document
+       treats the two statements as compatible --- REQUIRED for the
+       object's shape, with a stated fallback rather than a validation
+       failure when an issuer omits one --- but a future revision should
+       either soften the member table's language or state the fallback
+       as the sole requirement.
+   6.  *The capture relationship, as stated in Section 3.1, is this
+       document's own formulation of a term used without further gloss
+       in working-group discussion.* Comments are invited on whether it
+       matches that usage.
+   7.  *The v_verdict claim name is unrenamed.* Section 5.2 gives the
+       claim a new four-value domain this revision but keeps its
+       existing wire name, v_verdict, rather than renaming it to v_state
+       to match the vocabulary's own terminology, because a rename is a
+       breaking wire change against every draft-krausz-verification-
+       state-01 implementer and against production issuance that emits
+       v_verdict today.  Whether and how to rename the claim is deferred
+       to a future revision, pending an assessment of migration cost
+       across existing implementers.
+   8.  *The media-type registration request is incomplete.* Section 12
+       names verification-receipt+jws as a media type to be registered
+       but does not supply the RFC 6838 registration template or state
+       the top-level media type (application/) the subtype registers
+       under.  A complete template is deferred to a future revision.
+
+11.  Security Considerations
+
+
+
+
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 35]
+
+Internet-Draft            verification.* family           September 2026
+
+
+11.1.  Composition Non-Interference with environment.* Family
+
+   When verification.* composes alongside environment.* on the same
+   mandate, the ordering specified in Section 4.2 (environment.* short-
+   circuits before verification.*) MUST hold.  This document inherits
+   that ordering directly from [ENV-STATE] Section 5.5, which specifies
+   that environment.* is not subject to ordering preemption by any other
+   constraint family.  A verification.* ACT outcome MUST NOT mask an
+   environment.* HALT outcome; if environment.* halts on any constraint,
+   that halt is final regardless of the verification.* state.
+   Implementations MUST evaluate environment.* to its terminal state
+   before evaluating any verification.* constraint, and a verification.*
+   state SHALL NOT be reached if environment.* has already halted.
+
+11.2.  Other Security Considerations
+
+   *Key compromise.* Verifier issuers MUST rotate JWKS keys on a
+   published cadence.  Receipts signed under a compromised key remain
+   verifiable against historical key state during the rotation horizon.
+   RPs MUST honor key revocation lists where published.
+
+   *Replay attacks.* Receipts include iat and exp.  RPs MUST verify both
+   against current time, subject to clock tolerance.  Claim-binding via
+   v_claim.hash provides resistance to receipt-reuse against a different
+   claim payload.
+
+   *Confidence inflation attacks.* A verifier issuer who inflates
+   v_confidence to push more receipts to act would diverge from their
+   published calibration anchor.  The reproducibility mandate
+   (Section 8) makes this detectable.  RPs SHOULD periodically sample
+   receipts against the issuer's published harness.
+
+   *Selective disclosure.* Hash-only claim binding (Section 5.5) permits
+   PII-sensitive verification without exposing claim text in the receipt
+   envelope.
+
+   *Downgrade attacks.* A future relying party MUST NOT accept a
+   v0.3-spec receipt against a v0.4-spec gate.  The receipt format
+   version is implicitly bound by v_gate_mapping; mismatches between
+   expected and signed mapping IDs are malformed-receipt conditions per
+   Section 5.4.
+
+   *Mapping document tampering.* Receipts MUST bind to a content-
+   addressed mapping via the v_gate_mapping_hash field (SHA-256).
+   Mapping documents MUST be hosted such that the SHA-256 digest of the
+   canonical serialization is stable and independently verifiable (e.g.,
+   at a content-addressed URL or via a git-tagged manifest).  Verifier
+   implementations MUST verify the SHA-256 digest of the fetched mapping
+
+
+
+Krausz                    Expires 26 March 2027                [Page 36]
+
+Internet-Draft            verification.* family           September 2026
+
+
+   document against v_gate_mapping_hash before use; a digest mismatch
+   MUST result in gate decision halt.  A relying party that cannot
+   independently verify the mapping document's hash MUST treat the
+   receipt as malformed.
+
+12.  IANA Considerations
+
+   This document requests the following IANA registrations:
+
+   *Media type:* verification-receipt+jws (to be registered in the IANA
+   Media Types registry following the procedures of RFC 6838).
+
+   *JWT claim names:* v_verdict, v_reason_code, v_subject, v_confidence,
+   v_adversarial_result, v_recommendation, v_gate, v_gate_mapping,
+   v_gate_mapping_hash, v_method, v_calibration, evidence_set, v_claim
+   (to be registered in the JSON Web Token Claims registry; v_verdict
+   was already registrable under draft-krausz-verification-state-01, and
+   this revision changes its domain per Section 3 rather than replacing
+   the claim name). v_sources_used and v_evidence remain registrable for
+   the receipts issued under draft-krausz-verification-state-01 that
+   carry them, and are marked DEPRECATED for new issuance per
+   Section 5.2 rather than withdrawn from the registry.
+
+   *Well-known URI:* Verification issuers using HTTPS SHOULD publish
+   their JWKS at /.well-known/jwks.json per existing [RFC7517]
+   Section 4.7 conventions.  No new well-known URI is requested.
+
+   The verification.* and environment.* constraint families are related
+   sibling namespaces.  Coordination on a joint constraint-family
+   registry shared with the environment.* family ([ENV-STATE]) is
+   deferred to all interested parties (Krausz, Borthwick, Msebenzi) for
+   resolution outside the scope of this document.  This document does
+   not commit to a specific registry structure, nor does it assert
+   agreement from the environment.* authors on any registry arrangement.
+   The cross-referencing between verification.* and environment.* as
+   related constraint families stands as documented, independent of any
+   future registry decision.
+
+13.  Informative References
+
+   [ANTHROPIC-ZT]
+              Anthropic, "Zero Trust for AI Agents: A security framework
+              for deploying autonomous AI agents in the enterprise",
+              PDF, 36 pages, May 2026.
+
+   [AVERITEC] Schlichtkrull, M., "AVeriTeC: A Dataset for Real-World
+              Claim Verification with Evidence from the Web", 2024.
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 37]
+
+Internet-Draft            verification.* family           September 2026
+
+
+   [ENV-STATE]
+              Borthwick, D. and M. Msebenzi, "Verifiable Intent ---
+              environment.* Constraint Family", Work in Progress,
+              Internet-Draft, draft-borthwick-msebenzi-environment-
+              state-02, 27 August 2026,
+              <https://datatracker.ietf.org/doc/html/draft-borthwick-
+              msebenzi-environment-state-02>.
+
+   [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
+              Requirement Levels", BCP 14, RFC 2119,
+              DOI 10.17487/RFC2119, March 1997,
+              <https://www.rfc-editor.org/info/rfc2119>.
+
+   [RFC7515]  Jones, M., Bradley, J., and N. Sakimura, "JSON Web
+              Signature (JWS)", RFC 7515, DOI 10.17487/RFC7515, May
+              2015, <https://www.rfc-editor.org/info/rfc7515>.
+
+   [RFC7517]  Jones, M., "JSON Web Key (JWK)", RFC 7517,
+              DOI 10.17487/RFC7517, May 2015,
+              <https://www.rfc-editor.org/info/rfc7517>.
+
+   [RFC7518]  Jones, M., "JSON Web Algorithms (JWA)", RFC 7518,
+              DOI 10.17487/RFC7518, May 2015,
+              <https://www.rfc-editor.org/info/rfc7518>.
+
+   [RFC7519]  Jones, M., Bradley, J., and N. Sakimura, "JSON Web Token
+              (JWT)", RFC 7519, DOI 10.17487/RFC7519, May 2015,
+              <https://www.rfc-editor.org/info/rfc7519>.
+
+   [RFC8037]  Liusvaara, I., "CFRG Elliptic Curve Diffie-Hellman (ECDH)
+              and Signatures in JSON Object Signing and Encryption
+              (JOSE)", RFC 8037, DOI 10.17487/RFC8037, January 2017,
+              <https://www.rfc-editor.org/info/rfc8037>.
+
+   [RFC8174]  Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
+              2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
+              May 2017, <https://www.rfc-editor.org/info/rfc8174>.
+
+   [RFC9334]  Birkholz, H., Thaler, D., Richardson, M., Smith, N., and
+              W. Pan, "Remote ATtestation procedureS (RATS)
+              Architecture", RFC 9334, DOI 10.17487/RFC9334, January
+              2023, <https://www.rfc-editor.org/info/rfc9334>.
+
+   [RFC9942]  Steele, O., Birkholz, H., Delignat-Lavaud, A., and C.
+              Fournet, "CBOR Object Signing and Encryption (COSE)
+              Receipts", RFC 9942, DOI 10.17487/RFC9942, June 2026,
+              <https://www.rfc-editor.org/info/rfc9942>.
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 38]
+
+Internet-Draft            verification.* family           September 2026
+
+
+   [RFC9943]  Birkholz, H., Delignat-Lavaud, A., Fournet, C., Deshpande,
+              Y., and S. Lasker, "An Architecture for Trustworthy and
+              Transparent Digital Supply Chains", RFC 9943,
+              DOI 10.17487/RFC9943, June 2026,
+              <https://www.rfc-editor.org/info/rfc9943>.
+
+   [I-D.sirkkavaara-vaara-receipt]
+              Sirkkavaara, H., "The Vaara Receipt: A Recomputable
+              Receipt Format for Decisions About Autonomous Actions",
+              Work in Progress, Internet-Draft, draft-sirkkavaara-vaara-
+              receipt-11, 18 September 2026,
+              <https://datatracker.ietf.org/doc/html/draft-sirkkavaara-
+              vaara-receipt-11>.
+
+   [VAP-FW]   Kamimura, T., "Verifiable AI Provenance Framework (VAP):
+              An Architectural Framework for Evidentiary-Grade AI
+              Decision Trails", Work in Progress, Internet-Draft, draft-
+              kamimura-vap-framework-01, July 2026,
+              <https://datatracker.ietf.org/doc/html/draft-kamimura-vap-
+              framework-01>.
+
+   [VC-CM]    World Wide Web Consortium, "Verifiable Credentials
+              Confidence Method", W3C Working Draft, 2024.
+
+   [VINTENT]  Verifiable Intent Working Group, "Verifiable Intent ---
+              Constraint Type Definitions and Validation Rules",
+              Verifiable Intent Working Group Draft v0.1, February 2026.
+
+Acknowledgments
+
+   This revision's evidence-pinning and four-state vocabulary work drew
+   on review, defect reports, and external comparison from a number of
+   people, each credited here for their specific, actual contribution
+   rather than a generic thanks:
+
+   *  *Michael Msebenzi* (headlessoracle/LembaGang) reconstructed the
+      evidence-pinning rules by extending an existing implementation
+      across revisions 6 through 8, identified the arithmetic and
+      encoding defects recorded across the findings referenced in
+      Section 5.3, and independently reran cross-format verification of
+      the composed receipt envelope to VALID after each correction.  His
+      work is the largest single source of the corrections this document
+      incorporates, and is also the reason Section 10 distinguishes
+      confirmed-by-extension from a cold build.
+   *  *Pote (poteshniy)* identified the 3-of-5 pinned-evidence defect,
+      proposed the signed_only-to-bytes_attested rename adopted in the
+      evidence-pinning rules, signed off on revision 7, and separately
+      reviewed the v0.4 extension queue, surfacing the optional-typ,
+
+
+
+Krausz                    Expires 26 March 2027                [Page 39]
+
+Internet-Draft            verification.* family           September 2026
+
+
+      filtered-canonicalization, attacker-selected-snapshot, unsigned-
+      anchor, underspecified-proof, and null-ambiguity findings that
+      shaped the sealed-evidence review branch.
+   *  *Pablo Play* proposed an alternate reading of Finding 35 that is
+      preserved in the evidence-pinning rules, and is undertaking the
+      from-text cold reconstruction of the evidence-pinning
+      specification that Section 10 tracks as an open item.
+   *  *Melchiorre Oliva* ran the natural experiment behind Section 3.1.1
+      --- a live measurement across two hosts returning 3,008 negative
+      results on one and zero on the other under HTTP 429 conditions,
+      committed 16 September 2026 --- and is the source of the operative
+      test this document adopts for enumerating status codes behind a
+      negative before it is published.
+   *  *navigatorbuilds* (Elara Protocol) supplied the Status/Check/
+      Verdict roll-up example that Section 3.2 generalizes from, and
+      separately audited thirteen production call sites of their own
+      three-outcome verifier's absence-side state, confirming by direct
+      count that the finding/absence distinction this document draws in
+      Section 3.1 matches how that state has actually been used in
+      already-published rows.
+   *  *babyblueviper1* confirmed, in the same cross-project naming
+      discussion, that their own conformance-registry taxonomy had no
+      published enum requiring remapping under the finding/absence
+      split, and endorsed that split as the correct cut.
+   *  *Marcus Still* (stillmarcus24) published a four-state verification
+      taxonomy --- AGREE/DISAGREE/INDETERMINATE/NOT_EVALUATED, with a
+      ten-case executable acceptance contract, in x402 TSC issue #4 ---
+      which served as this document's external compatibility reference
+      point for its own four-state design.  He confirmed 7 of 7 absence-
+      side production call sites at commit 901ca6a, then endorsed the
+      four states plus reason-code mechanism adopted in Section 3.1 on
+      x402 TSC issue #4 on 2026-09-20.
+   *  *Henri Sirkkavaara* proposed the shape of the boundary statement
+      in Section 9.2 --- that it state what a pre-action verification
+      record establishes that a decision record does not, and stop
+      there, without characterizing his own
+      [I-D.sirkkavaara-vaara-receipt] specification.
+
+Author's Address
+
+   Joe Krausz
+   TK Collective LLC
+   United States of America
+   Email: joe@tanilo.io
+
+
+
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 40]

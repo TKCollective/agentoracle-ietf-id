@@ -1,0 +1,789 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- name="GENERATOR" content="github.com/mmarkdown/mmark Mmark Markdown Processor - mmark.miek.nl" -->
+<rfc version="3" ipr="trust200902" docName="draft-krausz-verification-state-03" submissionType="IETF" category="info" xml:lang="en" xmlns:xi="http://www.w3.org/2001/XInclude" indexInclude="true">
+
+<front>
+<title abbrev="verification.* family">The verification.* Constraint Family: Pre-Action Fail-Closed Gates for AI Agent Decisions</title><seriesInfo value="draft-krausz-verification-state-03" stream="IETF" status="informational" name="Internet-Draft"></seriesInfo>
+<author initials="J." surname="Krausz" fullname="Joe Krausz"><organization>TK Collective LLC</organization><address><postal><street></street>
+<country>USA</country>
+</postal><email>joe@tanilo.io</email>
+</address></author><date year="2026" month="September" day="22"></date>
+<area>General</area>
+<workgroup></workgroup>
+<keyword>agent</keyword>
+<keyword>verification</keyword>
+<keyword>receipt</keyword>
+<keyword>JWS</keyword>
+<keyword>gate</keyword>
+<keyword>AI</keyword>
+<keyword>evidence pinning</keyword>
+
+<abstract>
+<t>This document specifies the <tt>verification.*</tt> constraint family --- a pre-action, fail-closed gate primitive for AI agent decisions, sibling in shape to the <tt>environment.*</tt> family used in Verifiable Intent specifications. A <tt>verification.*</tt> receipt is a JSON Web Signature (JWS) signed artifact carrying a canonical input, a derived binary <tt>act</tt>/<tt>halt</tt> output, and a versioned mapping identifier that binds them. A relying party recomputes the gate locally from signed primitives under the named mapping; the verifier never trusts the issuer's runtime.</t>
+<t>This revision replaces the raw verdict domain of <tt>draft-krausz-verification-state-01</tt> (<tt>supported</tt>/<tt>refuted</tt>/<tt>unverifiable</tt>/<tt>unknown</tt>) with a four-state vocabulary --- <tt>verified</tt>, <tt>contradicted</tt>, <tt>indeterminate</tt>, and <tt>not_evaluated</tt> --- together with a reason-code mechanism that separates a state's substance from a verifier's own instrument failure, and with an admissibility gate applied before a state is ever assigned. It adds evidence pinning: a receipt MAY carry an <tt>evidence_set</tt> block that content-addresses the sources considered during verification, so that a verdict can be recomputed offline from the receipt and the pinned bytes alone, without depending on a live retrieval provider. Freshness is anchored to the evidence's own <tt>retrieved_at</tt> timestamp rather than a separately declared validity window. This shape provides decision explainability and traceability evidence aligned with EU AI Act Article 12 record-keeping obligations and with the Decision Explainability tier of an industry Zero Trust for AI Agents framework published in 2026. The format is forward-compatible across mapping revisions: receipts signed under one mapping ID remain verifiable as correct-under-that-mapping after newer mappings ship. The vectors that content-address a mapping document or an evidence set are historical, digest-anchored artifacts and are unchanged by this revision; nothing in this document alters a previously issued digest.</t>
+</abstract>
+
+</front>
+
+<middle>
+
+<section anchor="introduction"><name>Introduction</name>
+<t>AI agents increasingly take economic and operational actions on probabilistic input. A customer-service agent posts content; a procurement agent commits to a supplier; a research agent files a regulatory report. Each action is preceded by a factual claim the agent believes to be true. Today, the infrastructure verifying whether the claim is true <em>before</em> the agent acts on it is fragmented across operator logs (after-the-fact), confidence scores (soft signals), and ad-hoc validation pipelines (not interoperable).</t>
+<t>This document specifies the <tt>verification.*</tt> constraint family: a pre-action, fail-closed gate primitive shaped identically to the <tt>environment.*</tt> family used in Verifiable Intent specifications <xref target="VINTENT"></xref>, but applied to probabilistic predicates rather than boolean state. A <tt>verification.*</tt> receipt asserts, for a specific claim under a specific ruleset at a specific moment, whether an agent SHOULD proceed or halt. The receipt is JWS-signed <xref target="RFC7515"></xref> and structured such that a relying party can recompute the gate decision locally from signed primitives, without trusting the issuer's runtime.</t>
+<t>The four properties this primitive needs to satisfy together:</t>
+
+<ol spacing="compact">
+<li><strong>Pre-action.</strong> The verification happens before the action.</li>
+<li><strong>Fail-closed.</strong> Anything ambiguous halts; &quot;impossible, not tedious.&quot;</li>
+<li><strong>Third-party recomputable.</strong> The verifier never trusts the issuer's runtime; signature binds inputs, outputs, and mapping identifier together.</li>
+<li><strong>Forward-compatible.</strong> Receipts signed under one ruleset remain verifiable as correct-under-that-ruleset even after newer rulesets ship.</li>
+</ol>
+<t>Property 3 is the load-bearing one and the one most existing primitives stop short of. SCITT <xref target="RFC9943"></xref> signs receipts (necessary but not sufficient). W3C Verifiable Credentials Confidence Method <xref target="VC-CM"></xref> exposes confidence as a verifiable property (useful but not gating). RATS <xref target="RFC9334"></xref> provides the Evidence-&gt;Verifier-&gt;AR-&gt;RP vocabulary (matched here). None fully recompose the gate verdict from signed inputs. Property 4 is the one that becomes a footgun if skipped: rule changes silently invalidate or mis-verify old artifacts.</t>
+<t>This document is complementary to security frameworks for AI agent deployment, including the Zero Trust framework for AI Agents published by Anthropic in May 2026 <xref target="ANTHROPIC-ZT"></xref>, which names decision explainability as non-optional for regulated AI systems. The <tt>verification.*</tt> constraint family is one credible artifact shape for satisfying that explainability requirement.</t>
+
+<section anchor="requirements-language"><name>Requirements Language</name>
+<t>The key words &quot;MUST&quot;, &quot;MUST NOT&quot;, &quot;REQUIRED&quot;, &quot;SHALL&quot;, &quot;SHALL NOT&quot;, &quot;SHOULD&quot;, &quot;SHOULD NOT&quot;, &quot;RECOMMENDED&quot;, &quot;NOT RECOMMENDED&quot;, &quot;MAY&quot;, and &quot;OPTIONAL&quot; in this document are to be interpreted as described in BCP 14 <xref target="RFC2119"></xref> <xref target="RFC8174"></xref> when, and only when, they appear in all capitals, as shown here.</t>
+</section>
+
+<section anchor="scope"><name>Scope</name>
+<t>In scope:</t>
+
+<ul spacing="compact">
+<li>Gate semantics for pre-action verification of factual claims.</li>
+<li>Receipt envelope format and required claims.</li>
+<li>Calibration anchor requirements and discipline.</li>
+<li>Multi-axis freshness model.</li>
+<li>Verification protocol for relying parties.</li>
+</ul>
+<t>Out of scope:</t>
+
+<ul spacing="compact">
+<li>Signing key management policy (defers to JWKS standards).</li>
+<li>Specific verifier implementations or model architectures.</li>
+<li>Claim-extraction techniques (how a claim is identified from agent input/output).</li>
+<li>Adversarial-probe methodology specifics.</li>
+</ul>
+</section>
+</section>
+
+<section anchor="terminology"><name>Terminology</name>
+<t><strong>Verifier</strong> --- Entity issuing a verification receipt.</t>
+<t><strong>Relying Party (RP)</strong> --- Agent or downstream system consuming the receipt at a gate.</t>
+<t><strong>Gate</strong> --- The decision point in the RP's code path where <tt>act</tt> / <tt>halt</tt> is consumed.</t>
+<t><strong>Calibration anchor</strong> --- The dataset and seed defining confidence semantics for the verifier's pipeline.</t>
+<t><strong>Multi-axis freshness</strong> --- Signature, calibration, and evidence each carry independent staleness exposure. As of this revision the evidence axis is computed from <tt>evidence_set.retrieved_at</tt> rather than from a separately declared validity window; see <xref target="multi-axis-freshness"/>.</t>
+<t><strong>State (raw)</strong> --- One of <tt>verified</tt>, <tt>contradicted</tt>, <tt>indeterminate</tt>, <tt>not_evaluated</tt>. See <xref target="verification-state-vocabulary"/> for the full vocabulary, its reason codes, and the admissibility gate applied before a state is assigned. This replaces the <tt>supported</tt>/<tt>refuted</tt>/<tt>unverifiable</tt>/<tt>unknown</tt> domain of <tt>draft-krausz-verification-state-01</tt>.</t>
+<t><strong>Reason code</strong> --- A machine-readable qualifier carried alongside a reported state that distinguishes how the state was reached. See <xref target="verification-state-vocabulary"/>.</t>
+<t><strong>Subject</strong> --- The specific observation --- not the code, verifier, or vantage point that produced it --- that a reported state describes. See <xref target="subject-clause"/>.</t>
+<t><strong>Admissibility</strong> --- A gate applied to an observation before evaluation: whether the observation counts at all. Distinct from the four states, which describe the outcome of evaluating an admitted observation. See <xref target="admissibility-gate"/>.</t>
+<t><strong>Recommendation (canonical)</strong> --- One of <tt>confident_supported</tt>, <tt>un_probed_not_cleared</tt>, <tt>vulnerable_supported</tt>, <tt>weak_supported</tt>, <tt>refuted</tt>, <tt>unverifiable</tt>, <tt>error</tt>. Derived from primitives under the named mapping. The mapping's own vocabulary is retained unchanged from <tt>draft-krausz-verification-state-01</tt> pending a future revision; see <xref target="open-issues"/>.</t>
+<t><strong>Gate (derived)</strong> --- <tt>act</tt> or <tt>halt</tt>. Derived from recommendation under the named mapping.</t>
+<t><strong>Mapping document</strong> --- A published, immutable document specifying how recommendations are derived from primitives and how gates are derived from recommendations. Identified by a stable string identifier (e.g., <tt>v0.3.0-2026-05-30</tt>).</t>
+<t><strong>Evidence item</strong> --- A single retrieved source considered during verification, identified by its URI and, when pinned, by a cryptographic digest of the retrieved content.</t>
+<t><strong>Evidence set</strong> --- The complete, unordered collection of evidence items considered during one verification, together with the metadata that makes it recomputable.</t>
+<t><strong>Pinned</strong> --- An evidence item is pinned when the receipt carries a digest of the retrieved content, such that a verifier holding the same content can confirm it is the content that was judged. An item carrying a URI alone is <strong>not</strong> pinned.</t>
+<t><strong>Offline recomputation</strong> --- Re-derivation of a verification outcome from the receipt, the referenced mapping document, and the pinned evidence content alone, without contacting the issuer or any retrieval provider.</t>
+</section>
+
+<section anchor="verification-state-vocabulary"><name>Verification State Vocabulary</name>
+<t>This section replaces the raw verdict domain of <tt>draft-krausz-verification-state-01</tt> with a four-state vocabulary, a reason-code mechanism, a generalized subject clause, and an admissibility gate applied before any state is assigned. It reflects working-group discussion current as of 2026-09-22, including wg-identity #21 and tsc #4 threads.</t>
+
+<section anchor="the-four-states"><name>The Four States and the Capture Relationship</name>
+<t>A verifier reports exactly one of four states for an admitted observation:</t>
+<ul spacing="compact">
+<li><tt>verified</tt> --- the claim was checked against evidence and the evidence supports it.</li>
+<li><tt>contradicted</tt> --- the claim was checked against evidence and the evidence is inconsistent with it.</li>
+<li><tt>indeterminate</tt> --- the claim was checked and the check did not resolve to either of the above. See below for the reason codes that distinguish why.</li>
+<li><tt>not_evaluated</tt> --- no check was performed.</li>
+</ul>
+<t>These four supersede <tt>draft-krausz-verification-state-01</tt>'s <tt>supported</tt> / <tt>refuted</tt> / <tt>unverifiable</tt> / <tt>unknown</tt> domain one-for-one in that order; see <xref target="open-issues"/> for what this renaming does and does not settle about the downstream recommendation and gate mapping.</t>
+<t><strong>Capture relationship.</strong> A state is not a free-standing value. A receipt MUST capture a state together with (a) the subject it describes (<xref target="subject-clause"/>) and (b) a reason code, when this section requires one for that state. A bare state carried without an identified subject is not evaluable under this vocabulary and MUST be treated by a relying party as if the state were absent. The <tt>evidence_set</tt> block of <xref target="evidence-pinning"/>, where present, is the record of what was captured; the state is the record of what capturing it established.</t>
+<t><strong>Instrument failure.</strong> A verifier reporting any of the four states MUST distinguish reaching that state through evaluation from failing to evaluate because the verifier's own instrument failed. An implementation that could not complete its check --- a timeout, a crashed dependency, a malformed internal input --- MUST NOT report <tt>indeterminate</tt> or any other state as though it were a substantive finding. It MUST report the state the observation would otherwise carry (typically <tt>not_evaluated</tt>, or <tt>indeterminate</tt> where a partial check ran before failing) together with the reason code <tt>instrument_failure</tt>. <tt>instrument_failure</tt> is available under all four states for exactly this purpose: it marks the state as unreliable on account of the verifier's own tooling, not as a genuine result about the subject.</t>
+<t><strong>Reason codes under <tt>indeterminate</tt>.</strong> Two further reason codes distinguish why a check that ran did not resolve:</t>
+<ul spacing="compact">
+<li><tt>divergence</tt> --- the check ran and found a divergence between sources or signals that the verifier cannot attribute to either side.</li>
+<li><tt>absence</tt> --- the check ran and produced no signal at all. This name is retained from prior working-group usage rather than renamed, because the absence of a signal is a distinct and previously-established meaning that a synonym would obscure.</li>
+</ul>
+<t>A verifier MUST choose <tt>divergence</tt> or <tt>absence</tt> for every <tt>indeterminate</tt> report that is not an instrument failure; the two are not interchangeable, and collapsing them discards exactly the distinction this section exists to preserve.</t>
+
+<section anchor="melchiorre-clause"><name>Enumerating the Negatives Behind an Indeterminate Count</name>
+<t>Committed 2026-09-16 as a direct consequence of a natural experiment comparing HTTP 429 responses across two hosts, one returning over three thousand and the other returning zero, where the zero count was a fact about the requester's own standing with the host and not about the host's behavior:</t>
+<t>Before an implementation or a report built on this vocabulary publishes any count of the form &quot;N subjects are not doing X,&quot; it MUST enumerate the status codes behind the negatives. A negative built from a status about the asker --- the verifier's own instrument, vantage point, or standing --- is not a negative about the subject being observed, and MUST be attributed to <tt>instrument_failure</tt> or <tt>absence</tt> as appropriate rather than folded into a substantive <tt>contradicted</tt> or <tt>indeterminate</tt> count.</t>
+</section>
+</section>
+
+<section anchor="subject-clause"><name>The Subject Clause</name>
+<t>The subject of a state carrying an open attribution question between the artifact being evaluated and the evaluator that produced the state is a property of the observation, not of the code, verifier, or vantage point that produced it. A verifier reporting such a state MUST name what it observed, because the same signal observed from a different vantage is a different fact.</t>
+<t>This clause generalizes a narrower formulation originally scoped to <tt>not_evaluated</tt> alone. A roll-up in which canonicalization disagreement and a forged signature both terminate in the same reported outcome shows that the same attribution question arises wherever a state's cause could be either the artifact or the evaluator, not only where no evaluation was performed. The clause therefore applies to <tt>indeterminate</tt> and <tt>contradicted</tt> reports carrying an unresolved artifact-vs-evaluator question exactly as it applies to <tt>not_evaluated</tt>.</t>
+</section>
+
+<section anchor="admissibility-gate"><name>Admissibility as a Gate, Not a State</name>
+<t>Admissibility is a gate applied to an observation before evaluation: does this observation count at all. It is evaluated prior to, and independently of, the four states in <xref target="the-four-states"/>, and it is <strong>not</strong> a fifth state alongside them.</t>
+<t>An observation excluded at the admissibility gate (for example, one excluded on reconnaissance or scope grounds) never reaches state assignment and MUST NOT be reported using any of the four states. Admissibility and state occupy different axes: an admitted observation is then, and only then, evaluated to one of <tt>verified</tt>, <tt>contradicted</tt>, <tt>indeterminate</tt>, or <tt>not_evaluated</tt>.</t>
+</section>
+</section>
+
+<section anchor="the-verification-constraint-family"><name>The verification.* Constraint Family</name>
+
+<section anchor="sibling-not-member-relationship-to-environment"><name>Sibling-not-Member Relationship to environment.*</name>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th><tt>environment.*</tt></th>
+<th><tt>verification.*</tt></th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td>Predicate</td>
+<td>Boolean (state matches or does not)</td>
+<td>Probabilistic in [0,1]</td>
+</tr>
+
+<tr>
+<td>Threshold ownership</td>
+<td>Oracle-defined, fixed-semantic</td>
+<td>Calibration-anchored, mapping-versioned</td>
+</tr>
+
+<tr>
+<td>Freshness</td>
+<td>Single TTL</td>
+<td>Multi-axis</td>
+</tr>
+
+<tr>
+<td>Gate shape</td>
+<td>Binary halt</td>
+<td>Binary halt</td>
+</tr>
+</tbody>
+</table><t>Both families produce a binary fail-closed gate primitive. They differ in predicate shape (boolean vs probabilistic) and threshold provenance (fixed vs calibration-anchored). This difference is sufficient to warrant a sibling family rather than a member entry under <tt>environment.*</tt>: probabilistic predicates require calibration discipline that boolean predicates do not, and the version-binding mechanism described in <xref target="receipt-format"/> is specific to mappings between probabilistic primitives and binary outputs.</t>
+<t>Read sibling-to-sibling: <tt>environment.*</tt> attests a deterministic read of the world (state matches or does not, with a fixed-semantic threshold), while <tt>verification.*</tt> attests an irreducibly probabilistic statement about a proposition (calibration-anchored confidence over a claim, with a mapping-versioned threshold). Both produce the same binary gate output; they differ in what kind of fact the threshold is being applied to. This split is structural: the receipt envelope, JCS canonicalization, signed-primitives discipline, and offline-verifiable-against-published-JWKS verification model are identical across the two families. See <xref target="ENV-STATE"></xref> for the world-state-read sibling.</t>
+</section>
+
+<section anchor="composition-rules"><name>Composition Rules</name>
+<t><strong>Conjunction:</strong> Multiple <tt>verification.*</tt> constraints in a single mandate combine with AND (orthogonal+conjunctive). All constraints MUST resolve to <tt>act</tt> for the action to proceed.</t>
+<t><strong>Ordering with environment.*:</strong> <tt>environment.*</tt> constraints MUST short-circuit before <tt>verification.*</tt> constraints per <xref target="ENV-STATE"></xref> Section 5.5. Environment evaluation is typically cheaper (no oracle roundtrip) and a failed environment constraint moots the verification. See also <xref target="security-considerations"/> for the non-interference security property this ordering provides.</t>
+</section>
+</section>
+
+<section anchor="receipt-format"><name>Receipt Format</name>
+
+<section anchor="jws-envelope"><name>JWS Envelope</name>
+<t>Verification receipts MUST be issued as JSON Web Signatures (JWS) <xref target="RFC7515"></xref>. Both compact serialization and JSON serialization (flattened form) are conforming. The v0.3 reference fixture pair uses JWS JSON (flattened) serialization because it preserves the protected/unprotected/signature object structure the verification protocol walks (<xref target="verification-protocol"/>); compact serialization remains valid for profiles that prefer it. A relying party MUST accept both serializations.</t>
+
+<ul spacing="compact">
+<li><tt>alg</tt>: A conforming implementation MUST accept both <tt>EdDSA</tt> (Ed25519, <xref target="RFC8037"></xref>) and <tt>ES256</tt> (<xref target="RFC7518"></xref>). The v0.3 reference fixture pair signs with <tt>EdDSA</tt>; <tt>ES256</tt> remains valid for profiles that prefer it. Other algorithms are optional and SHOULD follow the IANA JOSE Algorithms registry.</li>
+<li><tt>kid</tt>: MUST resolve to a key in the issuer's published JWKS <xref target="RFC7517"></xref> at <tt>/.well-known/jwks.json</tt> unless an alternate JWKS location is published in the issuer's metadata.</li>
+<li><tt>typ</tt>: <tt>verification-receipt+jws</tt>.</li>
+</ul>
+</section>
+
+<section anchor="payload-claims-canonical-derived-mapping-bound"><name>Payload Claims --- Canonical, Derived, Mapping-Bound</name>
+<t>The payload signs three structurally distinct field groups plus their bindings.</t>
+<t><strong>Canonical input (signed primitives):</strong></t>
+
+<ul spacing="compact">
+<li><tt>v_verdict</tt> (string, REQUIRED) --- One of <tt>verified</tt>, <tt>contradicted</tt>, <tt>indeterminate</tt>, <tt>not_evaluated</tt>, per <xref target="verification-state-vocabulary"/>. This revision changes the field's domain from <tt>draft-krausz-verification-state-01</tt>'s <tt>supported</tt>/<tt>refuted</tt>/<tt>unverifiable</tt>/<tt>unknown</tt> values to this four-value vocabulary, one-for-one in that order; the claim name <tt>v_verdict</tt> itself is unchanged and continues to be emitted by existing issuers. A rename of the claim to <tt>v_state</tt>, to align the wire name with this vocabulary's own terminology, is deferred to a future revision pending an assessment of the migration cost across existing <tt>draft-krausz-verification-state-01</tt> implementers; see <xref target="open-issues"/>.</li>
+<li><tt>v_reason_code</tt> (string, REQUIRED when <xref target="verification-state-vocabulary"/> requires one for the reported <tt>v_verdict</tt>, OPTIONAL otherwise) --- One of <tt>instrument_failure</tt> (available under any state), or, when <tt>v_verdict</tt> is <tt>indeterminate</tt> and the reason is not <tt>instrument_failure</tt>, exactly one of <tt>divergence</tt> or <tt>absence</tt>.</li>
+<li><tt>v_subject</tt> (string, REQUIRED when <tt>v_verdict</tt> carries an open attribution question per <xref target="subject-clause"/>, OPTIONAL otherwise) --- Names the specific observation the state describes, so that the same signal reported from a different vantage is identifiable as a different fact.</li>
+<li><tt>v_confidence</tt> (number, REQUIRED) --- Float in <tt>[0, 1]</tt>.</li>
+<li><tt>v_adversarial_result</tt> (string, REQUIRED) --- One of <tt>resilient</tt>, <tt>vulnerable</tt>, <tt>not_checked</tt>.</li>
+</ul>
+<t><strong>Canonical derived (signed):</strong></t>
+
+<ul spacing="compact">
+<li><tt>v_recommendation</tt> (string, REQUIRED) --- One of <tt>confident_supported</tt>, <tt>un_probed_not_cleared</tt>, <tt>vulnerable_supported</tt>, <tt>weak_supported</tt>, <tt>refuted</tt>, <tt>unverifiable</tt>, <tt>error</tt>. Derived deterministically from the canonical input under the named mapping.</li>
+</ul>
+<t><strong>Derived output (signed):</strong></t>
+
+<ul spacing="compact">
+<li><tt>v_gate</tt> (string, REQUIRED) --- One of <tt>act</tt>, <tt>halt</tt>. Derived from <tt>v_recommendation</tt> under the named mapping.</li>
+</ul>
+<t><strong>Binding (signed):</strong></t>
+
+<ul spacing="compact">
+<li><tt>v_gate_mapping</tt> (string, REQUIRED) --- Stable identifier of the published mapping document used at issuance (e.g., <tt>v0.3.0-2026-05-30</tt>). The mapping document is immutable after publication; future revisions ship as new identifiers.</li>
+<li><tt>v_gate_mapping_hash</tt> (string, REQUIRED) --- SHA-256 hex digest of the canonical serialization of the mapping document identified by <tt>v_gate_mapping</tt>. MUST be present in every receipt. Receipts MUST bind to a content-addressed mapping; the absence of <tt>v_gate_mapping_hash</tt> is a malformed-receipt condition and MUST result in gate decision <tt>halt</tt>.</li>
+<li><tt>v_claim</tt> (object, REQUIRED) --- Binds the verified claim to the receipt. See <xref target="claim-binding"/>.</li>
+</ul>
+<t><strong>Provenance (signed, not gating):</strong></t>
+
+<ul spacing="compact">
+<li><tt>v_method</tt> (string, OPTIONAL) --- Self-describing verifier pipeline identifier.</li>
+<li><tt>v_calibration</tt> (object, OPTIONAL) --- Calibration anchor metadata. See <xref target="calibration-anchor-requirements"/>.</li>
+<li><tt>v_sources_used</tt> (array of strings, DEPRECATED) --- Source labels actually consulted in this evaluation. Deprecated by this revision in favor of <tt>evidence_set.sources</tt> (<xref target="evidence-pinning"/>), which names sources with content-addressing rather than free-text labels. An issuer MAY still emit this member for backward compatibility; a relying party MUST NOT treat its absence as a defect, and MUST NOT treat its presence as evidence pinning.</li>
+<li><tt>v_evidence</tt> (string, DEPRECATED) --- URI pointer to evidence corpus, if persisted. Deprecated by this revision in favor of <tt>evidence_set</tt> (<xref target="evidence-pinning"/>), which pins content rather than pointing at a live location. An issuer MAY still emit this member for backward compatibility; a relying party MUST NOT treat its absence as a defect.</li>
+<li><tt>evidence_set</tt> (object, OPTIONAL) --- Content-addressed record of the sources considered during verification. See <xref target="evidence-pinning"/> for its full structure.</li>
+</ul>
+<t><strong>Standard JWT claims <xref target="RFC7519"></xref>:</strong></t>
+
+<ul spacing="compact">
+<li><tt>iss</tt> (REQUIRED), <tt>sub</tt> (RECOMMENDED), <tt>iat</tt> (REQUIRED), <tt>exp</tt> (REQUIRED), <tt>nbf</tt> (OPTIONAL).</li>
+</ul>
+</section>
+
+<section anchor="evidence-pinning"><name>Evidence Pinning</name>
+<t>A <tt>verification.*</tt> receipt pins <strong>the rule</strong> applied (via <tt>v_gate_mapping_hash</tt>) but, absent this section, carries sources as bare URIs. Recomputing a state therefore requires re-retrieving them, which is neither deterministic (the same URI returns different bytes over time) nor durable (a retrieval provider can retire). A receipt without evidence pinning is a pointer to evidence, not a record of it. This section closes that gap by letting a receipt carry a content-addressed <tt>evidence_set</tt>. Throughout, the evidence block states what was judged; it never states what the judgment was --- <tt>v_verdict</tt> and its reason code are untouched by anything in this section.</t>
+
+<section anchor="evidence-set-object"><name>The evidence_set Member</name>
+<t>A receipt payload MAY carry an <tt>evidence_set</tt> member. When present it MUST be an object with the following members; a present <tt>evidence_set</tt> that is not a JSON object is malformed; gate decision = halt; reported condition <tt>evidence_set_not_object</tt>.</t>
+<dl newline="true" spacing="normal">
+<dt><tt>evidence_set_version</tt> (string):</dt><dd>Version identifier for this block's semantics. This document defines <tt>&quot;ao-evidence-set-v1&quot;</tt>. MUST be present and a string; a value that is absent, <tt>null</tt>, or not a string is malformed; gate decision = halt; reported condition <tt>evidence_set_version_absent_or_not_string</tt>. A string naming a version the verifier does not implement is not malformed; <xref target="evidence-set-resolution"/> paragraph (h) resolves it.</dd>
+<dt><tt>retrieved_at</tt> (RFC 3339 timestamp):</dt><dd>MUST equal the bytewise-least <tt>retrieved_at</tt> among <strong>all</strong> entries in <tt>sources</tt>, pinned and unpinned alike, comparing the UTF-8 bytes of the member as carried. Well-defined because <tt>sources</tt> is non-empty and every entry carries the member. A value that is not the bytewise-least such value is malformed; gate decision = halt; reported condition <tt>set_retrieved_at_not_bytewise_least</tt>.</dd>
+<dt><tt>source_count</tt> (integer):</dt><dd>Total number of evidence items considered. MUST equal <tt>len(sources)</tt>; reported condition on violation: <tt>source_count_mismatch</tt>. A present <tt>evidence_set</tt> MUST carry at least one entry in <tt>sources</tt>, so <tt>source_count</tt> is greater than zero. An issuer with no sources to report MUST omit <tt>evidence_set</tt> entirely; <xref target="verification-protocol"/> resolves that case as <tt>unknown</tt> for the evidence step without failing it.</dd>
+<dt><tt>pinned_count</tt> (integer):</dt><dd>Number of entries with <tt>pinned: true</tt>. MUST equal that number exactly; a value that differs from it, in either direction, is malformed; gate decision = halt; reported condition <tt>pinned_count_mismatch</tt>. (Exact equality implies the former bound, less than or equal to <tt>source_count</tt>.)</dd>
+<dt><tt>fully_pinned</tt> (boolean):</dt><dd><tt>true</tt> if and only if <tt>pinned_count</tt> equals <tt>source_count</tt> and <tt>source_count</tt> is greater than zero. A declared value that differs from this derivation is malformed; gate decision = halt; reported condition <tt>fully_pinned_mismatch</tt>.</dd>
+<dt><tt>evidence_root</tt> (string or null):</dt><dd>Merkle root over the pinned items per <xref target="evidence-root-construction"/>, or <tt>null</tt> when <tt>pinned_count</tt> is zero. MUST be non-null when <tt>pinned_count</tt> is greater than zero. Reported conditions on violation: <tt>evidence_root_present_with_no_pinned_items</tt> (non-null with no pinned entry) and <tt>evidence_root_absent_with_pinned_items</tt> (null with at least one pinned entry).</dd>
+<dt><tt>sources</tt> (array):</dt><dd>One entry per evidence item, per <xref target="evidence-set-sources"/>. A <tt>sources</tt> member that is absent, <tt>null</tt>, or an empty array is malformed; gate decision = halt; reported condition <tt>evidence_set_names_no_sources</tt>. A <tt>sources</tt> member that is present but not an array is malformed; gate decision = halt; reported condition <tt>sources_not_array</tt>.</dd>
+</dl>
+<t><tt>fully_pinned</tt> is stated rather than left to be derived, so a reader can determine that a set is partial without recounting the array. Partial pinning is an honest state and is not a defect; concealing it is. Zero pinned items is legal and is not an empty set: an <tt>evidence_set</tt> naming three sources, none pinned and each carrying a valid <tt>unpinned_reason</tt>, is well-formed, its <tt>evidence_root</tt> is <tt>null</tt>, and its <tt>fully_pinned</tt> is <tt>false</tt>. The prohibition is on a set naming no sources, never on one that pins none.</t>
+<t><strong>Fallback when a count is declared absent.</strong> When <tt>source_count</tt> is absent, its operand for any check in this section is <tt>len(sources)</tt>. When <tt>pinned_count</tt> is absent, its operand is the count of entries with <tt>pinned: true</tt> (well-defined because <tt>pinned</tt> is REQUIRED and boolean per <xref target="evidence-set-sources"/>). When <tt>source_count</tt>, <tt>pinned_count</tt>, and <tt>fully_pinned</tt> are all absent, resolution derives all three the same way and MUST NOT halt for want of the declared members: validation and resolution alike are not skipped merely because a member that could be reconstructed from <tt>sources</tt> was not declared. When the set-level <tt>retrieved_at</tt> is absent, its operand is the bytewise-least entry-level <tt>retrieved_at</tt>, so that freshness is judged by the oldest evidence in the set rather than the newest. Because <tt>retrieved_at</tt> is REQUIRED on every entry, a set with no valid entry-level value cannot reach this derivation: each entry's own check under <xref target="evidence-set-sources"/> halts first.</t>
+</section>
+
+<section anchor="evidence-set-sources"><name>Source Entries</name>
+<t>Each entry in <tt>sources</tt> MUST be an object (reported condition on violation: <tt>source_entry_not_object</tt>) with:</t>
+<dl newline="true" spacing="normal">
+<dt><tt>url</tt> (string, REQUIRED):</dt><dd>The URI used for retrieval, carried without normalization --- no case folding, percent-encoding changes, query reordering, or trailing-slash adjustment. A <tt>url</tt> that is absent, <tt>null</tt>, or not a string is malformed; gate decision = halt; reported condition <tt>url_absent_or_not_string</tt>.</dd>
+<dt><tt>snippet_sha256</tt> (string or null, REQUIRED):</dt><dd>Lowercase hex SHA-256 of the retrieved content bytes exactly as received --- no transcoding, trimming, whitespace collapsing, case folding, or Unicode normalization --- or <tt>null</tt> if not pinned. There is no character-encoding step: the digest is over bytes, not over text. The member MUST be present on every entry. Each of the following is malformed; gate decision = halt; checked per entry whether or not <tt>evidence_root</tt> is <tt>null</tt>: on a pinned entry, a <tt>snippet_sha256</tt> that is absent or <tt>null</tt> (<tt>snippet_sha256_absent_when_pinned</tt>); on an unpinned entry, an absent member (<tt>snippet_sha256_member_absent</tt>); on an unpinned entry, a non-null value (<tt>snippet_sha256_present_when_unpinned</tt>), because a digest on an entry that declares no content bytes were received contradicts that declaration; and a non-null value that is not exactly 64 lowercase hexadecimal characters (<tt>snippet_sha256_not_lowercase_hex64</tt>).</dd>
+<dt><tt>retrieved_at</tt> (RFC 3339 timestamp, REQUIRED):</dt><dd>Retrieval time for this item. MUST be in UTC with the <tt>Z</tt> designator and exactly three fractional-second digits. This canonical form is required for every entry, pinned and unpinned alike, evaluated before any branch on <tt>pinned</tt>, because the sort in <xref target="evidence-root-construction"/> and the set-level comparison above are both bytewise. The value MUST also denote a valid instant: month 01--12, a day that exists in that month and year, hour 00--23, minute 00--59, and second 00--59. A seconds field of 60 is not permitted; this canonical form does not represent leap seconds. Reported condition on violation of any part of this paragraph: <tt>retrieved_at_not_canonical_form</tt>.</dd>
+<dt><tt>pinned</tt> (boolean, REQUIRED):</dt><dd>MUST be exactly the JSON value <tt>true</tt> or <tt>false</tt>. An entry where <tt>pinned</tt> is absent, <tt>null</tt>, or of any type other than boolean is malformed; gate decision = halt; reported condition <tt>pinned_absent_or_not_boolean</tt>. This closes the domain to exactly two values before any rule in this document that ranges &quot;over every entry, pinned and unpinned alike&quot; is evaluated.</dd>
+<dt><tt>content_kind</tt> (string or absent/null, REQUIRED when <tt>pinned</tt> is <tt>true</tt>):</dt><dd>One of <tt>snippet</tt>, <tt>excerpt</tt>, <tt>full_resource</tt>, naming what the digest covers. On an unpinned entry, <tt>content_kind</tt> MUST be absent or <tt>null</tt> (the two are equivalent); on a pinned entry it MUST be present. Reported conditions on violation: <tt>content_kind_absent_or_invalid_when_pinned</tt> (pinned entry, member absent, <tt>null</tt>, or outside the three-value domain) and <tt>content_kind_present_when_unpinned</tt> (unpinned entry, member present and non-null).</dd>
+<dt><tt>resource_sha256</tt> (string, OPTIONAL):</dt><dd>Digest of the full resource, where the full resource was also obtained. When present, MUST be exactly 64 lowercase hexadecimal characters; reported condition on violation: <tt>resource_sha256_not_lowercase_hex64</tt>. MUST be absent when <tt>content_kind</tt> is <tt>full_resource</tt> (in that case <tt>snippet_sha256</tt> already is that digest). This rule ranges over every entry regardless of <tt>pinned</tt>: an unpinned entry carrying <tt>content_kind: full_resource</tt> together with a non-null <tt>resource_sha256</tt> is malformed under the same rule as a pinned one. Reported condition: <tt>resource_sha256_present_for_full_resource</tt>. (Named <tt>snippet_digest_present_for_full_resource</tt> in <tt>draft-krausz-verification-state-02</tt>; the member at fault is <tt>resource_sha256</tt>.)</dd>
+<dt><tt>unpinned_reason</tt> (string, REQUIRED when <tt>pinned</tt> is <tt>false</tt>):</dt><dd>One of <tt>no_content_returned</tt> (the retrieval attempt returned no content bytes --- covers refusal, paywall interception, robots exclusion, and transport failure alike) or <tt>provider_metadata_only</tt> (the retrieval surface returned metadata about a resource without its content).</dd>
+</dl>
+<t><strong>Possession, not composition.</strong> An issuer MUST pin every evidence item for which it received content bytes; <tt>pinned</tt> MAY be <tt>false</tt> only where no content bytes were received for that item. The digest is computed over the content bytes as received, before or alongside any judgement; whether the bytes are kept afterward is irrelevant to pinning. An item with <tt>pinned: false</tt> and no <tt>unpinned_reason</tt>, or a value outside the two-value domain above, is malformed; gate decision = halt; reported condition <tt>unpinned_reason_absent_or_invalid</tt>. An issuer that received content bytes for an item and declares either <tt>unpinned_reason</tt> value has signed a false statement: the format cannot verify possession from the receipt, but it converts selective pinning from a permitted state into a lie. A composition rule --- pin every source that refutes the state --- cannot be written, because &quot;refutes&quot; is the issuer's own classification; possession is different in kind because whether bytes arrived is a fact about the issuer's own process, not a judgment about a source.</t>
+<t><strong>Entry distinctness.</strong> No two entries in <tt>sources</tt> may record the same retrieval. Two entries record the same retrieval when they are identical in <tt>url</tt> and <tt>retrieved_at</tt> and, where both are pinned, also identical in <tt>snippet_sha256</tt> and <tt>content_kind</tt>. This rule ranges over every entry in <tt>sources</tt>, pinned and unpinned alike: <tt>sources</tt> carries one entry per item considered, an issuer MUST NOT omit an item it could not pin, and a second entry for one retrieval overstates <tt>source_count</tt>. For an unpinned entry <tt>snippet_sha256</tt> is <tt>null</tt> and <tt>content_kind</tt> is absent, so those members distinguish nothing and <tt>url</tt> with <tt>retrieved_at</tt> decides; an absent member is not equal to a present one. A pinned entry and an unpinned entry sharing <tt>url</tt> and <tt>retrieved_at</tt> are, by the same rule, one retrieval recorded twice. Two entries sharing <tt>url</tt>, <tt>snippet_sha256</tt>, and <tt>content_kind</tt> and differing only in <tt>retrieved_at</tt> record two legitimate retrievals of the same content and are not duplicates. Violation is malformed; gate decision = halt; reported condition <tt>duplicate_bound_tuple</tt>.</t>
+<t><strong>NUL exclusion.</strong> No <tt>url</tt>, <tt>snippet_sha256</tt>, <tt>content_kind</tt>, or <tt>retrieved_at</tt> value in any entry, pinned or unpinned, may contain the octet <tt>0x00</tt> in its UTF-8 encoding. A JSON string can carry U+0000, so this is a rule a verifier checks, not a property it may assume. Violation is malformed; gate decision = halt; reported condition <tt>member_contains_nul</tt>. <xref target="evidence-root-construction"/> relies on this rule.</t>
+</section>
+
+<section anchor="evidence-root-construction"><name>Evidence Root Construction</name>
+<t><tt>evidence_root</tt> is a Merkle root over the pinned items only; unpinned items contribute nothing.</t>
+<t><strong>Leaf.</strong> For each pinned item, in the canonical order defined below:</t>
+<sourcecode type="text"><![CDATA[leaf = SHA-256( "ao-evidence-leaf-v2" || 0x00
+                || url || 0x00
+                || snippet_sha256 || 0x00
+                || content_kind || 0x00
+                || retrieved_at )]]></sourcecode>
+<t>where <tt>url</tt> and <tt>retrieved_at</tt> are their UTF-8 bytes as carried, <tt>snippet_sha256</tt> is its 64 lowercase hexadecimal characters encoded UTF-8 (not the 32 raw bytes they represent), and <tt>content_kind</tt> is its UTF-8 bytes. The NUL exclusion rule of <xref target="evidence-set-sources"/> forbids an octet <tt>0x00</tt> in any of these members, and is checked before root construction, so delimiter injection is unreachable. Every member the preimage binds MUST also appear in the canonical sort key below, and the sort key MUST bind no member the preimage does not; any future widening of the preimage MUST extend the sort key in the same revision.</t>
+<t><strong>Interior node.</strong></t>
+<sourcecode type="text"><![CDATA[node = SHA-256( "ao-evidence-node-v1" || 0x00
+                || left || 0x00
+                || right )]]></sourcecode>
+<t>In the interior node, <tt>left</tt> and <tt>right</tt> are the 32 raw octets of the child digests, not their hexadecimal form. This differs from the leaf preimage deliberately: a leaf's members are values carried in the receipt as strings and enter as their UTF-8 bytes, whereas a node's children are outputs of this function and enter as the octets the function produced. The <tt>0x00</tt> separators in the node preimage are retained for consistency with the leaf form; unlike the leaf, they are not what makes the node preimage unambiguous, since both children are fixed-length 32-octet digests whose boundaries follow from position. A child digest may itself contain <tt>0x00</tt> octets, and this is harmless.</t>
+<t><strong>Termination.</strong> When the pinned set contains exactly one item, <tt>evidence_root</tt> is that item's leaf; no interior node is formed. Applying the node function to a single leaf paired with itself is forbidden, for the same second-preimage reason the odd-node rule gives below.</t>
+<t><strong>Odd node.</strong> When a level has an odd number of entries, the final entry is promoted unchanged to the next level, retaining its rightmost position. It MUST NOT be duplicated and paired with itself; duplication admits the well-known second-preimage ambiguity in which a tree with a duplicated final leaf and a tree with that leaf genuinely present twice produce the same root.</t>
+<t><strong>Canonical order.</strong> Leaves are sorted ascending by <tt>url</tt>; where two entries share a <tt>url</tt>, by <tt>snippet_sha256</tt>; where they share both, by <tt>content_kind</tt>; and where they share all three, by <tt>retrieved_at</tt>. All four comparisons are bytewise over the UTF-8 encoding of the member as carried. The sort key is exactly the set of members bound by the leaf preimage, so two entries compare equal on the key only if their leaves are identical --- which the entry-distinctness rule above forbids within a well-formed set --- and the order is therefore total. Sorting makes the root independent of retrieval rank.</t>
+<t><strong>Domain separation.</strong> The two distinct prefixes ensure a leaf hash can never be reinterpreted as an interior node, and that an evidence root can never collide with any other hash tree defined by this document or composed alongside it. When <tt>pinned_count</tt> is zero, <tt>evidence_root</tt> MUST be <tt>null</tt>; an implementation MUST NOT emit a root over an empty set.</t>
+</section>
+
+<section anchor="evidence-limits"><name>What an Evidence Set Does Not Establish</name>
+<t>A pinned evidence set establishes that specific content was considered and that a verifier holding the same bytes can confirm it is the content that was judged. It establishes <strong>nothing</strong> about:</t>
+<ul spacing="compact">
+<li><strong>Whether the source has since changed.</strong> A pinned digest lets a later holder of bytes determine whether they hold the bytes that were judged. It says nothing about whether the source at that URI has changed since, and a reader will take a weaker sentence the stronger way if this is not stated plainly.</li>
+<li><strong>Completeness of disclosure.</strong> The set records what the issuer listed. This document forbids omitting a retrieved item, and nothing in the receipt can detect an omission; that is a rule against a false statement, not a mechanism that makes the statement's truth verifiable.</li>
+<li><strong>The time of retrieval, independently vouched.</strong> <tt>retrieved_at</tt> is an issuer assertion with no external anchor. The digest therefore pins content as of a moment the issuer alone vouches for; an auditor years later holds the content and does not hold the moment.</li>
+<li><strong>Unbiased selection.</strong> The format does not establish that a pinned subset was chosen without regard to the state being reported. What it establishes is that leaving a possessed item unpinned is a lie, and that any partial set makes no offline-recomputation claim.</li>
+<li><strong>Why content was absent.</strong> <tt>no_content_returned</tt> records that no content bytes arrived. It does not distinguish a server that declined from an issuer that never requested, and the receipt cannot be made to: both are the same fact about the issuer's possession. This collapse is deliberate --- the possession rule reaches only items for which bytes actually arrived, and an issuer that never requested a source it should have requested is outside what this format establishes.</li>
+</ul>
+</section>
+
+<section anchor="evidence-independence"><name>Independence</name>
+<t>An issuer MAY include an <tt>independence</tt> member within <tt>evidence_set</tt>, naming a <tt>method</tt> identifier, a <tt>distinct_registrable_domains</tt> count among pinned sources, and an implementation-defined <tt>score</tt> or <tt>null</tt> if not computed. This document does not define how independence is computed, and deliberately does not: a specific heuristic frozen into a specification becomes un-implementable by parties whose corpora differ and cannot be revised at the speed the problem moves. What is specified is the obligation to declare the method by identifier, so that two receipts carrying independence measures can be compared only when they name the same method. A verifier MUST NOT compare <tt>score</tt> values across differing <tt>method</tt> identifiers, and MUST NOT treat the absence of an <tt>independence</tt> member as a defect.</t>
+</section>
+</section>
+
+<section anchor="verification-protocol"><name>Verification Protocol</name>
+<t>A relying party verifying a receipt MUST execute the following sequence and treat any failure as a malformed receipt with gate decision <tt>halt</tt>:</t>
+
+<sourcecode type="text"><![CDATA[1. Verify JWS signature against issuer's published JWKS
+   (RFC 7515).
+2. Resolve v_gate_mapping -> fetch the named immutable
+   mapping document. MUST verify the SHA-256 digest of the
+   fetched document matches v_gate_mapping_hash (hex-encoded).
+   Digest mismatch -> malformed; gate decision = halt. This
+   binding is mandatory; receipts without v_gate_mapping_hash
+   are malformed.
+3. Recompute candidate_recommendation from
+   (v_verdict, v_confidence, v_adversarial_result)
+   using the mapping's rules and the threshold recovered from
+   the mapping document. v_verdict's domain depends on which
+   revision issued the receipt -- this revision's four-value
+   vocabulary, or draft-krausz-verification-state-01's
+   supported/refuted/unverifiable/unknown domain for receipts
+   issued before this revision -- as identified by the named
+   mapping document.
+4. Confirm candidate_recommendation == v_recommendation.
+5. Compute candidate_gate = mapping(v_recommendation).
+6. Confirm candidate_gate == v_gate.
+7. If the receipt carries an evidence_set, resolve it per
+   Section 5.4.1's evidence-set step below. This step resolves
+   to "resolved" or "unknown" and never itself halts except
+   on the malformed conditions Section 5.4.1 lists.
+8. Verify exp/nbf against current time, subject to clock
+   tolerance.
+9. If all checks pass -> receipt is valid AND internally
+   consistent under the named mapping. Any mismatch ->
+   malformed; gate decision = halt.
+]]>
+</sourcecode>
+<t>The relying party never trusts the issuer's runtime to have applied the mapping correctly. The signature binds inputs, outputs, and mapping identifier together; the verifier recomputes locally.</t>
+
+<section anchor="evidence-set-resolution"><name>Evidence-Set Resolution Step</name>
+<t>A step defined in this document resolves to exactly one of two tokens: <tt>resolved</tt>, when the step's evidence requirements are met, or <tt>unknown</tt>, under the conditions stated below. An implementation MUST emit one of these two tokens for the evidence-set step and MUST NOT emit any other value.</t>
+<t>If the receipt carries an <tt>evidence_set</tt>, a relying party MUST resolve it as follows:</t>
+<ol spacing="compact" type="a">
+<li>Verify <tt>source_count</tt>, <tt>pinned_count</tt>, <tt>fully_pinned</tt>, and set-level <tt>retrieved_at</tt> per <xref target="evidence-set-object"/> (falling back to the derivations there when a count is absent); verify every entry against <xref target="evidence-set-sources"/>, including the possession rule, the entry-distinctness rule, and the <tt>pinned</tt>/<tt>content_kind</tt>/<tt>resource_sha256</tt>/<tt>retrieved_at</tt>-form rules. Any inconsistency is a malformed receipt; gate decision = halt; the implementation reports the specific violated condition named in the rule it failed. The rules checked here include the NUL exclusion rule and every condition listed in the registry at the end of this section. When a receipt violates more than one condition, an implementation MUST halt and MUST report every violated condition, not only the first it finds; conformance compares the set of reported conditions, never their order. A check that presupposes a member's type is not evaluated where that type check failed: when <tt>sources</tt> is not an array, no per-entry check and no count check against <tt>len(sources)</tt> is evaluated, and when an entry is not an object, no member check for that entry is evaluated.</li>
+<li>If <tt>evidence_root</tt> is non-null, recompute it from the <tt>sources</tt> entries per <xref target="evidence-root-construction"/> and compare. A mismatch is a malformed receipt; gate decision = halt; reported condition <tt>root_not_recomputable_from_sources</tt>. A pinned entry whose <tt>snippet_sha256</tt> is absent or <tt>null</tt> has already halted under (a) --- reported condition <tt>snippet_sha256_absent_when_pinned</tt>, checked per entry whether or not <tt>evidence_root</tt> is <tt>null</tt> --- and so never reaches root construction or surfaces as a downstream error.</li>
+<li>When <tt>fully_pinned</tt> is <tt>false</tt> (declared or derived), this step resolves <tt>unknown</tt>, and the receipt MUST NOT be presented as satisfying offline recomputation. This is a resolution of this step, not a member of the payload.</li>
+<li>If the verifier holds candidate content for a pinned item, compute its SHA-256 and compare with <tt>snippet_sha256</tt>. A mismatch resolves <tt>unknown</tt> for that item and MUST NOT halt. The verifier's report MUST carry a per-item reason for every entry in <tt>sources</tt>, pinned and unpinned alike, naming exactly one of <tt>content_matches</tt> (the verifier holds content whose SHA-256 equals <tt>snippet_sha256</tt>), <tt>content_not_held</tt>, and <tt>content_differs</tt>; an unpinned entry's reason is trivially <tt>content_not_held</tt> and MUST NOT be omitted from the report for being trivial. This distinction belongs in the report, never in the <tt>v_verdict</tt> domain: a verifier holding different bytes knows its bytes differ and does not know why.</li>
+<li>A receipt carrying no <tt>evidence_set</tt> resolves <tt>unknown</tt> for this step and MUST NOT fail it. Receipts issued before this section existed remain valid and continue to verify exactly as before.</li>
+<li>A properly declared partial evidence set is not invalid and the receipt is not malformed. An implementation MUST NOT treat an <tt>unknown</tt> resolution under (c), (d), (h), or (i) as a validity failure or a rejection.</li>
+<li>A verifier MUST treat an <tt>unknown</tt> resolution as a distinct category and MUST NOT present it as a weaker or partial form of a satisfied offline-recomputation claim. A verifier that reports, displays, summarizes, or forwards an outcome MUST carry the distinction into whatever it emits.</li>
+<li>If <tt>evidence_set_version</tt> is a string naming a version the verifier does not implement, this step resolves <tt>unknown</tt> with reason <tt>evidence_set_version_unsupported</tt>, and evaluation of every version-specific rule stops: the verifier MUST NOT evaluate (a) through (d) or (i), and MUST NOT report any condition those rules define, because their meaning is fixed by the version it does not implement. Only the version-independent structural checks still run: that <tt>evidence_set</tt> is an object (<tt>evidence_set_not_object</tt>) and that <tt>evidence_set_version</tt> is present and a string (<tt>evidence_set_version_absent_or_not_string</tt>). A failure of either is malformed; gate decision = halt. An unsupported version is a limitation of the verifier, not a defect in the receipt. This document defines one version, <tt>ao-evidence-set-v1</tt>.</li>
+<li>This step resolves <tt>resolved</tt> only when all of the following hold: (a) and (b) report no condition; <tt>fully_pinned</tt> is <tt>true</tt>; and the per-item reason under (d) is <tt>content_matches</tt> for every entry in <tt>sources</tt>. Per-item results combine by conjunction: one <tt>content_not_held</tt> or <tt>content_differs</tt> makes the step <tt>unknown</tt>. In every other case that is not malformed, this step resolves <tt>unknown</tt>. A fully pinned receipt whose root recomputes but for which the verifier holds no content therefore resolves <tt>unknown</tt>, meaning not yet recomputed; it still establishes that the issuer signed a commitment to exactly these bytes, which becomes testable when matching content is obtained. As step 7 of <xref target="verification-protocol"/> states, an <tt>unknown</tt> resolution does not halt the gate.</li>
+<li>When conditions of different kinds apply to the same receipt, malformed outranks <tt>unknown</tt>, and <tt>unknown</tt> outranks <tt>resolved</tt>: any malformed condition reported under (a), (b), or the structural checks of (h) makes the receipt malformed, with gate decision halt, whatever else applies; otherwise any <tt>unknown</tt> under (c), (d), (e), (h), or (i) makes the step <tt>unknown</tt>; the step resolves <tt>resolved</tt> only when neither applies. An <tt>unknown</tt> condition MUST NOT mask a malformed condition among the rules this section requires to be evaluated.</li>
+<li>A verifier evaluates this step in this order: (e), and if the receipt carries no <tt>evidence_set</tt> the step resolves <tt>unknown</tt> and evaluation stops; the version-independent structural checks of (h); the version check of (h), and if the version is unsupported the step resolves <tt>unknown</tt> and evaluation stops; (a), reporting every condition; (b), only if (a) reported none; (d) for every entry, only if (b) reported none; then (c) and (i) determine the token, combined under (j). Paragraphs (f) and (g) constrain how any result is treated and presented. The order fixes which rules are evaluated; it never lets an <tt>unknown</tt> reached earlier suppress a malformed condition that this order requires to be evaluated.</li>
+</ol>
+<t>Steps (a), (b), and (h) are checks on the receipt's internal consistency and are answerable offline by any verifier. Step (d) is a check against external content and is answerable only by a verifier that holds it; a verifier that cannot obtain the content has learned nothing about the receipt's validity and MUST NOT report that absence as a defect in the receipt.</t>
+<t>The conditions and reasons defined for evidence sets are:</t>
+<table anchor="evidence-condition-registry">
+<name>Evidence-set conditions and reasons</name>
+<thead><tr><th>Name</th><th>Defined in section</th><th>Outcome</th></tr></thead>
+<tbody>
+<tr><td><tt>evidence_set_not_object</tt></td><td>5.3.1</td><td>malformed</td></tr>
+<tr><td><tt>evidence_set_version_absent_or_not_string</tt></td><td>5.3.1</td><td>malformed</td></tr>
+<tr><td><tt>evidence_set_version_unsupported</tt></td><td>5.4.1 (h)</td><td>unknown</td></tr>
+<tr><td><tt>set_retrieved_at_not_bytewise_least</tt></td><td>5.3.1</td><td>malformed</td></tr>
+<tr><td><tt>source_count_mismatch</tt></td><td>5.3.1</td><td>malformed</td></tr>
+<tr><td><tt>pinned_count_mismatch</tt></td><td>5.3.1</td><td>malformed</td></tr>
+<tr><td><tt>fully_pinned_mismatch</tt></td><td>5.3.1</td><td>malformed</td></tr>
+<tr><td><tt>evidence_root_present_with_no_pinned_items</tt></td><td>5.3.1</td><td>malformed</td></tr>
+<tr><td><tt>evidence_root_absent_with_pinned_items</tt></td><td>5.3.1</td><td>malformed</td></tr>
+<tr><td><tt>evidence_set_names_no_sources</tt></td><td>5.3.1</td><td>malformed</td></tr>
+<tr><td><tt>sources_not_array</tt></td><td>5.3.1</td><td>malformed</td></tr>
+<tr><td><tt>source_entry_not_object</tt></td><td>5.3.2</td><td>malformed</td></tr>
+<tr><td><tt>url_absent_or_not_string</tt></td><td>5.3.2</td><td>malformed</td></tr>
+<tr><td><tt>snippet_sha256_absent_when_pinned</tt></td><td>5.3.2</td><td>malformed</td></tr>
+<tr><td><tt>snippet_sha256_member_absent</tt></td><td>5.3.2</td><td>malformed</td></tr>
+<tr><td><tt>snippet_sha256_present_when_unpinned</tt></td><td>5.3.2</td><td>malformed</td></tr>
+<tr><td><tt>snippet_sha256_not_lowercase_hex64</tt></td><td>5.3.2</td><td>malformed</td></tr>
+<tr><td><tt>retrieved_at_not_canonical_form</tt></td><td>5.3.2</td><td>malformed</td></tr>
+<tr><td><tt>pinned_absent_or_not_boolean</tt></td><td>5.3.2</td><td>malformed</td></tr>
+<tr><td><tt>content_kind_absent_or_invalid_when_pinned</tt></td><td>5.3.2</td><td>malformed</td></tr>
+<tr><td><tt>content_kind_present_when_unpinned</tt></td><td>5.3.2</td><td>malformed</td></tr>
+<tr><td><tt>resource_sha256_not_lowercase_hex64</tt></td><td>5.3.2</td><td>malformed</td></tr>
+<tr><td><tt>resource_sha256_present_for_full_resource</tt></td><td>5.3.2</td><td>malformed</td></tr>
+<tr><td><tt>unpinned_reason_absent_or_invalid</tt></td><td>5.3.2</td><td>malformed</td></tr>
+<tr><td><tt>duplicate_bound_tuple</tt></td><td>5.3.2</td><td>malformed</td></tr>
+<tr><td><tt>member_contains_nul</tt></td><td>5.3.2</td><td>malformed</td></tr>
+<tr><td><tt>root_not_recomputable_from_sources</tt></td><td>5.4.1 (b)</td><td>malformed</td></tr>
+<tr><td><tt>content_matches</tt></td><td>5.4.1 (d)</td><td>per-item reason</td></tr>
+<tr><td><tt>content_not_held</tt></td><td>5.4.1 (d)</td><td>per-item reason</td></tr>
+<tr><td><tt>content_differs</tt></td><td>5.4.1 (d)</td><td>per-item reason</td></tr>
+</tbody>
+</table>
+</section>
+</section>
+
+<section anchor="claim-binding"><name>Claim Binding</name>
+<t>The verified claim MUST be bound to the receipt via <tt>v_claim</tt>:</t>
+
+<sourcecode type="json"><![CDATA["v_claim": {
+  "text": "string (OPTIONAL when caller marks input
+           as PII-sensitive)",
+  "hash": "hex-encoded SHA-256 of canonicalized claim
+           text (REQUIRED when text is omitted)"
+}
+]]>
+</sourcecode>
+<t>Hash-only mode permits PII-sensitive verification while preserving the receipt's auditability --- the verifier can confirm a future caller's claim hash matches the issued receipt's bound hash without exposing the claim text.</t>
+</section>
+
+<section anchor="receipt-envelope-example"><name>Receipt Envelope Example</name>
+<t>The following is a non-normative example of a receipt envelope payload illustrating the mandatory <tt>v_gate_mapping_hash</tt> binding alongside <tt>v_gate_mapping</tt>:</t>
+
+<sourcecode type="json"><![CDATA[{
+  "iss": "https://verifier.example.com",
+  "sub": "claim:sha256:a3f1...",
+  "iat": 1748649600,
+  "exp": 1748736000,
+  "v_verdict": "verified",
+  "v_confidence": 0.91,
+  "v_adversarial_result": "resilient",
+  "v_recommendation": "confident_supported",
+  "v_gate": "act",
+  "v_gate_mapping": "v0.3.0-2026-05-30",
+  "v_gate_mapping_hash": "sha256:1ad513cd0cfcc1...",
+  "v_claim": {
+    "hash": "a3f1c2d4e5b6789012345678abcdef01..."
+  },
+  "evidence_set": {
+    "evidence_set_version": "ao-evidence-set-v1",
+    "retrieved_at": "2026-09-01T12:00:00.000Z",
+    "source_count": 2,
+    "pinned_count": 2,
+    "fully_pinned": true,
+    "evidence_root": "c9f2...",
+    "sources": [
+      {
+        "url": "https://example.com/report-a",
+        "snippet_sha256": "6f2c...",
+        "retrieved_at": "2026-09-01T12:00:00.000Z",
+        "pinned": true,
+        "content_kind": "snippet"
+      },
+      {
+        "url": "https://example.com/report-b",
+        "snippet_sha256": "a114...",
+        "retrieved_at": "2026-09-01T12:00:01.000Z",
+        "pinned": true,
+        "content_kind": "snippet"
+      }
+    ]
+  }
+}
+]]>
+</sourcecode>
+<t>The <tt>v_gate_mapping_hash</tt> field carries the hex-encoded SHA-256 digest of the canonical serialization of the mapping document identified by <tt>v_gate_mapping</tt>. This field MUST be present in all conforming receipts; its absence is a malformed-receipt condition. The <tt>evidence_set</tt> member is illustrative and OPTIONAL; the digest values shown are truncated placeholders, not computed values, and MUST NOT be used as test vectors.</t>
+</section>
+
+<section anchor="version-binding-rationale"><name>Version-Binding Rationale</name>
+<t>Gate-derivation rules will evolve. A receipt issued under mapping <tt>v0.3.0-...</tt> MUST remain verifiable as <em>correct-under-<tt>v0.3.0</tt></em> after a newer mapping ships. The mapping identifier in <tt>v_gate_mapping</tt> is the binding that makes this true: a verifier fetches the <em>same</em> mapping document the issuer used at issuance, regardless of newer revisions. Receipts never silently re-verify to a different gate.</t>
+<t>Mapping document publishers MUST treat published mappings as immutable. New rules ship under new mapping identifiers. Errata (typographical corrections only) MAY be appended to a published mapping document's metadata, but the normative rule tables MUST NOT change after first publication.</t>
+</section>
+</section>
+
+<section anchor="binary-halt-gate-semantics"><name>Binary-Halt Gate Semantics</name>
+
+<section anchor="decision-table"><name>Decision Table</name>
+<t>The reference mapping <tt>v0.3.0-2026-05-30</tt> defines the following decision table, restated against this revision's four-state vocabulary. Future mappings MAY tighten or extend this table; the structural shape (binary act/halt output derived from canonical recommendation) MUST be preserved. The recommendation and gate vocabulary (<tt>confident_supported</tt>, <tt>un_probed_not_cleared</tt>, and so on) is unchanged from <tt>draft-krausz-verification-state-01</tt> in this revision; see <xref target="open-issues"/>.</t>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Conf.</th>
+<th>Adversarial</th>
+<th>Recommendation</th>
+<th>Gate</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td><tt>verified</tt></td>
+<td>&gt;= thr</td>
+<td><tt>resilient</tt></td>
+<td><tt>confident_supported</tt></td>
+<td><tt>act</tt></td>
+</tr>
+
+<tr>
+<td><tt>verified</tt></td>
+<td>&gt;= thr</td>
+<td><tt>not_checked</tt></td>
+<td><tt>un_probed_not_cleared</tt></td>
+<td><tt>halt</tt></td>
+</tr>
+
+<tr>
+<td><tt>verified</tt></td>
+<td>any</td>
+<td><tt>vulnerable</tt></td>
+<td><tt>vulnerable_supported</tt></td>
+<td><tt>halt</tt></td>
+</tr>
+
+<tr>
+<td><tt>verified</tt></td>
+<td>&lt; thr</td>
+<td><tt>resilient</tt></td>
+<td><tt>weak_supported</tt></td>
+<td><tt>halt</tt></td>
+</tr>
+
+<tr>
+<td><tt>verified</tt></td>
+<td>&lt; thr</td>
+<td><tt>not_checked</tt></td>
+<td><tt>weak_supported</tt></td>
+<td><tt>halt</tt></td>
+</tr>
+
+<tr>
+<td><tt>contradicted</tt></td>
+<td>any</td>
+<td>any</td>
+<td><tt>refuted</tt></td>
+<td><tt>halt</tt></td>
+</tr>
+
+<tr>
+<td><tt>indeterminate</tt></td>
+<td>any</td>
+<td>any</td>
+<td><tt>unverifiable</tt></td>
+<td><tt>halt</tt></td>
+</tr>
+
+<tr>
+<td><tt>not_evaluated</tt></td>
+<td>any</td>
+<td>any</td>
+<td><tt>unverifiable</tt></td>
+<td><tt>halt</tt></td>
+</tr>
+
+<tr>
+<td>error (see below)</td>
+<td>n/a</td>
+<td>n/a</td>
+<td><tt>error</tt></td>
+<td><tt>halt</tt></td>
+</tr>
+</tbody>
+</table><t>Independent of the mapping table above: this revision requires that an issuer reporting <tt>v_reason_code: instrument_failure</tt> MUST derive <tt>v_recommendation: error</tt> and MUST derive <tt>v_gate: halt</tt>, regardless of which of the four states <tt>instrument_failure</tt> is attached to. This rule cannot be part of mapping <tt>v0.3.0-2026-05-30</tt> itself --- that mapping predates the reason-code vocabulary and, per <xref target="version-binding-rationale"/>, published mappings are immutable and MUST NOT be amended to add it. Applying this rule in practice therefore requires a future mapping revision that encodes reason-code-aware derivation explicitly; this is the gap Open Issue 4 (<xref target="open-issues"/>) names.</t><t>This table maps the four states onto the same recommendation/gate structure <tt>draft-krausz-verification-state-01</tt> defined for its four raw-verdict values, one-for-one in declaration order (<tt>verified</tt> from <tt>supported</tt>, <tt>contradicted</tt> from <tt>refuted</tt>, <tt>indeterminate</tt> from <tt>unverifiable</tt>, <tt>not_evaluated</tt> from <tt>unknown</tt>). It does not yet give the recommendation layer its own reason-code-aware treatment; that is deferred, and named explicitly in <xref target="open-issues"/> rather than silently assumed.</t></section>
+
+<section anchor="threshold-rules"><name>Threshold Rules</name>
+<t>The confidence threshold used to derive <tt>v_recommendation</tt> is specified in the named mapping document, not in the individual receipt. Receipts reference the mapping by <tt>v_gate_mapping</tt> identifier, and the threshold is recovered from that mapping. This ensures that the threshold is auditable, versioned, and consistent across all receipts issued under the same mapping: two receipts under the same mapping ID MUST gate against the same threshold; threshold changes require a new mapping version with a new ID.</t>
+<t>For a strict fail-closed gate, un-probed adversarial state is not equivalent to <tt>resilient</tt> --- it represents uncertainty about a dimension that can be exploited by adversarial input. Per the fail-closed property, uncertainty MUST halt. A claim may be confidently supported on its face, but if adversarial probing was not performed, the confidence applies only to the base claim, not to the claim under adversarial pressure. The <tt>un_probed_not_cleared</tt> recommendation reflects this: the gate treats the absence of probing as a distinct unresolved risk, not as a cleared risk.</t>
+<t>Relying parties MAY require a higher threshold mapping for their own gate policies by requiring receipts under a different mapping ID that specifies a higher threshold. They MUST NOT treat a receipt as conformant under a mapping that specifies a different threshold than the one in that mapping document.</t>
+</section>
+
+<section anchor="fail-closed-mandate"><name>Fail-Closed Mandate</name>
+<t>If a receipt is missing, malformed, expired, signature-invalid, or its mapping ID cannot be resolved, the relying party MUST treat the gate decision as <tt>halt</tt>. Implementations MUST NOT default to <tt>act</tt> under any error condition. This is the &quot;impossible, not tedious&quot; design principle: friction-based controls bypass under adversarial pressure; hard barriers do not.</t>
+</section>
+</section>
+
+<section anchor="multi-axis-freshness"><name>Multi-Axis Freshness</name>
+
+<section anchor="three-independent-axes"><name>Three Independent Axes</name>
+<t>Verification receipts have three independent staleness axes, each with its own validity window:</t>
+<table>
+<thead>
+<tr>
+<th>Axis</th>
+<th>Field</th>
+<th>Remediation</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td>Signature</td>
+<td><tt>exp</tt></td>
+<td>Key rotation; verifier MUST reject expired signatures</td>
+</tr>
+
+<tr>
+<td>Calibration</td>
+<td><tt>v_calibration.valid_until</tt></td>
+<td>Recalibrate verifier pipeline against current anchor</td>
+</tr>
+
+<tr>
+<td>Evidence</td>
+<td><tt>evidence_set.retrieved_at</tt> (OPTIONAL; falls back to per-source <tt>retrieved_at</tt> per <xref target="evidence-pinning"/> when the set-level member is absent)</td>
+<td>Re-retrieve and re-pin evidence; usually shorter window than calibration</td>
+</tr>
+</tbody>
+</table><t>This revision anchors the evidence axis to <tt>evidence_set.retrieved_at</tt> rather than a separately declared <tt>valid_until</tt>. <tt>v_evidence</tt> and its <tt>valid_until</tt> convention are deprecated per <xref target="payload-claims-canonical-derived-mapping-bound"/>; a relying party computing evidence-axis staleness for a receipt that carries an <tt>evidence_set</tt> MUST use its <tt>retrieved_at</tt>, not a declared expiry, since freshness is a fact about when the evidence was captured rather than a duration the issuer asserts it remains good for.</t></section>
+
+<section anchor="staleness-semantics"><name>Staleness Semantics</name>
+
+<ul spacing="compact">
+<li><strong>Stale signature</strong> --- Receipt is invalid; relying party MUST treat as <tt>halt</tt>.</li>
+<li><strong>Stale calibration</strong> --- Receipt SHOULD be re-evaluated; relying party MAY honor as soft-stale per its own policy. Verifier issuers SHOULD publish recalibration cadence in metadata.</li>
+<li><strong>Stale evidence</strong> --- Receipt SHOULD be re-evaluated. MAY be honored for retrospective audit purposes (e.g., post-incident review of a past action) but MUST NOT be honored as a gate signal for new actions.</li>
+</ul>
+<t>Each axis has a different remediation path; collapsing them into a single TTL would force the most-restrictive cadence to govern all three.</t>
+</section>
+</section>
+
+<section anchor="calibration-anchor-requirements"><name>Calibration Anchor Requirements</name>
+
+<section anchor="reproducibility-mandate"><name>Reproducibility Mandate</name>
+<t>Verifier issuers MUST publish:</t>
+
+<ul spacing="compact">
+<li>Anchor dataset name and version.</li>
+<li>Anchor seed (or seeded run identifier).</li>
+<li>Anchor scoring methodology.</li>
+</ul>
+<t>Verifier issuers SHOULD publish a reference reproduction harness under a permissive open-source license (Apache 2.0, MIT, or BSD). A working reference implementation reproduced 57.6% on AVeriTeC <xref target="AVERITEC"></xref>, measured 28 May 2026 on the pre-migration Sonar-backed pipeline. It is available at <eref target="https://github.com/TKCollective/agentoracle-eval-harness">https://github.com/TKCollective/agentoracle-eval-harness</eref> as one example of conformance.</t>
+</section>
+
+<section anchor="drift-detection"><name>Drift Detection</name>
+<t>Verifier issuers SHOULD publish a recalibration cadence in the JWKS metadata or the verifier's well-known endpoint. The <tt>v_calibration.valid_until</tt> field in receipts SHOULD reflect this cadence. Relying parties consuming receipts with stale calibration SHOULD log and surface the staleness rather than silently accept.</t>
+</section>
+</section>
+
+<section anchor="relationship-to-related-work"><name>Relationship to Related Work</name>
+
+<section anchor="scitt"><name>SCITT</name>
+<t>RFC 9943 <xref target="RFC9943"></xref> --- the SCITT (Supply Chain Integrity, Transparency, and Trust) architecture, published as a full RFC in June 2026 --- defines the SCITT signing and receipt-envelope architecture, superseding the individual/WG draft <tt>draft-ietf-scitt-architecture</tt> cited by <tt>draft-krausz-verification-state-01</tt>. This document is SCITT-compatible: a <tt>verification.*</tt> receipt MAY be wrapped in a SCITT envelope, and SCITT receipts MAY carry <tt>verification.*</tt> payloads. RFC 9943 specifies the signing infrastructure; this document specifies a gate primitive that may be transported via SCITT or via plain JWS.</t>
+<t>RFC 9942 <xref target="RFC9942"></xref> defines CBOR Object Signing and Encryption (COSE) Receipts, also published June 2026. Where a SCITT transparency service issues a COSE Receipt over a <tt>verification.*</tt> payload, the two receipt layers are complementary and independently verifiable: the COSE Receipt attests registration in a transparency log; the <tt>verification.*</tt> JWS attests the pre-action gate decision itself. This document takes no normative dependency on RFC 9942 and does not require a relying party to consult a transparency log to verify a <tt>verification.*</tt> receipt on its own terms.</t>
+</section>
+
+<section anchor="relationship-to-decision-records"><name>Relationship to Decision Records</name>
+<t>Related work on decision records for AI agent actions is in progress, notably <xref target="I-D.sirkkavaara-vaara-receipt"></xref>. The two documents describe different things, and this document states its own boundary explicitly rather than leaving it to be inferred from adjacency:</t>
+<t>A pre-action verification record, as specified here, establishes whether the factual claims an action rests on were checked, against which evidence, and with what result --- which a decision record does not. See <xref target="I-D.sirkkavaara-vaara-receipt"></xref> for related work; this document makes no claim about what that specification establishes, and neither format depends normatively on the other.</t>
+</section>
+
+<section anchor="rats"><name>RATS</name>
+<t>RFC 9334 <xref target="RFC9334"></xref> defines the Remote Attestation Architecture's Evidence-&gt;Verifier-&gt;Attestation Result-&gt;Relying Party vocabulary. A <tt>verification.*</tt> receipt is an Attestation Result whose gate field (<tt>v_gate</tt>) is the RP-consumable primitive. This document is consistent with the RATS vocabulary and may be considered a verification-specific Attestation Result profile.</t>
+</section>
+
+<section anchor="w3c-vc-confidence-method"><name>W3C VC Confidence Method</name>
+<t>The W3C Verifiable Credentials Confidence Method <xref target="VC-CM"></xref> defines confidence-as-a-verifiable-property within Verifiable Credentials. This document adopts the same pattern for <tt>v_confidence</tt> (signed metadata, not gating). Confidence is provenance; the gate is the contract. Alignment, not overlap.</t>
+</section>
+
+<section anchor="vap-framework"><name>VAP Framework</name>
+<t>The Verifiable AI Provenance Framework (VAP) <xref target="VAP-FW"></xref> is an individual Internet-Draft providing an architectural coordination layer for evidentiary-grade decision trails. A <tt>verification.*</tt> receipt issuer MAY be considered a verifier profile under the VAP umbrella. This citation is pinned to <tt>draft-kamimura-vap-framework-01</tt> (21 July 2026); a future VAP revision may require this reference to be re-pinned.</t>
+</section>
+
+<section anchor="mastercard-verifiable-intent-environment"><name>Mastercard Verifiable Intent (environment.*)</name>
+<t>The <tt>environment.*</tt> constraint family for pre-action attestation of environment state is specified in <xref target="ENV-STATE"></xref>, as part of the Verifiable Intent framework <xref target="VINTENT"></xref>. This document extends the constraint-family pattern to probabilistic predicates with calibration discipline, as a sibling family rather than a member entry. See <xref target="the-verification-constraint-family"/>.</t>
+</section>
+
+<section anchor="differentiator-summary"><name>Differentiator Summary</name>
+<t>Pre-action fail-closed gate. Not signing machinery (covered by SCITT). Not confidence quantification (covered by W3C VC CM). Not just an Attestation Result (covered by RATS). The gate primitive itself, with the version-binding necessary to outlive ruleset evolution.</t>
+</section>
+</section>
+
+<section anchor="open-issues"><name>Open Issues</name>
+<t>This section names what this revision does not settle, so that it is tracked rather than silently assumed resolved.</t>
+<ol spacing="compact">
+<li><strong>Independent implementation of evidence pinning is still pending.</strong> Every implementation run against the evidence-pinning rules to date (<xref target="evidence-pinning"/>) has extended an existing implementation rather than been built cold from the specification text alone. A from-text reconstruction is understood to be in progress. Until an independent cold build lands and is cross-checked, this document does not claim evidence pinning has had an independent implementation in the sense its own conformance discipline requires; that remains an open issue tracked here rather than a precondition for submission.</li>
+<li><strong>The malformed-condition enumeration diff.</strong> This document's evidence-pinning rules name a set of reported conditions (<tt>pinned_absent_or_not_boolean</tt>, <tt>duplicate_bound_tuple</tt>, <tt>evidence_set_names_no_sources</tt>, <tt>set_retrieved_at_not_bytewise_least</tt>, <tt>retrieved_at_not_canonical_form</tt>, <tt>snippet_digest_present_for_full_resource</tt>, <tt>snippet_sha256_absent_when_pinned</tt>, and others named inline above). Whether this list is complete against every malformation the specification text actually states has not been verified name-for-name against an independent enumeration, and remains open.</li>
+<li><strong>The pinned-and-unpinned duplicate-identity pair.</strong> A pinned entry and an unpinned entry sharing <tt>url</tt> and <tt>retrieved_at</tt> are treated as one retrieval recorded twice under the entry-distinctness rule of <xref target="evidence-set-sources"/>, but no conformance vector in the companion fixture corpus currently exercises that specific pair. Candidate for a future revision.</li>
+<li><strong>The recommendation and gate mapping vocabulary is unrenamed.</strong> <xref target="decision-table"/> maps the new four-state vocabulary onto <tt>draft-krausz-verification-state-01</tt>'s existing <tt>v_recommendation</tt> values (<tt>confident_supported</tt>, <tt>un_probed_not_cleared</tt>, and so on) one-for-one by position. Those values still read as though derived from a <tt>supported</tt>/<tt>refuted</tt> axis. Whether the recommendation layer should itself be restated in reason-code-aware terms is not resolved here.</li>
+<li><strong>REQUIRED members with a derivation fallback.</strong> <xref target="evidence-set-object"/> marks <tt>source_count</tt>, <tt>pinned_count</tt>, and <tt>fully_pinned</tt> as members of the <tt>evidence_set</tt> object while also specifying that a verifier MUST derive each from <tt>sources</tt> when it is absent. This document treats the two statements as compatible --- REQUIRED for the object's shape, with a stated fallback rather than a validation failure when an issuer omits one --- but a future revision should either soften the member table's language or state the fallback as the sole requirement.</li>
+<li><strong>The capture relationship, as stated in <xref target="the-four-states"/>, is this document's own formulation of a term used without further gloss in working-group discussion.</strong> Comments are invited on whether it matches that usage.</li>
+<li><strong>The <tt>v_verdict</tt> claim name is unrenamed.</strong> <xref target="payload-claims-canonical-derived-mapping-bound"/> gives the claim a new four-value domain this revision but keeps its existing wire name, <tt>v_verdict</tt>, rather than renaming it to <tt>v_state</tt> to match the vocabulary's own terminology, because a rename is a breaking wire change against every <tt>draft-krausz-verification-state-01</tt> implementer and against production issuance that emits <tt>v_verdict</tt> today. Whether and how to rename the claim is deferred to a future revision, pending an assessment of migration cost across existing implementers.</li>
+<li><strong>The media-type registration request is incomplete.</strong> <xref target="iana-considerations"/> names <tt>verification-receipt+jws</tt> as a media type to be registered but does not supply the RFC 6838 registration template or state the top-level media type (<tt>application/</tt>) the subtype registers under. A complete template is deferred to a future revision.</li>
+</ol>
+</section>
+
+<section anchor="security-considerations"><name>Security Considerations</name>
+
+<section anchor="composition-non-interference-with-environment-family"><name>Composition Non-Interference with environment.* Family</name>
+<t>When <tt>verification.*</tt> composes alongside <tt>environment.*</tt> on the same mandate, the ordering specified in <xref target="composition-rules"/> (environment.* short-circuits before verification.*) MUST hold. This document inherits that ordering directly from <xref target="ENV-STATE"></xref> Section 5.5, which specifies that <tt>environment.*</tt> is not subject to ordering preemption by any other constraint family. A <tt>verification.*</tt> ACT outcome MUST NOT mask an <tt>environment.*</tt> HALT outcome; if <tt>environment.*</tt> halts on any constraint, that halt is final regardless of the <tt>verification.*</tt> state. Implementations MUST evaluate <tt>environment.*</tt> to its terminal state before evaluating any <tt>verification.*</tt> constraint, and a <tt>verification.*</tt> state SHALL NOT be reached if <tt>environment.*</tt> has already halted.</t>
+</section>
+<section anchor="other-security-considerations"><name>Other Security Considerations</name>
+<t><strong>Key compromise.</strong> Verifier issuers MUST rotate JWKS keys on a published cadence. Receipts signed under a compromised key remain verifiable against historical key state during the rotation horizon. RPs MUST honor key revocation lists where published.</t>
+<t><strong>Replay attacks.</strong> Receipts include <tt>iat</tt> and <tt>exp</tt>. RPs MUST verify both against current time, subject to clock tolerance. Claim-binding via <tt>v_claim.hash</tt> provides resistance to receipt-reuse against a different claim payload.</t>
+<t><strong>Confidence inflation attacks.</strong> A verifier issuer who inflates <tt>v_confidence</tt> to push more receipts to <tt>act</tt> would diverge from their published calibration anchor. The reproducibility mandate (<xref target="calibration-anchor-requirements"/>) makes this detectable. RPs SHOULD periodically sample receipts against the issuer's published harness.</t>
+<t><strong>Selective disclosure.</strong> Hash-only claim binding (<xref target="claim-binding"/>) permits PII-sensitive verification without exposing claim text in the receipt envelope.</t>
+<t><strong>Downgrade attacks.</strong> A future relying party MUST NOT accept a v0.3-spec receipt against a v0.4-spec gate. The receipt format version is implicitly bound by <tt>v_gate_mapping</tt>; mismatches between expected and signed mapping IDs are malformed-receipt conditions per <xref target="verification-protocol"/>.</t>
+<t><strong>Mapping document tampering.</strong> Receipts MUST bind to a content-addressed mapping via the <tt>v_gate_mapping_hash</tt> field (SHA-256). Mapping documents MUST be hosted such that the SHA-256 digest of the canonical serialization is stable and independently verifiable (e.g., at a content-addressed URL or via a git-tagged manifest). Verifier implementations MUST verify the SHA-256 digest of the fetched mapping document against <tt>v_gate_mapping_hash</tt> before use; a digest mismatch MUST result in gate decision <tt>halt</tt>. A relying party that cannot independently verify the mapping document's hash MUST treat the receipt as malformed.</t>
+</section>
+</section>
+
+<section anchor="iana-considerations"><name>IANA Considerations</name>
+<t>This document requests the following IANA registrations:</t>
+<t><strong>Media type:</strong> <tt>verification-receipt+jws</tt> (to be registered in the IANA Media Types registry following the procedures of RFC 6838).</t>
+<t><strong>JWT claim names:</strong> <tt>v_verdict</tt>, <tt>v_reason_code</tt>, <tt>v_subject</tt>, <tt>v_confidence</tt>, <tt>v_adversarial_result</tt>, <tt>v_recommendation</tt>, <tt>v_gate</tt>, <tt>v_gate_mapping</tt>, <tt>v_gate_mapping_hash</tt>, <tt>v_method</tt>, <tt>v_calibration</tt>, <tt>evidence_set</tt>, <tt>v_claim</tt> (to be registered in the JSON Web Token Claims registry; <tt>v_verdict</tt> was already registrable under <tt>draft-krausz-verification-state-01</tt>, and this revision changes its domain per <xref target="verification-state-vocabulary"/> rather than replacing the claim name). <tt>v_sources_used</tt> and <tt>v_evidence</tt> remain registrable for the receipts issued under <tt>draft-krausz-verification-state-01</tt> that carry them, and are marked DEPRECATED for new issuance per <xref target="payload-claims-canonical-derived-mapping-bound"/> rather than withdrawn from the registry.</t>
+<t><strong>Well-known URI:</strong> Verification issuers using HTTPS SHOULD publish their JWKS at <tt>/.well-known/jwks.json</tt> per existing <xref target="RFC7517"></xref> Section 4.7 conventions. No new well-known URI is requested.</t>
+<t>The <tt>verification.*</tt> and <tt>environment.*</tt> constraint families are related sibling namespaces. Coordination on a joint constraint-family registry shared with the <tt>environment.*</tt> family (<xref target="ENV-STATE"></xref>) is deferred to all interested parties (Krausz, Borthwick, Msebenzi) for resolution outside the scope of this document. This document does not commit to a specific registry structure, nor does it assert agreement from the <tt>environment.*</tt> authors on any registry arrangement. The cross-referencing between <tt>verification.*</tt> and <tt>environment.*</tt> as related constraint families stands as documented, independent of any future registry decision.</t>
+</section>
+
+</middle>
+
+<back>
+<references><name>Informative References</name>
+<reference anchor="ANTHROPIC-ZT">
+  <front>
+    <title>Zero Trust for AI Agents: A security framework for deploying autonomous AI agents in the enterprise</title>
+    <author>
+      <organization>Anthropic</organization>
+    </author>
+    <date year="2026" month="5"></date>
+  </front>
+  <refcontent>PDF, 36 pages</refcontent>
+</reference>
+<reference anchor="AVERITEC">
+  <front>
+    <title>AVeriTeC: A Dataset for Real-World Claim Verification with Evidence from the Web</title>
+    <author fullname="Michael Schlichtkrull" initials="M." surname="Schlichtkrull"></author>
+    <date year="2024"></date>
+  </front>
+</reference>
+
+<reference anchor="ENV-STATE">
+  <front>
+    <title>Verifiable Intent --- environment.* Constraint Family</title>
+    <author fullname="D. Borthwick" initials="D." surname="Borthwick"></author>
+    <author fullname="M. Msebenzi" initials="M." surname="Msebenzi"></author>
+    <date year="2026" month="August" day="27"></date>
+  </front>
+  <seriesInfo name="Internet-Draft" value="draft-borthwick-msebenzi-environment-state-02"></seriesInfo>
+</reference>
+<xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.2119.xml"/>
+<xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.7515.xml"/>
+<xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.7517.xml"/>
+<xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.7518.xml"/>
+<xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.7519.xml"/>
+<xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8037.xml"/>
+<xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8174.xml"/>
+<xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.9334.xml"/>
+<xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.9942.xml"/>
+<xi:include href="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.9943.xml"/>
+<reference anchor="I-D.sirkkavaara-vaara-receipt">
+  <front>
+    <title>The Vaara Receipt: A Recomputable Receipt Format for Decisions About Autonomous Actions</title>
+    <author fullname="H. Sirkkavaara" initials="H." surname="Sirkkavaara"></author>
+    <date year="2026" month="September" day="18"></date>
+  </front>
+  <seriesInfo name="Internet-Draft" value="draft-sirkkavaara-vaara-receipt-11"></seriesInfo>
+</reference>
+<reference anchor="VAP-FW">
+  <front>
+    <title>Verifiable AI Provenance Framework (VAP): An Architectural Framework for Evidentiary-Grade AI Decision Trails</title>
+    <author fullname="T. Kamimura" initials="T." surname="Kamimura"></author>
+    <date year="2026" month="July"></date>
+  </front>
+  <seriesInfo name="Internet-Draft" value="draft-kamimura-vap-framework-01"></seriesInfo>
+</reference>
+<reference anchor="VC-CM">
+  <front>
+    <title>Verifiable Credentials Confidence Method</title>
+    <author>
+      <organization>World Wide Web Consortium</organization>
+    </author>
+    <date year="2024"></date>
+  </front>
+  <refcontent>W3C Working Draft</refcontent>
+</reference>
+<reference anchor="VINTENT">
+  <front>
+    <title>Verifiable Intent --- Constraint Type Definitions and Validation Rules</title>
+    <author>
+      <organization>Verifiable Intent Working Group</organization>
+    </author>
+    <date year="2026" month="February"></date>
+  </front>
+  <refcontent>Verifiable Intent Working Group Draft v0.1</refcontent>
+</reference>
+</references>
+
+<section anchor="acknowledgments" numbered="false"><name>Acknowledgments</name>
+<t>This revision's evidence-pinning and four-state vocabulary work drew on review, defect reports, and external comparison from a number of people, each credited here for their specific, actual contribution rather than a generic thanks:</t>
+<ul spacing="compact">
+<li><strong>Michael Msebenzi</strong> (headlessoracle/LembaGang) reconstructed the evidence-pinning rules by extending an existing implementation across revisions 6 through 8, identified the arithmetic and encoding defects recorded across the findings referenced in <xref target="evidence-pinning"/>, and independently reran cross-format verification of the composed receipt envelope to VALID after each correction. His work is the largest single source of the corrections this document incorporates, and is also the reason <xref target="open-issues"/> distinguishes confirmed-by-extension from a cold build.</li>
+<li><strong>Pote (poteshniy)</strong> identified the 3-of-5 pinned-evidence defect, proposed the <tt>signed_only</tt>-to-<tt>bytes_attested</tt> rename adopted in the evidence-pinning rules, signed off on revision 7, and separately reviewed the v0.4 extension queue, surfacing the optional-<tt>typ</tt>, filtered-canonicalization, attacker-selected-snapshot, unsigned-anchor, underspecified-proof, and null-ambiguity findings that shaped the sealed-evidence review branch.</li>
+<li><strong>Pablo Play</strong> proposed an alternate reading of Finding 35 that is preserved in the evidence-pinning rules, and is undertaking the from-text cold reconstruction of the evidence-pinning specification that <xref target="open-issues"/> tracks as an open item.</li>
+<li><strong>Melchiorre Oliva</strong> ran the natural experiment behind <xref target="melchiorre-clause"/> --- a live measurement across two hosts returning 3,008 negative results on one and zero on the other under HTTP 429 conditions, committed 16 September 2026 --- and is the source of the operative test this document adopts for enumerating status codes behind a negative before it is published.</li>
+<li><strong>navigatorbuilds</strong> (Elara Protocol) supplied the Status/Check/Verdict roll-up example that <xref target="subject-clause"/> generalizes from, and separately audited thirteen production call sites of their own three-outcome verifier's absence-side state, confirming by direct count that the finding/absence distinction this document draws in <xref target="the-four-states"/> matches how that state has actually been used in already-published rows.</li>
+<li><strong>babyblueviper1</strong> confirmed, in the same cross-project naming discussion, that their own conformance-registry taxonomy had no published enum requiring remapping under the finding/absence split, and endorsed that split as the correct cut.</li>
+<li><strong>Marcus Still</strong> (stillmarcus24) published a four-state verification taxonomy --- <tt>AGREE</tt>/<tt>DISAGREE</tt>/<tt>INDETERMINATE</tt>/<tt>NOT_EVALUATED</tt>, with a ten-case executable acceptance contract, in x402 TSC issue #4 --- which served as this document's external compatibility reference point for its own four-state design. He confirmed 7 of 7 absence-side production call sites at commit <tt>901ca6a</tt>, then endorsed the four states plus reason-code mechanism adopted in <xref target="the-four-states"/> on x402 TSC issue #4 on 2026-09-20.</li>
+<li><strong>Henri Sirkkavaara</strong> proposed the shape of the boundary statement in <xref target="relationship-to-decision-records"/> --- that it state what a pre-action verification record establishes that a decision record does not, and stop there, without characterizing his own <xref target="I-D.sirkkavaara-vaara-receipt"></xref> specification.</li>
+</ul>
+</section>
+
+</back>
+
+</rfc>
