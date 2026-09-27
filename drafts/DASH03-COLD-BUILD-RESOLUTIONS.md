@@ -68,10 +68,12 @@ An unsupported `evidence_set_version` stops every version-specific rule, meaning
 5. **The NUL rule is new (F5).** -02 asserted that "No member may contain an octet 0x00", but never made it a check. -03 makes it an explicit per-entry rule, `member_contains_nul`, covering url, snippet_sha256, content_kind and retrieved_at on every entry, pinned or unpinned. It is checked before root construction relies on it.
 6. **A digest on an unpinned entry is now malformed (F4).** A non-null `snippet_sha256` on an entry with `pinned: false` is now malformed and reports `snippet_sha256_present_when_unpinned`.
 
-Two more outcome changes are not on the list above and need your call:
+Two more outcome changes are not on the list above and needed a decision:
 
 - **F10.** When the set-level `retrieved_at` is absent, it is now derived as the bytewise-least entry value instead of being left undefined. A receipt that some verifiers would have halted can now pass.
 - **F12.** A fully pinned set that the verifier did not content-check now resolves `unknown` instead of an undefined result. This changes the step token, not whether the receipt halts, because `unknown` never halts under §5.4 step 7.
+
+Decision, 2026-09-25: Joe Krausz approved both F10 and F12 as written above. (Note added 2026-09-27.)
 
 ## Clarifications: no change to which receipts pass
 
@@ -158,3 +160,18 @@ Each one is malformed, so the gate decision is halt.
 - **The (k) stops:** version-specific rules never run. Stops 2 and 3 share one condition name, because -03 names absent and not-a-string as one condition.
 
 Credit: babyblueviper1, both cases and all three stop vectors.
+
+## Presence rules and the NUL rule under whole-check suppression (babyblueviper1, 2026-09-25 and 2026-09-26)
+
+After moving the checker to -03 ([tsc#4, 2026-09-25](https://github.com/x402-foundation/tsc/issues/4#issuecomment-5840546440)), babyblueviper1 named one reading -03 left implicit: does the whole-check rule in (a) suppress `snippet_sha256_present_when_unpinned` when the unpinned entry's `snippet_sha256` fails its own form check? His checker at `8870fa6` reported only `{snippet_sha256_not_lowercase_hex64}`. He asked the same question of `member_contains_nul`, which he reported alongside the member's other conditions.
+
+Resolved on [tsc#4, 2026-09-26](https://github.com/x402-foundation/tsc/issues/4#issuecomment-5842824265): `snippet_sha256_present_when_unpinned` is a presence check. It takes the member's presence as input, not its form, so it is evaluated whatever the form and both conditions are reported. It still takes `pinned` as input, so a malformed `pinned` value still suppresses it (case 1 above is unchanged). `member_contains_nul` is a content rule, not a type or form check: reported alongside the member's other conditions, suppressing nothing. -03 now says both in §5.3.2. His checker follows the same reading at [`edb864b`](https://github.com/babyblueviper1/preaction-governance-conformance/commit/edb864b), with these two vectors added; he reports 30 tests passing.
+
+| Vector | Input (what's malformed) | Rule | Expected reported set |
+|---|---|---|---|
+| presence 1 | An unpinned entry (`pinned: false`, valid `unpinned_reason`) whose `snippet_sha256` is the non-null, non-hex string `"XYZ"` | §5.3.2 presence rule | `{snippet_sha256_not_lowercase_hex64, snippet_sha256_present_when_unpinned}` |
+| presence 2 | An unpinned entry whose `url` contains U+0000, `snippet_sha256: null`, all other members well-formed | §5.3.2 NUL rule | `{member_contains_nul}` |
+
+Both are malformed, so the gate decision is halt. In presence 1, fixing the form would not clear the presence defect, so the two conditions are independent and both are reported. In presence 2, `member_contains_nul` is the only condition because every other member is well-formed; the point of the vector is that it is not suppressed by, and does not suppress, anything.
+
+Credit: babyblueviper1, both questions and both vectors.
