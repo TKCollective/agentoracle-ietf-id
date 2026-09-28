@@ -155,7 +155,7 @@ These are the five vectors babyblueviper1 said he'd add when he moves his cold c
 
 Each one is malformed, so the gate decision is halt.
 
-- **Case 1:** `pinned` failed its type check, so no rule that takes it as input is evaluated. That rules out the branch rules (`snippet_sha256_*`, `content_kind_*`) and the count checks (`pinned_count_mismatch`, `fully_pinned_mismatch`).
+- **Case 1:** `pinned` failed its type check, so no rule that takes it as input is evaluated. That rules out the branch rules (`snippet_sha256_*`, `content_kind_*`) and `pinned_count_mismatch`. (Corrected 2026-09-28: this gloss also listed `fully_pinned_mismatch`. That check takes the declared counts as its operands, not `pinned`, so it is evaluated; in this vector the declared `pinned_count: 1` and the derived `source_count` of 1 agree with `fully_pinned: true`, so it reports nothing and the expected set is unchanged. See Roberto Locatelli's input 2 below.)
 - **Case 2:** `"2026-9-1"` failed its form check. So `set_retrieved_at_not_bytewise_least` and `duplicate_bound_tuple` are not evaluated for the set, even though `"2026-9-1"` sorts before the set-level value bytewise.
 - **The (k) stops:** version-specific rules never run. Stops 2 and 3 share one condition name, because -03 names absent and not-a-string as one condition.
 
@@ -175,3 +175,23 @@ Resolved on [tsc#4, 2026-09-26](https://github.com/x402-foundation/tsc/issues/4#
 Both are malformed, so the gate decision is halt. In presence 1, fixing the form would not clear the presence defect, so the two conditions are independent and both are reported. In presence 2, `member_contains_nul` is the only condition because every other member is well-formed; the point of the vector is that it is not suppressed by, and does not suppress, anything.
 
 Credit: babyblueviper1, both questions and both vectors.
+
+## Roberto Locatelli's review inputs (tsc#4, 2026-09-28)
+
+Roberto Locatelli ([tsc#4, 2026-09-28](https://github.com/x402-foundation/tsc/issues/4#issuecomment-5865535036)), posting through Noûs, an AI agent operating under his mandate, ran seven inputs through babyblueviper1's checker and a checker of his own written from the -03 text. He chose them in advance as places where the text seemed open, so the number of disagreements is not a rate. babyblueviper1 reproduced all seven on his checker and fixed two of its readings at [`c877213`](https://github.com/babyblueviper1/preaction-governance-conformance/commit/c877213) ([tsc#4](https://github.com/x402-foundation/tsc/issues/4#issuecomment-5867907111)).
+
+| Vector | Input (what's malformed) | Rule | Expected result |
+|---|---|---|---|
+| R1 | A pinned `snippet` entry with `resource_sha256: null`, everything else well-formed; verifier holds no content | §5.3.2 `resource_sha256`: absent and null are equivalent | No condition; not malformed; step `unknown` (per-item `content_not_held`) |
+| R2 | The only entry has `pinned: "yes"`; declared `source_count: 1`, `pinned_count: 1`, `fully_pinned: false` | §5.3.1 `fully_pinned` over the declared counts; §5.4.1(a) | `{pinned_absent_or_not_boolean, fully_pinned_mismatch}` |
+| R2b | Two well-formed pinned entries; declared `source_count: 5`, `pinned_count: 2`, `fully_pinned: true` | §5.3.1 `fully_pinned` over the declared counts | `{source_count_mismatch, fully_pinned_mismatch}` |
+| R3 | Two pinned entries with the same `url`, `retrieved_at` and `content_kind`, both `snippet_sha256: null`; `evidence_root: null`; `pinned_count: 2` | §5.3.2 entry distinctness; §5.4.1(a) suppresses only on a failed type or form check | `{snippet_sha256_absent_when_pinned, evidence_root_absent_with_pinned_items, duplicate_bound_tuple}` |
+
+- **R1** is the one the -02/-03 text did not settle, and it changed the gate decision: one checker halted as malformed, the other resolved `unknown`, which never halts under §5.4 step 7. -03 now says in §5.3.2 that absent and `null` are equivalent for `resource_sha256`, as it already said for `content_kind`, and the `full_resource` rule reads "absent or `null`". The result is `unknown` here because the verifier holds no content, not because of `resource_sha256`: a `null` value carries no digest and never contributes to `resolved`, and it is not malformed. A non-null value that is not 64 lowercase hex characters still reports `resource_sha256_not_lowercase_hex64`.
+- **R2 and R2b.** `fully_pinned` is defined over `pinned_count` and `source_count`, and the fallback in §5.3.1 substitutes derived values only when a count is declared absent. So the declared counts are the operands, and `fully_pinned` takes `pinned` as input only through an absent `pinned_count`. No text change: the text already said this.
+- **R3.** `snippet_sha256` is typed "string or null", so a `null` digest on a pinned entry fails a consistency rule (`snippet_sha256_absent_when_pinned`), not a type or form check, and `duplicate_bound_tuple` is still evaluated. No text change.
+
+Each result other than R1's is malformed, so the gate decision is halt.
+
+Credit: Roberto Locatelli, all four vectors and the R1 finding. babyblueviper1 confirmed R2 and R3 against the text and fixed his checker.
+
