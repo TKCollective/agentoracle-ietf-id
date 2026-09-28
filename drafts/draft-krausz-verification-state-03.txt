@@ -1527,10 +1527,10 @@ Internet-Draft            verification.* family           September 2026
 
    The split between keys a relying party happens to hold and a list it
    declares complete is Roberto Locatelli's (x402 TSC issue #4,
-   2026-09-24).  Related discussion is in SCITT architecture issue #462;
-   this document does not adopt the field names used there.  The
-   requirement that the distinction be carried into whatever the
-   verifier reports follows actaseal's contribution in that discussion.
+   2026-09-24).  The requirement that the distinction be carried into
+   whatever the verifier reports follows actaseal's contribution in that
+   discussion.  Related discussion is in SCITT architecture issue #462;
+   this document does not adopt the field names used there.
 
    The tokens defined for step 1 are:
 
