@@ -1144,9 +1144,9 @@ Internet-Draft            verification.* family           September 2026
 5.4.  Verification Protocol
 
    A relying party verifying a receipt MUST execute the following
-   sequence.  Except where a step states otherwise (the evidence-set
-   step's content-hash comparison, Section 5.4.1, resolves unknown and
-   does not halt), any check that runs and fails makes the receipt
+   sequence.  Except where a step states otherwise (a content-hash
+   mismatch in the evidence-set step, Section 5.4.1, resolves unknown
+   and does not halt), any check that runs and fails makes the receipt
    malformed, with gate decision halt.  Step 1's unresolved-key and
    refusal outcomes (Section 5.4.2) also halt, but are not malformed and
    are not failed checks:
@@ -1985,15 +1985,15 @@ Internet-Draft            verification.* family           September 2026
    tracked rather than silently assumed resolved.
 
    1.  *Independent implementation of evidence pinning: a cold build
-       exists and has been reproduced by a third party; it has not been
-       run against the companion fixture corpus.* babyblueviper1 built a
-       checker for the evidence-pinning rules (Section 5.3) from the
-       draft-krausz-verification-state-02 text alone, with no reference
-       code, moved it to the text of this revision as it stood at commit
-       5a71863 of this document's working repository (preaction-
-       governance-conformance commit 8870fa6, examples/evidence-set-
-       cold), updated it for the presence rule now stated in
-       Section 5.3.2 at commit edb864b, and corrected two of its
+       exists and has been reproduced by a third party; no run against
+       the companion fixture corpus has been reported.* babyblueviper1
+       built a checker for the evidence-pinning rules (Section 5.3) from
+       the draft-krausz-verification-state-02 text alone, with no
+       reference code, moved it to the text of this revision as it stood
+       at commit 5a71863 of this document's working repository
+       (preaction-governance-conformance commit 8870fa6, examples/
+       evidence-set-cold), updated it for the presence rule now stated
+       in Section 5.3.2 at commit edb864b, and corrected two of its
        readings at commit c877213 (https://github.com/babyblueviper1/
        preaction-governance-conformance/tree/c877213/examples/evidence-
        set-cold (https://github.com/babyblueviper1/preaction-governance-
