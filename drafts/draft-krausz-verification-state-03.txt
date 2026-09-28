@@ -1144,12 +1144,12 @@ Internet-Draft            verification.* family           September 2026
 5.4.  Verification Protocol
 
    A relying party verifying a receipt MUST execute the following
-   sequence.  Any check that runs and fails makes the receipt malformed,
-   with gate decision halt.  Step 1's unresolved-key and refusal
-   outcomes (Section 5.4.2) also halt, but are not malformed and are not
-   failed checks:
-
-
+   sequence.  Except where a step states otherwise (the evidence-set
+   step's content-hash comparison, Section 5.4.1, resolves unknown and
+   does not halt), any check that runs and fails makes the receipt
+   malformed, with gate decision halt.  Step 1's unresolved-key and
+   refusal outcomes (Section 5.4.2) also halt, but are not malformed and
+   are not failed checks:
 
 
 
@@ -1221,11 +1221,11 @@ Internet-Draft            verification.* family           September 2026
 
 5.4.1.  Evidence-Set Resolution Step
 
-   A step defined in this document resolves to exactly one of two
-   tokens: resolved, when the step's evidence requirements are met, or
-   unknown, under the conditions stated below.  An implementation MUST
-   emit one of these two tokens for the evidence-set step and MUST NOT
-   emit any other value.
+   The evidence-set step resolves to exactly one of two tokens:
+   resolved, when the step's evidence requirements are met, or unknown,
+   under the conditions stated below.  An implementation MUST emit one
+   of these two tokens for the evidence-set step and MUST NOT emit any
+   other value.
 
 
 
@@ -1469,8 +1469,8 @@ Internet-Draft            verification.* family           September 2026
 
 5.4.2.  Signature-Key Resolution and Trust-Set Completeness
 
-   Step 1 of Section 5.4 has three outcomes, and a relying party MUST
-   NOT conflate them:
+   Step 1 of Section 5.4 has three non-passing outcomes, and a relying
+   party MUST NOT conflate them:
 
    a.  *Key unresolved* (key_unresolved).  The receipt's kid does not
        resolve to a key in the trust material the relying party
@@ -1514,11 +1514,11 @@ Krausz                    Expires 26 March 2027                [Page 27]
 Internet-Draft            verification.* family           September 2026
 
 
-   *Gate.* All three outcomes halt under Section 6.3, because a receipt
-   whose signature was not verified establishes nothing a gate can act
-   on.  They differ in what is reported, not in the gate decision.  Step
-   7's unknown does not halt because it is reached only after step 1 has
-   verified the signature.
+   *Gate.* All three non-passing outcomes halt under Section 6.3,
+   because a receipt whose signature was not verified establishes
+   nothing a gate can act on.  They differ in what is reported, not in
+   the gate decision.  Step 7's unknown does not halt because it is
+   reached only after step 1 has verified the signature.
 
    These outcomes describe the relying party's verification of the
    receipt, not the claim, and are not reported using the states of
@@ -2028,9 +2028,9 @@ Internet-Draft            verification.* family           September 2026
        babyblueviper1's live-run payload under Section 5.3.3; its NUL
        rule was changed after the 2026-09-26 ruling on that rule, so
        agreement on that one point is not independent.  What remains
-       unverified: none of these checkers has been run by anyone against
-       the companion fixture corpus; the 34-test result at c877213 is as
-       its author reports it; and this document's author has not
+       unverified: no run of any of these checkers against the companion
+       fixture corpus has been reported; the 34-test result at c877213
+       is as its author reports it; and this document's author has not
        reproduced either checker's results.  This document therefore
        records the cold build and its third-party reproduction, and does
        not yet claim the corpus cross-check its own conformance
