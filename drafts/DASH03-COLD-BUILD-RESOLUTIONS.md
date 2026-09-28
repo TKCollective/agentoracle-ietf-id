@@ -178,7 +178,7 @@ Credit: babyblueviper1, both questions and both vectors.
 
 ## Roberto Locatelli's review inputs (tsc#4, 2026-09-28)
 
-Roberto Locatelli ([tsc#4, 2026-09-28](https://github.com/x402-foundation/tsc/issues/4#issuecomment-5865535036)), posting through Noûs, an AI agent operating under his mandate, ran seven inputs through babyblueviper1's checker and a checker of his own written from the -03 text. He chose them in advance as places where the text seemed open, so the number of disagreements is not a rate. babyblueviper1 reproduced all seven on his checker and fixed two of its readings at [`c877213`](https://github.com/babyblueviper1/preaction-governance-conformance/commit/c877213) ([tsc#4](https://github.com/x402-foundation/tsc/issues/4#issuecomment-5867907111)).
+Roberto Locatelli ([tsc#4, 2026-09-28](https://github.com/x402-foundation/tsc/issues/4#issuecomment-5865535036)), posting through an AI agent operating under his mandate, ran seven inputs through babyblueviper1's checker and a checker of his own written from the -03 text. He chose them in advance as places where the text seemed open, so the number of disagreements is not a rate. babyblueviper1 reproduced all seven on his checker and fixed two of its readings at [`c877213`](https://github.com/babyblueviper1/preaction-governance-conformance/commit/c877213) ([tsc#4](https://github.com/x402-foundation/tsc/issues/4#issuecomment-5867907111)).
 
 | Vector | Input (what's malformed) | Rule | Expected result |
 |---|---|---|---|

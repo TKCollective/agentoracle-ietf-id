@@ -1985,7 +1985,7 @@ Internet-Draft            verification.* family           September 2026
        evidence_set_names_no_sources,
        set_retrieved_at_not_bytewise_least,
        retrieved_at_not_canonical_form,
-       snippet_digest_present_for_full_resource,
+       resource_sha256_present_for_full_resource,
        snippet_sha256_absent_when_pinned, and others named inline
        above).  Whether this list is complete against every malformation
        the specification text actually states has not been verified
@@ -2337,15 +2337,15 @@ Internet-Draft            verification.* family           September 2026
       already-published rows.
    *  *babyblueviper1* built the evidence-pinning checker cold from the
       draft-krausz-verification-state-02 text alone and moved it to this
-      revision (preaction-governance-conformance 8870fa6, then edb864b),
-      the cold build that Section 10 item 1 records; raised the
-      presence-rule and NUL-rule questions resolved in Section 5.3.2 and
-      supplied the two vectors that exercise them; and published the
-      public check of the four-state vocabulary cited in Section 3.1.
-      He also confirmed, in the cross-project naming discussion, that
-      their own conformance-registry taxonomy had no published enum
-      requiring remapping under the finding/absence split, and endorsed
-      that split as the correct cut.
+      revision (preaction-governance-conformance 8870fa6, then edb864b,
+      then c877213), the cold build that Section 10 item 1 records;
+      raised the presence-rule and NUL-rule questions resolved in
+      Section 5.3.2 and supplied the two vectors that exercise them; and
+      published the public check of the four-state vocabulary cited in
+      Section 3.1.  He also confirmed, in the cross-project naming
+      discussion, that their own conformance-registry taxonomy had no
+      published enum requiring remapping under the finding/absence
+      split, and endorsed that split as the correct cut.
 
 
 
@@ -2354,10 +2354,10 @@ Krausz                    Expires 26 March 2027                [Page 42]
 Internet-Draft            verification.* family           September 2026
 
 
-   *  *Roberto Locatelli* (robertolocatelli81-dev), posting through
-      Noûs, an AI agent operating under his mandate, reviewed this
-      revision against seven inputs chosen as places the text seemed
-      open, which led to the absent-or-null rule for resource_sha256 in
+   *  *Roberto Locatelli* (robertolocatelli81-dev), posting through an
+      AI agent operating under his mandate, reviewed this revision
+      against seven inputs chosen as places the text seemed open, which
+      led to the absent-or-null rule for resource_sha256 in
       Section 5.3.2 and to the conformance vectors recorded for his
       inputs; independently reproduced babyblueviper1's cold-build test
       suite; checked that suite's reported conditions name for name
