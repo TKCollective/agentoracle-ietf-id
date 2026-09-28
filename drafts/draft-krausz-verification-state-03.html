@@ -1395,6 +1395,9 @@ li > p:last-of-type:only-child {
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.4.2.1">
                     <p id="section-toc.1-1.5.2.4.2.1.1"><a href="#section-5.4.1" class="auto internal xref">5.4.1</a>.  <a href="#name-evidence-set-resolution-ste" class="internal xref">Evidence-Set Resolution Step</a></p>
 </li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.4.2.2">
+                    <p id="section-toc.1-1.5.2.4.2.2.1"><a href="#section-5.4.2" class="auto internal xref">5.4.2</a>.  <a href="#name-signature-key-resolution-an" class="internal xref">Signature-Key Resolution and Trust-Set Completeness</a></p>
+</li>
                 </ul>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.5">
@@ -1988,10 +1991,17 @@ li > p:last-of-type:only-child {
         <h3 id="name-verification-protocol">
 <a href="#section-5.4" class="section-number selfRef">5.4. </a><a href="#name-verification-protocol" class="section-name selfRef">Verification Protocol</a>
         </h3>
-<p id="section-5.4-1">A relying party verifying a receipt MUST execute the following sequence and treat any failure as a malformed receipt with gate decision <code>halt</code>:<a href="#section-5.4-1" class="pilcrow">¶</a></p>
+<p id="section-5.4-1">A relying party verifying a receipt MUST execute the following sequence. Any check that runs and fails makes the receipt malformed, with gate decision <code>halt</code>. Step 1's unresolved-key and refusal outcomes (<a href="#key-resolution" class="auto internal xref">Section 5.4.2</a>) also halt, but are not malformed and are not failed checks:<a href="#section-5.4-1" class="pilcrow">¶</a></p>
 <div class="lang-text sourcecode" id="section-5.4-2">
-<pre>1. Verify JWS signature against issuer's published JWKS
-   (RFC 7515).
+<pre>1. Resolve kid in the trust material the relying party
+   supplied (Section 5.4.2). If a key resolves, verify the
+   JWS signature with it (RFC 7515): the step reports
+   signature_verified, or signature_invalid, which is
+   malformed; gate decision = halt. If no key resolves, the
+   step reports key_unresolved and yields no check result;
+   if the relying party declared its trust material
+   complete, the receipt is also refused under that policy.
+   Either way gate decision = halt and evaluation stops.
 2. Resolve v_gate_mapping -&gt; fetch the named immutable
    mapping document. MUST verify the SHA-256 digest of the
    fetched document matches v_gate_mapping_hash (hex-encoded).
@@ -2285,6 +2295,69 @@ li > p:last-of-type:only-child {
 </div>
 </section>
 </div>
+<div id="key-resolution">
+<section id="section-5.4.2">
+          <h4 id="name-signature-key-resolution-an">
+<a href="#section-5.4.2" class="section-number selfRef">5.4.2. </a><a href="#name-signature-key-resolution-an" class="section-name selfRef">Signature-Key Resolution and Trust-Set Completeness</a>
+          </h4>
+<p id="section-5.4.2-1">Step 1 of <a href="#verification-protocol" class="auto internal xref">Section 5.4</a> has three outcomes, and a relying party MUST NOT conflate them:<a href="#section-5.4.2-1" class="pilcrow">¶</a></p>
+<ol start="1" type="a" class="normal type-a" id="section-5.4.2-2">
+<li id="section-5.4.2-2.1">
+              <strong>Key unresolved</strong> (<code>key_unresolved</code>). The receipt's <code>kid</code> does not resolve to a key in the trust material the relying party supplied, so no cryptographic check ran. This is not a finding about the receipt: it MUST NOT be reported as malformed or as a failed signature, and it MUST NOT yield a resolved or passing result.<a href="#section-5.4.2-2.1" class="pilcrow">¶</a>
+</li>
+            <li id="section-5.4.2-2.2">
+              <strong>Policy refusal.</strong> The relying party declared its trust material complete, and <code>kid</code> does not resolve in it. The step reports <code>key_unresolved</code>, and the receipt is also refused under the relying party's own policy. The refusal is a disposition, not a check result and not a token of this step: it records what the relying party decided, not what the receipt is.<a href="#section-5.4.2-2.2" class="pilcrow">¶</a>
+</li>
+            <li id="section-5.4.2-2.3">
+              <strong>Signature failure</strong> (<code>signature_invalid</code>). A key resolved, the signature was checked, and it failed. This is a finding about the receipt: malformed; gate decision = halt.<a href="#section-5.4.2-2.3" class="pilcrow">¶</a>
+</li>
+          </ol>
+<p id="section-5.4.2-3">When a key resolves and the signature verifies, the step reports <code>signature_verified</code> and evaluation continues with step 2.<a href="#section-5.4.2-3" class="pilcrow">¶</a></p>
+<p id="section-5.4.2-4"><strong>Completeness input.</strong> A verifier MUST take an explicit relying-party input stating whether the supplied trust material is complete. The default is "not complete", and omitting the input is never a declaration of completeness. This document does not name the input. Declaring completeness turns (a) into (b) and nothing else: it never turns (c) into a refusal, and omitting it never turns (c) into (a). An unresolved key MUST NOT be counted as a failed cryptographic check in any count, summary, or conformance comparison. The distinction MUST be carried into whatever the verifier reports, displays, summarizes, or forwards.<a href="#section-5.4.2-4" class="pilcrow">¶</a></p>
+<p id="section-5.4.2-5"><strong>Gate.</strong> All three outcomes halt under <a href="#fail-closed-mandate" class="auto internal xref">Section 6.3</a>, because a receipt whose signature was not verified establishes nothing a gate can act on. They differ in what is reported, not in the gate decision. Step 7's <code>unknown</code> does not halt because it is reached only after step 1 has verified the signature.<a href="#section-5.4.2-5" class="pilcrow">¶</a></p>
+<p id="section-5.4.2-6">These outcomes describe the relying party's verification of the receipt, not the claim, and are not reported using the states of <a href="#the-four-states" class="auto internal xref">Section 3.1</a>; as with the evidence-set step, the step reports its own tokens.<a href="#section-5.4.2-6" class="pilcrow">¶</a></p>
+<p id="section-5.4.2-7">The split between keys a relying party happens to hold and a list it declares complete is Roberto Locatelli's (x402 TSC issue #4, 2026-09-24). Related discussion is in SCITT architecture issue #462; this document does not adopt the field names used there.<a href="#section-5.4.2-7" class="pilcrow">¶</a></p>
+<p id="section-5.4.2-8">The tokens defined for step 1 are:<a href="#section-5.4.2-8" class="pilcrow">¶</a></p>
+<span id="name-step-1-tokens"></span><div id="key-resolution-tokens">
+<table class="center" id="table-3">
+            <caption>
+<a href="#table-3" class="selfRef">Table 3</a>:
+<a href="#name-step-1-tokens" class="selfRef">Step-1 tokens</a>
+            </caption>
+<thead>
+              <tr>
+                <th class="text-left" rowspan="1" colspan="1">Name</th>
+                <th class="text-left" rowspan="1" colspan="1">Defined in section</th>
+                <th class="text-left" rowspan="1" colspan="1">Outcome</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">
+                  <code>signature_verified</code>
+</td>
+                <td class="text-left" rowspan="1" colspan="1">5.4.2</td>
+                <td class="text-left" rowspan="1" colspan="1">continue to step 2</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">
+                  <code>key_unresolved</code>
+</td>
+                <td class="text-left" rowspan="1" colspan="1">5.4.2 (a), (b)</td>
+                <td class="text-left" rowspan="1" colspan="1">halt; not malformed</td>
+              </tr>
+              <tr>
+                <td class="text-left" rowspan="1" colspan="1">
+                  <code>signature_invalid</code>
+</td>
+                <td class="text-left" rowspan="1" colspan="1">5.4.2 (c)</td>
+                <td class="text-left" rowspan="1" colspan="1">malformed; halt</td>
+              </tr>
+            </tbody>
+          </table>
+</div>
+</section>
+</div>
 </section>
 </div>
 <div id="claim-binding">
@@ -2381,8 +2454,8 @@ li > p:last-of-type:only-child {
 <a href="#section-6.1" class="section-number selfRef">6.1. </a><a href="#name-decision-table" class="section-name selfRef">Decision Table</a>
         </h3>
 <p id="section-6.1-1">The reference mapping <code>v0.3.0-2026-05-30</code> defines the following decision table, restated against this revision's four-state vocabulary. Future mappings MAY tighten or extend this table; the structural shape (binary act/halt output derived from canonical recommendation) MUST be preserved. The recommendation and gate vocabulary (<code>confident_supported</code>, <code>un_probed_not_cleared</code>, and so on) is unchanged from <code>draft-krausz-verification-state-01</code> in this revision; see <a href="#open-issues" class="auto internal xref">Section 10</a>.<a href="#section-6.1-1" class="pilcrow">¶</a></p>
-<table class="center" id="table-3">
-          <caption><a href="#table-3" class="selfRef">Table 3</a></caption>
+<table class="center" id="table-4">
+          <caption><a href="#table-4" class="selfRef">Table 4</a></caption>
 <thead>
             <tr>
               <th class="text-left" rowspan="1" colspan="1">State</th>
@@ -2555,8 +2628,8 @@ li > p:last-of-type:only-child {
 <a href="#section-7.1" class="section-number selfRef">7.1. </a><a href="#name-three-independent-axes" class="section-name selfRef">Three Independent Axes</a>
         </h3>
 <p id="section-7.1-1">Verification receipts have three independent staleness axes, each with its own validity window:<a href="#section-7.1-1" class="pilcrow">¶</a></p>
-<table class="center" id="table-4">
-          <caption><a href="#table-4" class="selfRef">Table 4</a></caption>
+<table class="center" id="table-5">
+          <caption><a href="#table-5" class="selfRef">Table 5</a></caption>
 <thead>
             <tr>
               <th class="text-left" rowspan="1" colspan="1">Axis</th>

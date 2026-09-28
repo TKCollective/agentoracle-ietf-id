@@ -91,7 +91,7 @@ Copyright Notice
 
 Table of Contents
 
-   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   3
+   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   4
      1.1.  Requirements Language . . . . . . . . . . . . . . . . . .   5
      1.2.  Scope . . . . . . . . . . . . . . . . . . . . . . . . . .   5
    2.  Terminology . . . . . . . . . . . . . . . . . . . . . . . . .   5
@@ -99,13 +99,13 @@ Table of Contents
      3.1.  The Four States and the Capture Relationship  . . . . . .   7
        3.1.1.  Enumerating the Negatives Behind an Indeterminate
                Count . . . . . . . . . . . . . . . . . . . . . . . .   9
-     3.2.  The Subject Clause  . . . . . . . . . . . . . . . . . . .  10
+     3.2.  The Subject Clause  . . . . . . . . . . . . . . . . . . .   9
      3.3.  Admissibility as a Gate, Not a State  . . . . . . . . . .  10
    4.  The verification.* Constraint Family  . . . . . . . . . . . .  10
      4.1.  Sibling-not-Member Relationship to environment.*  . . . .  10
      4.2.  Composition Rules . . . . . . . . . . . . . . . . . . . .  11
    5.  Receipt Format  . . . . . . . . . . . . . . . . . . . . . . .  11
-     5.1.  JWS Envelope  . . . . . . . . . . . . . . . . . . . . . .  12
+     5.1.  JWS Envelope  . . . . . . . . . . . . . . . . . . . . . .  11
 
 
 
@@ -114,45 +114,61 @@ Krausz                    Expires 26 March 2027                 [Page 2]
 Internet-Draft            verification.* family           September 2026
 
 
-     5.2.  Payload Claims --- Canonical, Derived, Mapping-Bound  . .  12
-     5.3.  Evidence Pinning  . . . . . . . . . . . . . . . . . . . .  14
+     5.2.  Payload Claims --- Canonical, Derived, Mapping-Bound  . .  11
+     5.3.  Evidence Pinning  . . . . . . . . . . . . . . . . . . . .  13
        5.3.1.  The evidence_set Member . . . . . . . . . . . . . . .  14
-       5.3.2.  Source Entries  . . . . . . . . . . . . . . . . . . .  16
-       5.3.3.  Evidence Root Construction  . . . . . . . . . . . . .  19
+       5.3.2.  Source Entries  . . . . . . . . . . . . . . . . . . .  15
+       5.3.3.  Evidence Root Construction  . . . . . . . . . . . . .  18
        5.3.4.  What an Evidence Set Does Not Establish . . . . . . .  20
        5.3.5.  Independence  . . . . . . . . . . . . . . . . . . . .  21
-     5.4.  Verification Protocol . . . . . . . . . . . . . . . . . .  22
+     5.4.  Verification Protocol . . . . . . . . . . . . . . . . . .  21
        5.4.1.  Evidence-Set Resolution Step  . . . . . . . . . . . .  22
-     5.5.  Claim Binding . . . . . . . . . . . . . . . . . . . . . .  27
-     5.6.  Receipt Envelope Example  . . . . . . . . . . . . . . . .  27
-     5.7.  Version-Binding Rationale . . . . . . . . . . . . . . . .  29
-   6.  Binary-Halt Gate Semantics  . . . . . . . . . . . . . . . . .  29
-     6.1.  Decision Table  . . . . . . . . . . . . . . . . . . . . .  29
-     6.2.  Threshold Rules . . . . . . . . . . . . . . . . . . . . .  31
-     6.3.  Fail-Closed Mandate . . . . . . . . . . . . . . . . . . .  31
-   7.  Multi-Axis Freshness  . . . . . . . . . . . . . . . . . . . .  31
-     7.1.  Three Independent Axes  . . . . . . . . . . . . . . . . .  31
-     7.2.  Staleness Semantics . . . . . . . . . . . . . . . . . . .  32
-   8.  Calibration Anchor Requirements . . . . . . . . . . . . . . .  32
-     8.1.  Reproducibility Mandate . . . . . . . . . . . . . . . . .  33
-     8.2.  Drift Detection . . . . . . . . . . . . . . . . . . . . .  33
-   9.  Relationship to Related Work  . . . . . . . . . . . . . . . .  33
-     9.1.  SCITT . . . . . . . . . . . . . . . . . . . . . . . . . .  33
-     9.2.  Relationship to Decision Records  . . . . . . . . . . . .  34
-     9.3.  RATS  . . . . . . . . . . . . . . . . . . . . . . . . . .  34
-     9.4.  W3C VC Confidence Method  . . . . . . . . . . . . . . . .  34
-     9.5.  VAP Framework . . . . . . . . . . . . . . . . . . . . . .  34
-     9.6.  Mastercard Verifiable Intent (environment.*)  . . . . . .  35
-     9.7.  Differentiator Summary  . . . . . . . . . . . . . . . . .  35
-   10. Open Issues . . . . . . . . . . . . . . . . . . . . . . . . .  35
-   11. Security Considerations . . . . . . . . . . . . . . . . . . .  37
+       5.4.2.  Signature-Key Resolution and Trust-Set
+               Completeness  . . . . . . . . . . . . . . . . . . . .  27
+     5.5.  Claim Binding . . . . . . . . . . . . . . . . . . . . . .  28
+     5.6.  Receipt Envelope Example  . . . . . . . . . . . . . . . .  29
+     5.7.  Version-Binding Rationale . . . . . . . . . . . . . . . .  30
+   6.  Binary-Halt Gate Semantics  . . . . . . . . . . . . . . . . .  30
+     6.1.  Decision Table  . . . . . . . . . . . . . . . . . . . . .  30
+     6.2.  Threshold Rules . . . . . . . . . . . . . . . . . . . . .  32
+     6.3.  Fail-Closed Mandate . . . . . . . . . . . . . . . . . . .  32
+   7.  Multi-Axis Freshness  . . . . . . . . . . . . . . . . . . . .  32
+     7.1.  Three Independent Axes  . . . . . . . . . . . . . . . . .  32
+     7.2.  Staleness Semantics . . . . . . . . . . . . . . . . . . .  33
+   8.  Calibration Anchor Requirements . . . . . . . . . . . . . . .  33
+     8.1.  Reproducibility Mandate . . . . . . . . . . . . . . . . .  34
+     8.2.  Drift Detection . . . . . . . . . . . . . . . . . . . . .  34
+   9.  Relationship to Related Work  . . . . . . . . . . . . . . . .  34
+     9.1.  SCITT . . . . . . . . . . . . . . . . . . . . . . . . . .  34
+     9.2.  Relationship to Decision Records  . . . . . . . . . . . .  35
+     9.3.  RATS  . . . . . . . . . . . . . . . . . . . . . . . . . .  35
+     9.4.  W3C VC Confidence Method  . . . . . . . . . . . . . . . .  35
+     9.5.  VAP Framework . . . . . . . . . . . . . . . . . . . . . .  35
+     9.6.  Mastercard Verifiable Intent (environment.*)  . . . . . .  36
+     9.7.  Differentiator Summary  . . . . . . . . . . . . . . . . .  36
+   10. Open Issues . . . . . . . . . . . . . . . . . . . . . . . . .  36
+   11. Security Considerations . . . . . . . . . . . . . . . . . . .  38
      11.1.  Composition Non-Interference with environment.*
-            Family . . . . . . . . . . . . . . . . . . . . . . . . .  37
-     11.2.  Other Security Considerations  . . . . . . . . . . . . .  38
-   12. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  39
-   13. Informative References  . . . . . . . . . . . . . . . . . . .  39
-   Acknowledgments . . . . . . . . . . . . . . . . . . . . . . . . .  41
-   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  43
+            Family . . . . . . . . . . . . . . . . . . . . . . . . .  38
+     11.2.  Other Security Considerations  . . . . . . . . . . . . .  39
+   12. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  40
+   13. Informative References  . . . . . . . . . . . . . . . . . . .  40
+   Acknowledgments . . . . . . . . . . . . . . . . . . . . . . . . .  42
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  44
+
+
+
+
+
+
+
+
+
+
+Krausz                    Expires 26 March 2027                 [Page 3]
+
+Internet-Draft            verification.* family           September 2026
+
 
 1.  Introduction
 
@@ -162,14 +178,6 @@ Internet-Draft            verification.* family           September 2026
    regulatory report.  Each action is preceded by a factual claim the
    agent believes to be true.  Today, the infrastructure verifying
    whether the claim is true _before_ the agent acts on it is fragmented
-
-
-
-Krausz                    Expires 26 March 2027                 [Page 3]
-
-Internet-Draft            verification.* family           September 2026
-
-
    across operator logs (after-the-fact), confidence scores (soft
    signals), and ad-hoc validation pipelines (not interoperable).
 
@@ -206,14 +214,6 @@ Internet-Draft            verification.* family           September 2026
    skipped: rule changes silently invalidate or mis-verify old
    artifacts.
 
-   This document is complementary to security frameworks for AI agent
-   deployment, including the Zero Trust framework for AI Agents
-   published by Anthropic in May 2026 [ANTHROPIC-ZT], which names
-   decision explainability as non-optional for regulated AI systems.
-   The verification.* constraint family is one credible artifact shape
-   for satisfying that explainability requirement.
-
-
 
 
 
@@ -225,6 +225,13 @@ Krausz                    Expires 26 March 2027                 [Page 4]
 
 Internet-Draft            verification.* family           September 2026
 
+
+   This document is complementary to security frameworks for AI agent
+   deployment, including the Zero Trust framework for AI Agents
+   published by Anthropic in May 2026 [ANTHROPIC-ZT], which names
+   decision explainability as non-optional for regulated AI systems.
+   The verification.* constraint family is one credible artifact shape
+   for satisfying that explainability requirement.
 
 1.1.  Requirements Language
 
@@ -265,13 +272,6 @@ Internet-Draft            verification.* family           September 2026
    *Calibration anchor* --- The dataset and seed defining confidence
    semantics for the verifier's pipeline.
 
-   *Multi-axis freshness* --- Signature, calibration, and evidence each
-   carry independent staleness exposure.  As of this revision the
-   evidence axis is computed from evidence_set.retrieved_at rather than
-   from a separately declared validity window; see Section 7.
-
-
-
 
 
 
@@ -281,6 +281,11 @@ Krausz                    Expires 26 March 2027                 [Page 5]
 
 Internet-Draft            verification.* family           September 2026
 
+
+   *Multi-axis freshness* --- Signature, calibration, and evidence each
+   carry independent staleness exposure.  As of this revision the
+   evidence axis is computed from evidence_set.retrieved_at rather than
+   from a separately declared validity window; see Section 7.
 
    *State (raw)* --- One of verified, contradicted, indeterminate,
    not_evaluated.  See Section 3 for the full vocabulary, its reason
@@ -324,11 +329,6 @@ Internet-Draft            verification.* family           September 2026
    items considered during one verification, together with the metadata
    that makes it recomputable.
 
-   *Pinned* --- An evidence item is pinned when the receipt carries a
-   digest of the retrieved content, such that a verifier holding the
-   same content can confirm it is the content that was judged.  An item
-   carrying a URI alone is *not* pinned.
-
 
 
 
@@ -337,6 +337,11 @@ Krausz                    Expires 26 March 2027                 [Page 6]
 
 Internet-Draft            verification.* family           September 2026
 
+
+   *Pinned* --- An evidence item is pinned when the receipt carries a
+   digest of the retrieved content, such that a verifier holding the
+   same content can confirm it is the content that was judged.  An item
+   carrying a URI alone is *not* pinned.
 
    *Offline recomputation* --- Re-derivation of a verification outcome
    from the receipt, the referenced mapping document, and the pinned
@@ -381,11 +386,6 @@ Internet-Draft            verification.* family           September 2026
    what was captured; the state is the record of what capturing it
    established.
 
-   *Instrument failure.* A verifier reporting any of the four states
-   MUST distinguish reaching that state through evaluation from failing
-   to evaluate because the verifier's own instrument failed.  An
-   implementation that could not complete its check --- a timeout, a
-   crashed dependency, a malformed internal input --- MUST NOT report
 
 
 
@@ -394,6 +394,11 @@ Krausz                    Expires 26 March 2027                 [Page 7]
 Internet-Draft            verification.* family           September 2026
 
 
+   *Instrument failure.* A verifier reporting any of the four states
+   MUST distinguish reaching that state through evaluation from failing
+   to evaluate because the verifier's own instrument failed.  An
+   implementation that could not complete its check --- a timeout, a
+   crashed dependency, a malformed internal input --- MUST NOT report
    indeterminate or any other state as though it were a substantive
    finding.  It MUST report the state the observation would otherwise
    carry (typically not_evaluated, or indeterminate where a partial
@@ -419,37 +424,6 @@ Internet-Draft            verification.* family           September 2026
    interchangeable, and collapsing them discards exactly the distinction
    this section exists to preserve.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Krausz                    Expires 26 March 2027                 [Page 8]
-
-Internet-Draft            verification.* family           September 2026
-
-
    *Public check of this vocabulary.* babyblueviper1 published a black-
    box check of a live verifier (his implementation, invinoveritas, at
    its /verify-proof route) against these states, with a README
@@ -468,6 +442,14 @@ Internet-Draft            verification.* family           September 2026
    makes the verifier raise inside its own evaluation and marks the
    response as fault-injected.  That fifth case shows, from outside,
    that the live verifier maps an internal exception to not_evaluated
+
+
+
+Krausz                    Expires 26 March 2027                 [Page 8]
+
+Internet-Draft            verification.* family           September 2026
+
+
    with instrument_failure rather than to a finding about the input; it
    does not show that every internal failure is caught.  A genuine
    library exception is covered by the server-side unit test quoted in
@@ -495,17 +477,6 @@ Internet-Draft            verification.* family           September 2026
    absence as appropriate rather than folded into a substantive
    contradicted or indeterminate count.
 
-
-
-
-
-
-
-Krausz                    Expires 26 March 2027                 [Page 9]
-
-Internet-Draft            verification.* family           September 2026
-
-
 3.2.  The Subject Clause
 
    The subject of a state carrying an open attribution question between
@@ -524,6 +495,16 @@ Internet-Draft            verification.* family           September 2026
    therefore applies to indeterminate and contradicted reports carrying
    an unresolved artifact-vs-evaluator question exactly as it applies to
    not_evaluated.
+
+
+
+
+
+
+Krausz                    Expires 26 March 2027                 [Page 9]
+
+Internet-Draft            verification.* family           September 2026
+
 
 3.3.  Admissibility as a Gate, Not a State
 
@@ -554,14 +535,6 @@ Internet-Draft            verification.* family           September 2026
        +-----------+----------------------+-----------------------+
        | Freshness | Single TTL           | Multi-axis            |
        +-----------+----------------------+-----------------------+
-
-
-
-Krausz                    Expires 26 March 2027                [Page 10]
-
-Internet-Draft            verification.* family           September 2026
-
-
        | Gate      | Binary halt          | Binary halt           |
        | shape     |                      |                       |
        +-----------+----------------------+-----------------------+
@@ -581,6 +554,14 @@ Internet-Draft            verification.* family           September 2026
    of the world (state matches or does not, with a fixed-semantic
    threshold), while verification.* attests an irreducibly probabilistic
    statement about a proposition (calibration-anchored confidence over a
+
+
+
+Krausz                    Expires 26 March 2027                [Page 10]
+
+Internet-Draft            verification.* family           September 2026
+
+
    claim, with a mapping-versioned threshold).  Both produce the same
    binary gate output; they differ in what kind of fact the threshold is
    being applied to.  This split is structural: the receipt envelope,
@@ -603,20 +584,6 @@ Internet-Draft            verification.* family           September 2026
    property this ordering provides.
 
 5.  Receipt Format
-
-
-
-
-
-
-
-
-
-
-Krausz                    Expires 26 March 2027                [Page 11]
-
-Internet-Draft            verification.* family           September 2026
-
 
 5.1.  JWS Envelope
 
@@ -644,6 +611,13 @@ Internet-Draft            verification.* family           September 2026
    The payload signs three structurally distinct field groups plus their
    bindings.
 
+
+
+Krausz                    Expires 26 March 2027                [Page 11]
+
+Internet-Draft            verification.* family           September 2026
+
+
    *Canonical input (signed primitives):*
 
    *  v_verdict (string, REQUIRED) --- One of verified, contradicted,
@@ -662,18 +636,6 @@ Internet-Draft            verification.* family           September 2026
       instrument_failure (available under any state), or, when v_verdict
       is indeterminate and the reason is not instrument_failure, exactly
       one of divergence or absence.
-
-
-
-
-
-
-
-Krausz                    Expires 26 March 2027                [Page 12]
-
-Internet-Draft            verification.* family           September 2026
-
-
    *  v_subject (string, REQUIRED when v_verdict carries an open
       attribution question per Section 3.2, OPTIONAL otherwise) ---
       Names the specific observation the state describes, so that the
@@ -702,6 +664,16 @@ Internet-Draft            verification.* family           September 2026
       published mapping document used at issuance (e.g.,
       v0.3.0-2026-05-30).  The mapping document is immutable after
       publication; future revisions ship as new identifiers.
+
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 12]
+
+Internet-Draft            verification.* family           September 2026
+
+
    *  v_gate_mapping_hash (string, REQUIRED) --- SHA-256 hex digest of
       the canonical serialization of the mapping document identified by
       v_gate_mapping.  MUST be present in every receipt.  Receipts MUST
@@ -717,19 +689,6 @@ Internet-Draft            verification.* family           September 2026
       identifier.
    *  v_calibration (object, OPTIONAL) --- Calibration anchor metadata.
       See Section 8.
-
-
-
-
-
-
-
-
-Krausz                    Expires 26 March 2027                [Page 13]
-
-Internet-Draft            verification.* family           September 2026
-
-
    *  v_sources_used (array of strings, DEPRECATED) --- Source labels
       actually consulted in this evaluation.  Deprecated by this
       revision in favor of evidence_set.sources (Section 5.3), which
@@ -763,6 +722,14 @@ Internet-Draft            verification.* family           September 2026
    record of it.  This section closes that gap by letting a receipt
    carry a content-addressed evidence_set.  Throughout, the evidence
    block states what was judged; it never states what the judgment was
+
+
+
+Krausz                    Expires 26 March 2027                [Page 13]
+
+Internet-Draft            verification.* family           September 2026
+
+
    --- v_verdict and its reason code are untouched by anything in this
    section.
 
@@ -778,14 +745,6 @@ Internet-Draft            verification.* family           September 2026
       defines "ao-evidence-set-v1".  MUST be present and a string; a
       value that is absent, null, or not a string is malformed; gate
       decision = halt; reported condition
-
-
-
-Krausz                    Expires 26 March 2027                [Page 14]
-
-Internet-Draft            verification.* family           September 2026
-
-
       evidence_set_version_absent_or_not_string.  A string naming a
       version the verifier does not implement is not malformed;
       Section 5.4.1 paragraph (h) resolves it.
@@ -820,6 +779,13 @@ Internet-Draft            verification.* family           September 2026
       from this derivation is malformed; gate decision = halt; reported
       condition fully_pinned_mismatch.
 
+
+
+Krausz                    Expires 26 March 2027                [Page 14]
+
+Internet-Draft            verification.* family           September 2026
+
+
    evidence_root (string or null):
       Merkle root over the pinned items per Section 5.3.3, or null when
       pinned_count is zero.  MUST be non-null when pinned_count is
@@ -834,13 +800,6 @@ Internet-Draft            verification.* family           September 2026
       decision = halt; reported condition evidence_set_names_no_sources.
       A sources member that is present but not an array is malformed;
       gate decision = halt; reported condition sources_not_array.
-
-
-
-Krausz                    Expires 26 March 2027                [Page 15]
-
-Internet-Draft            verification.* family           September 2026
-
 
    fully_pinned is stated rather than left to be derived, so a reader
    can determine that a set is partial without recounting the array.
@@ -871,6 +830,18 @@ Internet-Draft            verification.* family           September 2026
    Each entry in sources MUST be an object (reported condition on
    violation: source_entry_not_object) with:
 
+
+
+
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 15]
+
+Internet-Draft            verification.* family           September 2026
+
+
    url (string, REQUIRED):
       The URI used for retrieval, carried without normalization --- no
       case folding, percent-encoding changes, query reordering, or
@@ -890,14 +861,6 @@ Internet-Draft            verification.* family           September 2026
       (snippet_sha256_absent_when_pinned); on an unpinned entry, an
       absent member (snippet_sha256_member_absent); on an unpinned
       entry, a non-null value (snippet_sha256_present_when_unpinned),
-
-
-
-Krausz                    Expires 26 March 2027                [Page 16]
-
-Internet-Draft            verification.* family           September 2026
-
-
       because a digest on an entry that declares no content bytes were
       received contradicts that declaration; and a non-null value that
       is not exactly 64 lowercase hexadecimal characters
@@ -927,6 +890,14 @@ Internet-Draft            verification.* family           September 2026
    pinned (boolean, REQUIRED):
       MUST be exactly the JSON value true or false.  An entry where
       pinned is absent, null, or of any type other than boolean is
+
+
+
+Krausz                    Expires 26 March 2027                [Page 16]
+
+Internet-Draft            verification.* family           September 2026
+
+
       malformed; gate decision = halt; reported condition
       pinned_absent_or_not_boolean.  This closes the domain to exactly
       two values before any rule in this document that ranges "over
@@ -946,14 +917,6 @@ Internet-Draft            verification.* family           September 2026
    resource_sha256 (string or absent/null, OPTIONAL):
       Digest of the full resource, where the full resource was also
       obtained.  Absent and null are equivalent (as for content_kind):
-
-
-
-Krausz                    Expires 26 March 2027                [Page 17]
-
-Internet-Draft            verification.* family           September 2026
-
-
       each records that no full-resource digest is carried, neither is
       malformed, and neither is a digest, so a null value is never
       evidence toward a resolved result.  A non-null value MUST be
@@ -983,6 +946,14 @@ Internet-Draft            verification.* family           September 2026
    pinning.  An item with pinned: false and no unpinned_reason, or a
    value outside the two-value domain above, is malformed; gate decision
    = halt; reported condition unpinned_reason_absent_or_invalid.  An
+
+
+
+Krausz                    Expires 26 March 2027                [Page 17]
+
+Internet-Draft            verification.* family           September 2026
+
+
    issuer that received content bytes for an item and declares either
    unpinned_reason value has signed a false statement: the format cannot
    verify possession from the receipt, but it converts selective pinning
@@ -1002,14 +973,6 @@ Internet-Draft            verification.* family           September 2026
    source_count.  For an unpinned entry snippet_sha256 is null and
    content_kind is absent, so those members distinguish nothing and url
    with retrieved_at decides; an absent member is not equal to a present
-
-
-
-Krausz                    Expires 26 March 2027                [Page 18]
-
-Internet-Draft            verification.* family           September 2026
-
-
    one.  A pinned entry and an unpinned entry sharing url and
    retrieved_at are, by the same rule, one retrieval recorded twice.
    Two entries sharing url, snippet_sha256, and content_kind and
@@ -1035,6 +998,18 @@ Internet-Draft            verification.* family           September 2026
 
    *Leaf.* For each pinned item, in the canonical order defined below:
 
+
+
+
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 18]
+
+Internet-Draft            verification.* family           September 2026
+
+
    leaf = SHA-256( "ao-evidence-leaf-v2" || 0x00
                    || url || 0x00
                    || snippet_sha256 || 0x00
@@ -1057,14 +1032,6 @@ Internet-Draft            verification.* family           September 2026
    node = SHA-256( "ao-evidence-node-v1" || 0x00
                    || left || 0x00
                    || right )
-
-
-
-
-Krausz                    Expires 26 March 2027                [Page 19]
-
-Internet-Draft            verification.* family           September 2026
-
 
    In the interior node, left and right are the 32 raw octets of the
    child digests, not their hexadecimal form.  This differs from the
@@ -1091,6 +1058,14 @@ Internet-Draft            verification.* family           September 2026
    in which a tree with a duplicated final leaf and a tree with that
    leaf genuinely present twice produce the same root.
 
+
+
+
+Krausz                    Expires 26 March 2027                [Page 19]
+
+Internet-Draft            verification.* family           September 2026
+
+
    *Canonical order.* Leaves are sorted ascending by url; where two
    entries share a url, by snippet_sha256; where they share both, by
    content_kind; and where they share all three, by retrieved_at.  All
@@ -1113,14 +1088,6 @@ Internet-Draft            verification.* family           September 2026
    A pinned evidence set establishes that specific content was
    considered and that a verifier holding the same bytes can confirm it
    is the content that was judged.  It establishes *nothing* about:
-
-
-
-
-Krausz                    Expires 26 March 2027                [Page 20]
-
-Internet-Draft            verification.* family           September 2026
-
 
    *  *Whether the source has since changed.* A pinned digest lets a
       later holder of bytes determine whether they hold the bytes that
@@ -1147,6 +1114,14 @@ Internet-Draft            verification.* family           September 2026
       declined from an issuer that never requested, and the receipt
       cannot be made to: both are the same fact about the issuer's
       possession.  This collapse is deliberate --- the possession rule
+
+
+
+Krausz                    Expires 26 March 2027                [Page 20]
+
+Internet-Draft            verification.* family           September 2026
+
+
       reaches only items for which bytes actually arrived, and an issuer
       that never requested a source it should have requested is outside
       what this format establishes.
@@ -1166,6 +1141,31 @@ Internet-Draft            verification.* family           September 2026
    values across differing method identifiers, and MUST NOT treat the
    absence of an independence member as a defect.
 
+5.4.  Verification Protocol
+
+   A relying party verifying a receipt MUST execute the following
+   sequence.  Any check that runs and fails makes the receipt malformed,
+   with gate decision halt.  Step 1's unresolved-key and refusal
+   outcomes (Section 5.4.2) also halt, but are not malformed and are not
+   failed checks:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1178,14 +1178,15 @@ Krausz                    Expires 26 March 2027                [Page 21]
 Internet-Draft            verification.* family           September 2026
 
 
-5.4.  Verification Protocol
-
-   A relying party verifying a receipt MUST execute the following
-   sequence and treat any failure as a malformed receipt with gate
-   decision halt:
-
-   1. Verify JWS signature against issuer's published JWKS
-      (RFC 7515).
+   1. Resolve kid in the trust material the relying party
+      supplied (Section 5.4.2). If a key resolves, verify the
+      JWS signature with it (RFC 7515): the step reports
+      signature_verified, or signature_invalid, which is
+      malformed; gate decision = halt. If no key resolves, the
+      step reports key_unresolved and yields no check result;
+      if the relying party declared its trust material
+      complete, the receipt is also refused under that policy.
+      Either way gate decision = halt and evaluation stops.
    2. Resolve v_gate_mapping -> fetch the named immutable
       mapping document. MUST verify the SHA-256 digest of the
       fetched document matches v_gate_mapping_hash (hex-encoded).
@@ -1225,7 +1226,6 @@ Internet-Draft            verification.* family           September 2026
    unknown, under the conditions stated below.  An implementation MUST
    emit one of these two tokens for the evidence-set step and MUST NOT
    emit any other value.
-
 
 
 
@@ -1467,6 +1467,83 @@ Internet-Draft            verification.* family           September 2026
 
                Table 2: Evidence-set conditions and reasons
 
+5.4.2.  Signature-Key Resolution and Trust-Set Completeness
+
+   Step 1 of Section 5.4 has three outcomes, and a relying party MUST
+   NOT conflate them:
+
+   a.  *Key unresolved* (key_unresolved).  The receipt's kid does not
+       resolve to a key in the trust material the relying party
+       supplied, so no cryptographic check ran.  This is not a finding
+       about the receipt: it MUST NOT be reported as malformed or as a
+       failed signature, and it MUST NOT yield a resolved or passing
+       result.
+
+   b.  *Policy refusal.* The relying party declared its trust material
+       complete, and kid does not resolve in it.  The step reports
+       key_unresolved, and the receipt is also refused under the relying
+       party's own policy.  The refusal is a disposition, not a check
+       result and not a token of this step: it records what the relying
+       party decided, not what the receipt is.
+
+   c.  *Signature failure* (signature_invalid).  A key resolved, the
+       signature was checked, and it failed.  This is a finding about
+       the receipt: malformed; gate decision = halt.
+
+   When a key resolves and the signature verifies, the step reports
+   signature_verified and evaluation continues with step 2.
+
+   *Completeness input.* A verifier MUST take an explicit relying-party
+   input stating whether the supplied trust material is complete.  The
+   default is "not complete", and omitting the input is never a
+   declaration of completeness.  This document does not name the input.
+   Declaring completeness turns (a) into (b) and nothing else: it never
+   turns (c) into a refusal, and omitting it never turns (c) into (a).
+   An unresolved key MUST NOT be counted as a failed cryptographic check
+   in any count, summary, or conformance comparison.  The distinction
+   MUST be carried into whatever the verifier reports, displays,
+   summarizes, or forwards.
+
+
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 27]
+
+Internet-Draft            verification.* family           September 2026
+
+
+   *Gate.* All three outcomes halt under Section 6.3, because a receipt
+   whose signature was not verified establishes nothing a gate can act
+   on.  They differ in what is reported, not in the gate decision.  Step
+   7's unknown does not halt because it is reached only after step 1 has
+   verified the signature.
+
+   These outcomes describe the relying party's verification of the
+   receipt, not the claim, and are not reported using the states of
+   Section 3.1; as with the evidence-set step, the step reports its own
+   tokens.
+
+   The split between keys a relying party happens to hold and a list it
+   declares complete is Roberto Locatelli's (x402 TSC issue #4,
+   2026-09-24).  Related discussion is in SCITT architecture issue #462;
+   this document does not adopt the field names used there.
+
+   The tokens defined for step 1 are:
+
+     +====================+====================+=====================+
+     | Name               | Defined in section | Outcome             |
+     +====================+====================+=====================+
+     | signature_verified | 5.4.2              | continue to step 2  |
+     +--------------------+--------------------+---------------------+
+     | key_unresolved     | 5.4.2 (a), (b)     | halt; not malformed |
+     +--------------------+--------------------+---------------------+
+     | signature_invalid  | 5.4.2 (c)          | malformed; halt     |
+     +--------------------+--------------------+---------------------+
+
+                           Table 3: Step-1 tokens
+
 5.5.  Claim Binding
 
    The verified claim MUST be bound to the receipt via v_claim:
@@ -1483,36 +1560,21 @@ Internet-Draft            verification.* family           September 2026
    caller's claim hash matches the issued receipt's bound hash without
    exposing the claim text.
 
+
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 28]
+
+Internet-Draft            verification.* family           September 2026
+
+
 5.6.  Receipt Envelope Example
 
    The following is a non-normative example of a receipt envelope
    payload illustrating the mandatory v_gate_mapping_hash binding
    alongside v_gate_mapping:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Krausz                    Expires 26 March 2027                [Page 27]
-
-Internet-Draft            verification.* family           September 2026
-
 
    {
      "iss": "https://verifier.example.com",
@@ -1555,6 +1617,15 @@ Internet-Draft            verification.* family           September 2026
      }
    }
 
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 29]
+
+Internet-Draft            verification.* family           September 2026
+
+
    The v_gate_mapping_hash field carries the hex-encoded SHA-256 digest
    of the canonical serialization of the mapping document identified by
    v_gate_mapping.  This field MUST be present in all conforming
@@ -1562,13 +1633,6 @@ Internet-Draft            verification.* family           September 2026
    evidence_set member is illustrative and OPTIONAL; the digest values
    shown are truncated placeholders, not computed values, and MUST NOT
    be used as test vectors.
-
-
-
-Krausz                    Expires 26 March 2027                [Page 28]
-
-Internet-Draft            verification.* family           September 2026
-
 
 5.7.  Version-Binding Rationale
 
@@ -1613,15 +1677,7 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-
-
-
-
-
-
-
-
-Krausz                    Expires 26 March 2027                [Page 29]
+Krausz                    Expires 26 March 2027                [Page 30]
 
 Internet-Draft            verification.* family           September 2026
 
@@ -1651,7 +1707,7 @@ Internet-Draft            verification.* family           September 2026
    | below)        |        |             |                       |    |
    +---------------+--------+-------------+-----------------------+----+
 
-                                  Table 3
+                                  Table 4
 
    Independent of the mapping table above: this revision requires that
    an issuer reporting v_reason_code: instrument_failure MUST derive
@@ -1677,7 +1733,7 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 30]
+Krausz                    Expires 26 March 2027                [Page 31]
 
 Internet-Draft            verification.* family           September 2026
 
@@ -1733,7 +1789,7 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 31]
+Krausz                    Expires 26 March 2027                [Page 32]
 
 Internet-Draft            verification.* family           September 2026
 
@@ -1758,7 +1814,7 @@ Internet-Draft            verification.* family           September 2026
      |             | level member is absent)     | calibration      |
      +-------------+-----------------------------+------------------+
 
-                                 Table 4
+                                 Table 5
 
    This revision anchors the evidence axis to evidence_set.retrieved_at
    rather than a separately declared valid_until. v_evidence and its
@@ -1789,7 +1845,7 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 32]
+Krausz                    Expires 26 March 2027                [Page 33]
 
 Internet-Draft            verification.* family           September 2026
 
@@ -1845,7 +1901,7 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 33]
+Krausz                    Expires 26 March 2027                [Page 34]
 
 Internet-Draft            verification.* family           September 2026
 
@@ -1901,7 +1957,7 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 34]
+Krausz                    Expires 26 March 2027                [Page 35]
 
 Internet-Draft            verification.* family           September 2026
 
@@ -1957,7 +2013,7 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 35]
+Krausz                    Expires 26 March 2027                [Page 36]
 
 Internet-Draft            verification.* family           September 2026
 
@@ -2013,7 +2069,7 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 36]
+Krausz                    Expires 26 March 2027                [Page 37]
 
 Internet-Draft            verification.* family           September 2026
 
@@ -2069,7 +2125,7 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 37]
+Krausz                    Expires 26 March 2027                [Page 38]
 
 Internet-Draft            verification.* family           September 2026
 
@@ -2125,7 +2181,7 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 38]
+Krausz                    Expires 26 March 2027                [Page 39]
 
 Internet-Draft            verification.* family           September 2026
 
@@ -2181,7 +2237,7 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 39]
+Krausz                    Expires 26 March 2027                [Page 40]
 
 Internet-Draft            verification.* family           September 2026
 
@@ -2237,7 +2293,7 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 40]
+Krausz                    Expires 26 March 2027                [Page 41]
 
 Internet-Draft            verification.* family           September 2026
 
@@ -2293,7 +2349,7 @@ Acknowledgments
 
 
 
-Krausz                    Expires 26 March 2027                [Page 41]
+Krausz                    Expires 26 March 2027                [Page 42]
 
 Internet-Draft            verification.* family           September 2026
 
@@ -2349,7 +2405,7 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 42]
+Krausz                    Expires 26 March 2027                [Page 43]
 
 Internet-Draft            verification.* family           September 2026
 
@@ -2405,4 +2461,4 @@ Author's Address
 
 
 
-Krausz                    Expires 26 March 2027                [Page 43]
+Krausz                    Expires 26 March 2027                [Page 44]

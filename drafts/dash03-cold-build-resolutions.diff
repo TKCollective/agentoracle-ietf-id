@@ -1,5 +1,5 @@
 --- drafts/draft-krausz-verification-state-02.xml	2026-09-24 16:14:38
-+++ drafts/draft-krausz-verification-state-03.xml	2026-09-28 13:49:46
++++ drafts/draft-krausz-verification-state-03.xml	2026-09-28 13:53:12
 @@ -1,9 +1,9 @@
  <?xml version="1.0" encoding="utf-8"?>
  <!-- name="GENERATOR" content="github.com/mmarkdown/mmark Mmark Markdown Processor - mmark.miek.nl" -->
@@ -83,7 +83,28 @@
  <t><strong>Interior node.</strong></t>
  <sourcecode type="text"><![CDATA[node = SHA-256( "ao-evidence-node-v1" || 0x00
                  || left || 0x00
-@@ -335,15 +337,56 @@
+@@ -296,10 +298,17 @@
+ </section>
+ 
+ <section anchor="verification-protocol"><name>Verification Protocol</name>
+-<t>A relying party verifying a receipt MUST execute the following sequence and treat any failure as a malformed receipt with gate decision <tt>halt</tt>:</t>
++<t>A relying party verifying a receipt MUST execute the following sequence. Any check that runs and fails makes the receipt malformed, with gate decision <tt>halt</tt>. Step 1's unresolved-key and refusal outcomes (<xref target="key-resolution"/>) also halt, but are not malformed and are not failed checks:</t>
+ 
+-<sourcecode type="text"><![CDATA[1. Verify JWS signature against issuer's published JWKS
+-   (RFC 7515).
++<sourcecode type="text"><![CDATA[1. Resolve kid in the trust material the relying party
++   supplied (Section 5.4.2). If a key resolves, verify the
++   JWS signature with it (RFC 7515): the step reports
++   signature_verified, or signature_invalid, which is
++   malformed; gate decision = halt. If no key resolves, the
++   step reports key_unresolved and yields no check result;
++   if the relying party declared its trust material
++   complete, the receipt is also refused under that policy.
++   Either way gate decision = halt and evaluation stops.
+ 2. Resolve v_gate_mapping -> fetch the named immutable
+    mapping document. MUST verify the SHA-256 digest of the
+    fetched document matches v_gate_mapping_hash (hex-encoded).
+@@ -335,15 +344,80 @@
  <t>A step defined in this document resolves to exactly one of two tokens: <tt>resolved</tt>, when the step's evidence requirements are met, or <tt>unknown</tt>, under the conditions stated below. An implementation MUST emit one of these two tokens for the evidence-set step and MUST NOT emit any other value.</t>
  <t>If the receipt carries an <tt>evidence_set</tt>, a relying party MUST resolve it as follows:</t>
  <ol spacing="compact" type="a">
@@ -142,10 +163,34 @@
 +<tr><td><tt>content_differs</tt></td><td>5.4.1 (d)</td><td>per-item reason</td></tr>
 +</tbody>
 +</table>
++</section>
++
++<section anchor="key-resolution"><name>Signature-Key Resolution and Trust-Set Completeness</name>
++<t>Step 1 of <xref target="verification-protocol"/> has three outcomes, and a relying party MUST NOT conflate them:</t>
++<ol spacing="normal" type="a">
++<li><strong>Key unresolved</strong> (<tt>key_unresolved</tt>). The receipt's <tt>kid</tt> does not resolve to a key in the trust material the relying party supplied, so no cryptographic check ran. This is not a finding about the receipt: it MUST NOT be reported as malformed or as a failed signature, and it MUST NOT yield a resolved or passing result.</li>
++<li><strong>Policy refusal.</strong> The relying party declared its trust material complete, and <tt>kid</tt> does not resolve in it. The step reports <tt>key_unresolved</tt>, and the receipt is also refused under the relying party's own policy. The refusal is a disposition, not a check result and not a token of this step: it records what the relying party decided, not what the receipt is.</li>
++<li><strong>Signature failure</strong> (<tt>signature_invalid</tt>). A key resolved, the signature was checked, and it failed. This is a finding about the receipt: malformed; gate decision = halt.</li>
++</ol>
++<t>When a key resolves and the signature verifies, the step reports <tt>signature_verified</tt> and evaluation continues with step 2.</t>
++<t><strong>Completeness input.</strong> A verifier MUST take an explicit relying-party input stating whether the supplied trust material is complete. The default is &quot;not complete&quot;, and omitting the input is never a declaration of completeness. This document does not name the input. Declaring completeness turns (a) into (b) and nothing else: it never turns (c) into a refusal, and omitting it never turns (c) into (a). An unresolved key MUST NOT be counted as a failed cryptographic check in any count, summary, or conformance comparison. The distinction MUST be carried into whatever the verifier reports, displays, summarizes, or forwards.</t>
++<t><strong>Gate.</strong> All three outcomes halt under <xref target="fail-closed-mandate"/>, because a receipt whose signature was not verified establishes nothing a gate can act on. They differ in what is reported, not in the gate decision. Step 7's <tt>unknown</tt> does not halt because it is reached only after step 1 has verified the signature.</t>
++<t>These outcomes describe the relying party's verification of the receipt, not the claim, and are not reported using the states of <xref target="the-four-states"/>; as with the evidence-set step, the step reports its own tokens.</t>
++<t>The split between keys a relying party happens to hold and a list it declares complete is Roberto Locatelli's (x402 TSC issue #4, 2026-09-24). Related discussion is in SCITT architecture issue #462; this document does not adopt the field names used there.</t>
++<t>The tokens defined for step 1 are:</t>
++<table anchor="key-resolution-tokens">
++<name>Step-1 tokens</name>
++<thead><tr><th>Name</th><th>Defined in section</th><th>Outcome</th></tr></thead>
++<tbody>
++<tr><td><tt>signature_verified</tt></td><td>5.4.2</td><td>continue to step 2</td></tr>
++<tr><td><tt>key_unresolved</tt></td><td>5.4.2 (a), (b)</td><td>halt; not malformed</td></tr>
++<tr><td><tt>signature_invalid</tt></td><td>5.4.2 (c)</td><td>malformed; halt</td></tr>
++</tbody>
++</table>
  </section>
  </section>
  
-@@ -615,8 +658,8 @@
+@@ -615,8 +689,8 @@
  <section anchor="open-issues"><name>Open Issues</name>
  <t>This section names what this revision does not settle, so that it is tracked rather than silently assumed resolved.</t>
  <ol spacing="compact">
@@ -156,7 +201,7 @@
  <li><strong>The pinned-and-unpinned duplicate-identity pair.</strong> A pinned entry and an unpinned entry sharing <tt>url</tt> and <tt>retrieved_at</tt> are treated as one retrieval recorded twice under the entry-distinctness rule of <xref target="evidence-set-sources"/>, but no conformance vector in the companion fixture corpus currently exercises that specific pair. Candidate for a future revision.</li>
  <li><strong>The recommendation and gate mapping vocabulary is unrenamed.</strong> <xref target="decision-table"/> maps the new four-state vocabulary onto <tt>draft-krausz-verification-state-01</tt>'s existing <tt>v_recommendation</tt> values (<tt>confident_supported</tt>, <tt>un_probed_not_cleared</tt>, and so on) one-for-one by position. Those values still read as though derived from a <tt>supported</tt>/<tt>refuted</tt> axis. Whether the recommendation layer should itself be restated in reason-code-aware terms is not resolved here.</li>
  <li><strong>REQUIRED members with a derivation fallback.</strong> <xref target="evidence-set-object"/> marks <tt>source_count</tt>, <tt>pinned_count</tt>, and <tt>fully_pinned</tt> as members of the <tt>evidence_set</tt> object while also specifying that a verifier MUST derive each from <tt>sources</tt> when it is absent. This document treats the two statements as compatible --- REQUIRED for the object's shape, with a stated fallback rather than a validation failure when an issuer omits one --- but a future revision should either soften the member table's language or state the fallback as the sole requirement.</li>
-@@ -638,6 +681,7 @@
+@@ -638,6 +712,7 @@
  <t><strong>Selective disclosure.</strong> Hash-only claim binding (<xref target="claim-binding"/>) permits PII-sensitive verification without exposing claim text in the receipt envelope.</t>
  <t><strong>Downgrade attacks.</strong> A future relying party MUST NOT accept a v0.3-spec receipt against a v0.4-spec gate. The receipt format version is implicitly bound by <tt>v_gate_mapping</tt>; mismatches between expected and signed mapping IDs are malformed-receipt conditions per <xref target="verification-protocol"/>.</t>
  <t><strong>Mapping document tampering.</strong> Receipts MUST bind to a content-addressed mapping via the <tt>v_gate_mapping_hash</tt> field (SHA-256). Mapping documents MUST be hosted such that the SHA-256 digest of the canonical serialization is stable and independently verifiable (e.g., at a content-addressed URL or via a git-tagged manifest). Verifier implementations MUST verify the SHA-256 digest of the fetched mapping document against <tt>v_gate_mapping_hash</tt> before use; a digest mismatch MUST result in gate decision <tt>halt</tt>. A relying party that cannot independently verify the mapping document's hash MUST treat the receipt as malformed.</t>
@@ -164,7 +209,7 @@
  </section>
  </section>
  
-@@ -733,11 +777,13 @@
+@@ -733,11 +808,13 @@
  <ul spacing="compact">
  <li><strong>Michael Msebenzi</strong> (headlessoracle/LembaGang) reconstructed the evidence-pinning rules by extending an existing implementation across revisions 6 through 8, identified the arithmetic and encoding defects recorded across the findings referenced in <xref target="evidence-pinning"/>, and independently reran cross-format verification of the composed receipt envelope to VALID after each correction. His work is the largest single source of the corrections this document incorporates, and is also the reason <xref target="open-issues"/> distinguishes confirmed-by-extension from a cold build.</li>
  <li><strong>Pote (poteshniy)</strong> identified the 3-of-5 pinned-evidence defect, proposed the <tt>signed_only</tt>-to-<tt>bytes_attested</tt> rename adopted in the evidence-pinning rules, signed off on revision 7, and separately reviewed the v0.4 extension queue, surfacing the optional-<tt>typ</tt>, filtered-canonicalization, attacker-selected-snapshot, unsigned-anchor, underspecified-proof, and null-ambiguity findings that shaped the sealed-evidence review branch.</li>

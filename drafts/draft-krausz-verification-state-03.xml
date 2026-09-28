@@ -298,10 +298,17 @@
 </section>
 
 <section anchor="verification-protocol"><name>Verification Protocol</name>
-<t>A relying party verifying a receipt MUST execute the following sequence and treat any failure as a malformed receipt with gate decision <tt>halt</tt>:</t>
+<t>A relying party verifying a receipt MUST execute the following sequence. Any check that runs and fails makes the receipt malformed, with gate decision <tt>halt</tt>. Step 1's unresolved-key and refusal outcomes (<xref target="key-resolution"/>) also halt, but are not malformed and are not failed checks:</t>
 
-<sourcecode type="text"><![CDATA[1. Verify JWS signature against issuer's published JWKS
-   (RFC 7515).
+<sourcecode type="text"><![CDATA[1. Resolve kid in the trust material the relying party
+   supplied (Section 5.4.2). If a key resolves, verify the
+   JWS signature with it (RFC 7515): the step reports
+   signature_verified, or signature_invalid, which is
+   malformed; gate decision = halt. If no key resolves, the
+   step reports key_unresolved and yields no check result;
+   if the relying party declared its trust material
+   complete, the receipt is also refused under that policy.
+   Either way gate decision = halt and evaluation stops.
 2. Resolve v_gate_mapping -> fetch the named immutable
    mapping document. MUST verify the SHA-256 digest of the
    fetched document matches v_gate_mapping_hash (hex-encoded).
@@ -385,6 +392,30 @@
 <tr><td><tt>content_matches</tt></td><td>5.4.1 (d)</td><td>per-item reason</td></tr>
 <tr><td><tt>content_not_held</tt></td><td>5.4.1 (d)</td><td>per-item reason</td></tr>
 <tr><td><tt>content_differs</tt></td><td>5.4.1 (d)</td><td>per-item reason</td></tr>
+</tbody>
+</table>
+</section>
+
+<section anchor="key-resolution"><name>Signature-Key Resolution and Trust-Set Completeness</name>
+<t>Step 1 of <xref target="verification-protocol"/> has three outcomes, and a relying party MUST NOT conflate them:</t>
+<ol spacing="normal" type="a">
+<li><strong>Key unresolved</strong> (<tt>key_unresolved</tt>). The receipt's <tt>kid</tt> does not resolve to a key in the trust material the relying party supplied, so no cryptographic check ran. This is not a finding about the receipt: it MUST NOT be reported as malformed or as a failed signature, and it MUST NOT yield a resolved or passing result.</li>
+<li><strong>Policy refusal.</strong> The relying party declared its trust material complete, and <tt>kid</tt> does not resolve in it. The step reports <tt>key_unresolved</tt>, and the receipt is also refused under the relying party's own policy. The refusal is a disposition, not a check result and not a token of this step: it records what the relying party decided, not what the receipt is.</li>
+<li><strong>Signature failure</strong> (<tt>signature_invalid</tt>). A key resolved, the signature was checked, and it failed. This is a finding about the receipt: malformed; gate decision = halt.</li>
+</ol>
+<t>When a key resolves and the signature verifies, the step reports <tt>signature_verified</tt> and evaluation continues with step 2.</t>
+<t><strong>Completeness input.</strong> A verifier MUST take an explicit relying-party input stating whether the supplied trust material is complete. The default is &quot;not complete&quot;, and omitting the input is never a declaration of completeness. This document does not name the input. Declaring completeness turns (a) into (b) and nothing else: it never turns (c) into a refusal, and omitting it never turns (c) into (a). An unresolved key MUST NOT be counted as a failed cryptographic check in any count, summary, or conformance comparison. The distinction MUST be carried into whatever the verifier reports, displays, summarizes, or forwards.</t>
+<t><strong>Gate.</strong> All three outcomes halt under <xref target="fail-closed-mandate"/>, because a receipt whose signature was not verified establishes nothing a gate can act on. They differ in what is reported, not in the gate decision. Step 7's <tt>unknown</tt> does not halt because it is reached only after step 1 has verified the signature.</t>
+<t>These outcomes describe the relying party's verification of the receipt, not the claim, and are not reported using the states of <xref target="the-four-states"/>; as with the evidence-set step, the step reports its own tokens.</t>
+<t>The split between keys a relying party happens to hold and a list it declares complete is Roberto Locatelli's (x402 TSC issue #4, 2026-09-24). Related discussion is in SCITT architecture issue #462; this document does not adopt the field names used there.</t>
+<t>The tokens defined for step 1 are:</t>
+<table anchor="key-resolution-tokens">
+<name>Step-1 tokens</name>
+<thead><tr><th>Name</th><th>Defined in section</th><th>Outcome</th></tr></thead>
+<tbody>
+<tr><td><tt>signature_verified</tt></td><td>5.4.2</td><td>continue to step 2</td></tr>
+<tr><td><tt>key_unresolved</tt></td><td>5.4.2 (a), (b)</td><td>halt; not malformed</td></tr>
+<tr><td><tt>signature_invalid</tt></td><td>5.4.2 (c)</td><td>malformed; halt</td></tr>
 </tbody>
 </table>
 </section>

@@ -195,3 +195,18 @@ Each result other than R1's is malformed, so the gate decision is halt.
 
 Credit: Roberto Locatelli, all four vectors and the R1 finding. babyblueviper1 confirmed R2 and R3 against the text and fixed his checker.
 
+## Relying-party trust completeness in §5.4 (new §5.4.2)
+
+Raised by Roberto Locatelli on [tsc#4, 2026-09-28](https://github.com/x402-foundation/tsc/issues/4#issuecomment-5865535036): on 2026-09-24 Joe Krausz wrote that the explicit key-set declaration "belongs in -03 rather than being left to each implementation", but the §5.4 opening still read "treat any failure as a malformed receipt" and step 1 still read "Verify JWS signature against issuer's published JWKS".
+
+-03 now rewrites the §5.4 opening and step 1 and adds §5.4.2. Step 1 reports one of three tokens: `signature_verified`, `key_unresolved` (not malformed, halts), or `signature_invalid` (malformed, halts). A policy refusal under a declared-complete trust set is a separate disposition, not a token. The relying party's completeness input is explicit, defaults to "not complete", and is never implied by omission. The step-1 outcomes are not reported using the §3.1 states, because they describe the relying party's check of the receipt, not the claim; §3.1 and `v_reason_code` are unchanged.
+
+| Vector | Input | Step-1 token | Disposition | Malformed | Gate |
+|---|---|---|---|---|---|
+| K1 default | `kid` not in the supplied keys; completeness input omitted | `key_unresolved` | none | no | halt |
+| K2 refusal | same receipt; trust material declared complete | `key_unresolved` | refused | no | halt |
+| K3 empty set | no keys supplied; declared complete | `key_unresolved` for every receipt | refused | no | halt |
+| K4 real failure | key present; one signed byte altered; run with both completeness settings | `signature_invalid` both times | none | yes | halt |
+
+Credit: Roberto Locatelli, the split between keys a relying party happens to hold and a list it declares complete (`keys_are_complete` in his implementation), and the question that put it in -03. SCITT architecture issue #462 is related discussion; its field names are not adopted.
+

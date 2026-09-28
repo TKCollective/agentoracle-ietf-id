@@ -11,7 +11,7 @@
    - Source: [meloliva14 on wg-identity#21](https://github.com/x402-foundation/wg-identity/issues/21#issuecomment-5673430531).
    - What -03 should do: rewrite both passages to say one host and two requesters, and credit the 3,008 to nohumans.directory. Mel's credit should stay limited to his census and the operative test.
 2. **Close Open Issues items 1 and 2.** Do this once the cold-build resolutions are accepted: an independent cold build has now happened, and the condition enumeration has been checked name for name.
-3. **Relying-party trust completeness in §5.4 (raised by Roberto Locatelli, tsc#4, 2026-09-28).** Joe committed on tsc#4 on 2026-09-24 that the explicit key-set declaration "belongs in -03 rather than being left to each implementation". Proposed home and text are awaiting Joe's approval; not yet written into the XML.
+3. **Relying-party trust completeness in §5.4 (raised by Roberto Locatelli, tsc#4, 2026-09-28).** Joe committed on tsc#4 on 2026-09-24 that the explicit key-set declaration "belongs in -03 rather than being left to each implementation". Approved 2026-09-28 (Option A) and written: §5.4 opening and step 1 rewritten, new §5.4.2 with a step-1 token table, vectors K1–K4 in the resolutions file.
 4. **stillmarcus24's three-status point.** tanilo-receipt-verify emits valid/invalid/indeterminate, not the four-state vocabulary. This is a verifier gap and stays open.
 
 ## For receipt-spec v0.4, session history (from microsoft/autogen#7353)
