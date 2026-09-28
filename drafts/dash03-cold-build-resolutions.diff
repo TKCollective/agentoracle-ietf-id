@@ -1,5 +1,5 @@
 --- drafts/draft-krausz-verification-state-02.xml	2026-09-24 16:14:38
-+++ drafts/draft-krausz-verification-state-03.xml	2026-09-28 14:02:21
++++ drafts/draft-krausz-verification-state-03.xml	2026-09-28 14:03:38
 @@ -1,9 +1,9 @@
  <?xml version="1.0" encoding="utf-8"?>
  <!-- name="GENERATOR" content="github.com/mmarkdown/mmark Mmark Markdown Processor - mmark.miek.nl" -->
@@ -173,10 +173,10 @@
 +<li><strong>Signature failure</strong> (<tt>signature_invalid</tt>). A key resolved, the signature was checked, and it failed. This is a finding about the receipt: malformed; gate decision = halt.</li>
 +</ol>
 +<t>When a key resolves and the signature verifies, the step reports <tt>signature_verified</tt> and evaluation continues with step 2.</t>
-+<t><strong>Completeness input.</strong> A verifier MUST take an explicit relying-party input stating whether the supplied trust material is complete. The default is &quot;not complete&quot;, and omitting the input is never a declaration of completeness. This document does not name the input. Declaring completeness turns (a) into (b) and nothing else: it never turns (c) into a refusal, and omitting it never turns (c) into (a). An unresolved key MUST NOT be counted as a failed cryptographic check in any count, summary, or conformance comparison. The distinction MUST be carried into whatever the verifier reports, displays, summarizes, or forwards.</t>
++<t><strong>Completeness input.</strong> A verifier MUST take an explicit relying-party input stating whether the supplied trust material is complete. The default is &quot;not complete&quot;, and omitting the input is never a declaration of completeness. This document does not name the input. Declaring completeness turns (a) into (b) and nothing else: it never turns (c) into a refusal, and omitting it never turns (c) into (a). An unresolved key MUST NOT be counted as a failed cryptographic check in any count, summary, or conformance comparison. The distinction MUST be carried into whatever the verifier reports, displays, summarizes, or forwards. Where the verifier's result is forwarded under integrity protection, the distinction MUST be carried in a member covered by that same protection; a result value alone MUST NOT be relied on to carry it.</t>
 +<t><strong>Gate.</strong> All three outcomes halt under <xref target="fail-closed-mandate"/>, because a receipt whose signature was not verified establishes nothing a gate can act on. They differ in what is reported, not in the gate decision. Step 7's <tt>unknown</tt> does not halt because it is reached only after step 1 has verified the signature.</t>
 +<t>These outcomes describe the relying party's verification of the receipt, not the claim, and are not reported using the states of <xref target="the-four-states"/>; as with the evidence-set step, the step reports its own tokens.</t>
-+<t>The split between keys a relying party happens to hold and a list it declares complete is Roberto Locatelli's (x402 TSC issue #4, 2026-09-24). The requirement that the distinction be carried into whatever the verifier reports follows actaseal's contribution in that discussion. Related discussion is in SCITT architecture issue #462; this document does not adopt the field names used there.</t>
++<t>The split between keys a relying party happens to hold and a list it declares complete is Roberto Locatelli's (x402 TSC issue #4, 2026-09-24). The requirement that the distinction be carried into whatever the verifier reports follows actaseal's contribution in SCITT architecture issue #462. Related discussion is in SCITT architecture issue #462; this document does not adopt the field names used there.</t>
 +<t>The tokens defined for step 1 are:</t>
 +<table anchor="key-resolution-tokens">
 +<name>Step-1 tokens</name>
