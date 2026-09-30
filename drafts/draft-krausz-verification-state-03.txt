@@ -147,14 +147,14 @@ Internet-Draft            verification.* family           September 2026
      9.6.  Mastercard Verifiable Intent (environment.*)  . . . . . .  36
      9.7.  Differentiator Summary  . . . . . . . . . . . . . . . . .  36
    10. Open Issues . . . . . . . . . . . . . . . . . . . . . . . . .  36
-   11. Security Considerations . . . . . . . . . . . . . . . . . . .  38
+   11. Security Considerations . . . . . . . . . . . . . . . . . . .  39
      11.1.  Composition Non-Interference with environment.*
-            Family . . . . . . . . . . . . . . . . . . . . . . . . .  38
+            Family . . . . . . . . . . . . . . . . . . . . . . . . .  39
      11.2.  Other Security Considerations  . . . . . . . . . . . . .  39
    12. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  40
-   13. Informative References  . . . . . . . . . . . . . . . . . . .  40
-   Acknowledgments . . . . . . . . . . . . . . . . . . . . . . . . .  42
-   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  44
+   13. Informative References  . . . . . . . . . . . . . . . . . . .  41
+   Acknowledgments . . . . . . . . . . . . . . . . . . . . . . . . .  43
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  45
 
 
 
@@ -1985,18 +1985,20 @@ Internet-Draft            verification.* family           September 2026
    tracked rather than silently assumed resolved.
 
    1.  *Independent implementation of evidence pinning: a cold build
-       exists and has been reproduced by a third party; no run against
-       the companion fixture corpus has been reported.* babyblueviper1
-       built a checker for the evidence-pinning rules (Section 5.3) from
-       the draft-krausz-verification-state-02 text alone, with no
-       reference code, moved it to the text of this revision as it stood
-       at commit 5a71863 of this document's working repository
-       (preaction-governance-conformance commit 8870fa6, examples/
-       evidence-set-cold), updated it for the presence rule now stated
-       in Section 5.3.2 at commit edb864b, and corrected two of its
-       readings at commit c877213 (https://github.com/babyblueviper1/
-       preaction-governance-conformance/tree/c877213/examples/evidence-
-       set-cold (https://github.com/babyblueviper1/preaction-governance-
+       exists and has been reproduced by a third party; one run against
+       the companion fixture corpus has been reported, with four
+       discrepancies, and the repaired corpus has not yet been run.*
+       babyblueviper1 built a checker for the evidence-pinning rules
+       (Section 5.3) from the draft-krausz-verification-state-02 text
+       alone, with no reference code, moved it to the text of this
+       revision as it stood at commit 5a71863 of this document's working
+       repository (preaction-governance-conformance commit 8870fa6,
+       examples/evidence-set-cold), updated it for the presence rule now
+       stated in Section 5.3.2 at commit edb864b, and corrected two of
+       its readings at commit c877213
+       (https://github.com/babyblueviper1/preaction-governance-
+       conformance/tree/c877213/examples/evidence-set-cold
+       (https://github.com/babyblueviper1/preaction-governance-
        conformance/tree/c877213/examples/evidence-set-cold)) after
        Roberto Locatelli's review inputs: that fully_pinned is checked
        against the declared counts, and that a null snippet_sha256 on a
@@ -2008,8 +2010,6 @@ Internet-Draft            verification.* family           September 2026
        without reference code but with the Finding 27 resolution
        disclosed to him in prose beforehand, which he records as
        reproduction from the text rather than a from-scratch cold build.
-       babyblueviper1's is the first from-scratch cold build.  Roberto
-       Locatelli reproduced its 30 tests at edb864b from a fresh clone,
 
 
 
@@ -2018,23 +2018,66 @@ Krausz                    Expires 26 March 2027                [Page 36]
 Internet-Draft            verification.* family           September 2026
 
 
+       babyblueviper1's is the first from-scratch cold build.  Roberto
+       Locatelli reproduced its 30 tests at edb864b from a fresh clone,
        and checked its reported conditions name for name against the
        registry in Section 5.4.1: every registry name appears in that
        checker, and no condition-like name outside the registry does.  A
        third from-text checker, written by Roberto Locatelli from this
        revision's text at 5a71863 with no shared code, reports the same
-       set as babyblueviper1's on the seven vectors tabulated for this
-       revision, and recomputes byte for byte the evidence_root of
-       babyblueviper1's live-run payload under Section 5.3.3; its NUL
-       rule was changed after the 2026-09-26 ruling on that rule, so
-       agreement on that one point is not independent.  What remains
-       unverified: no run of any of these checkers against the companion
-       fixture corpus has been reported; the 34-test result at c877213
-       is as its author reports it; and this document's author has not
-       reproduced either checker's results.  This document therefore
-       records the cold build and its third-party reproduction, and does
-       not yet claim the corpus cross-check its own conformance
-       discipline requires.
+       set as babyblueviper1's on the seven vectors tabulated at commit
+       03afc83 of this document's working repository, and recomputes
+       byte for byte the evidence_root of babyblueviper1's live-run
+       payload under Section 5.3.3; its NUL rule was changed after the
+       2026-09-26 ruling on that rule, so agreement on that one point is
+       not independent.  Its agreement on the later R1 vector (a pinned
+       entry with resource_sha256: null) follows a change he made to
+       that checker on 2026-09-29 to adopt the absent-or-null rule this
+       revision states in Section 5.3.2; before that change it reported
+       R1 as malformed.  That agreement is therefore not independent of
+       this revision either.  The K1 to K4 vectors are outside that
+       checker's scope: it implements the evidence-set step only, not
+       the signature-key resolution step of Section 5.4.2.
+       babyblueviper1 has since reported one run of his checker against
+       the companion fixture corpus, evidence-pinning-fixtures-
+       v2-rev8.json in tanilo-receipt-spec at commit 3fc216e (preaction-
+       governance-conformance commit 8e98c0e, run_companion_corpus.py):
+       40 of 44 vectors agree, under five harness adaptations he labels
+       H1 to H5 and states in that script's header, needed because the
+       corpus vectors are fragments rather than complete evidence_set
+       objects.  He reports that all 16 root-bearing vectors are byte-
+       exact and that every malformed vector halts on its named
+       condition.  The four discrepancies are the positive fixtures evi-
+       fully-pinned-fallback-derives-from-sources-accepted, evi-root-
+       present-pinned-count-absent-accepted, evi-unpinned-item-reason-
+       content-not-held and evi-unpinned-members-absent-accepted.  Each
+       omits snippet_sha256 on an unpinned entry and expects acceptance,
+       following the corpus's rev6 Finding 30, whereas Section 5.3.2
+       requires the member to be present on every entry and names the
+       omission snippet_sha256_member_absent; he reports that removing
+       only that rule from the checker gives 44 of 44.  The rule stands,
+       and the corpus is the side to be repaired: those four vectors
+       regenerated with an explicit null, and a negative
+       snippet_sha256_member_absent vector added.  What remains
+       unverified: the repaired corpus (rev9) has not yet been run, and
+       no result against it has been reported; the rev8 run is as its
+       author reports it and has not been reproduced; that cross-check
+       covers the evidence-set step only, and not the separate
+       signature-key resolution and trust-policy step of Section 5.4.2;
+       the 34-test result at c877213 is as its author reports it; and
+       this document's author has not reproduced either checker's
+
+
+
+Krausz                    Expires 26 March 2027                [Page 37]
+
+Internet-Draft            verification.* family           September 2026
+
+
+       results.  This document therefore records the cold build, its
+       third-party reproduction and one reported corpus run against the
+       unrepaired corpus, and does not yet claim the corpus cross-check
+       its own conformance discipline requires.
    2.  *The malformed-condition enumeration diff.* This document's
        evidence-pinning rules name a set of reported conditions
        (pinned_absent_or_not_boolean, duplicate_bound_tuple,
@@ -2066,14 +2109,6 @@ Internet-Draft            verification.* family           September 2026
        a supported/refuted axis.  Whether the recommendation layer
        should itself be restated in reason-code-aware terms is not
        resolved here.
-
-
-
-Krausz                    Expires 26 March 2027                [Page 37]
-
-Internet-Draft            verification.* family           September 2026
-
-
    5.  *REQUIRED members with a derivation fallback.* Section 5.3.1
        marks source_count, pinned_count, and fully_pinned as members of
        the evidence_set object while also specifying that a verifier
@@ -2087,6 +2122,14 @@ Internet-Draft            verification.* family           September 2026
        document's own formulation of a term used without further gloss
        in working-group discussion.* Comments are invited on whether it
        matches that usage.
+
+
+
+Krausz                    Expires 26 March 2027                [Page 38]
+
+Internet-Draft            verification.* family           September 2026
+
+
    7.  *The v_verdict claim name is unrenamed.* Section 5.2 gives the
        claim a new four-value domain this revision but keeps its
        existing wire name, v_verdict, rather than renaming it to v_state
@@ -2118,18 +2161,6 @@ Internet-Draft            verification.* family           September 2026
    before evaluating any verification.* constraint, and a verification.*
    state SHALL NOT be reached if environment.* has already halted.
 
-
-
-
-
-
-
-
-Krausz                    Expires 26 March 2027                [Page 38]
-
-Internet-Draft            verification.* family           September 2026
-
-
 11.2.  Other Security Considerations
 
    *Key compromise.* Verifier issuers MUST rotate JWKS keys on a
@@ -2147,6 +2178,13 @@ Internet-Draft            verification.* family           September 2026
    published calibration anchor.  The reproducibility mandate
    (Section 8) makes this detectable.  RPs SHOULD periodically sample
    receipts against the issuer's published harness.
+
+
+
+Krausz                    Expires 26 March 2027                [Page 39]
+
+Internet-Draft            verification.* family           September 2026
+
 
    *Selective disclosure.* Hash-only claim binding (Section 5.5) permits
    PII-sensitive verification without exposing claim text in the receipt
@@ -2176,16 +2214,6 @@ Internet-Draft            verification.* family           September 2026
    the malformed halt that a present, malformed evidence_set would
    otherwise trigger.
 
-
-
-
-
-
-Krausz                    Expires 26 March 2027                [Page 39]
-
-Internet-Draft            verification.* family           September 2026
-
-
 12.  IANA Considerations
 
    This document requests the following IANA registrations:
@@ -2203,6 +2231,16 @@ Internet-Draft            verification.* family           September 2026
    the receipts issued under draft-krausz-verification-state-01 that
    carry them, and are marked DEPRECATED for new issuance per
    Section 5.2 rather than withdrawn from the registry.
+
+
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 40]
+
+Internet-Draft            verification.* family           September 2026
+
 
    *Well-known URI:* Verification issuers using HTTPS SHOULD publish
    their JWKS at /.well-known/jwks.json per existing [RFC7517]
@@ -2229,19 +2267,6 @@ Internet-Draft            verification.* family           September 2026
    [AVERITEC] Schlichtkrull, M., "AVeriTeC: A Dataset for Real-World
               Claim Verification with Evidence from the Web", 2024.
 
-
-
-
-
-
-
-
-
-Krausz                    Expires 26 March 2027                [Page 40]
-
-Internet-Draft            verification.* family           September 2026
-
-
    [ENV-STATE]
               Borthwick, D. and M. Msebenzi, "Verifiable Intent ---
               environment.* Constraint Family", Work in Progress,
@@ -2262,6 +2287,16 @@ Internet-Draft            verification.* family           September 2026
    [RFC7517]  Jones, M., "JSON Web Key (JWK)", RFC 7517,
               DOI 10.17487/RFC7517, May 2015,
               <https://www.rfc-editor.org/info/rfc7517>.
+
+
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 41]
+
+Internet-Draft            verification.* family           September 2026
+
 
    [RFC7518]  Jones, M., "JSON Web Algorithms (JWA)", RFC 7518,
               DOI 10.17487/RFC7518, May 2015,
@@ -2290,14 +2325,6 @@ Internet-Draft            verification.* family           September 2026
               Receipts", RFC 9942, DOI 10.17487/RFC9942, June 2026,
               <https://www.rfc-editor.org/info/rfc9942>.
 
-
-
-
-Krausz                    Expires 26 March 2027                [Page 41]
-
-Internet-Draft            verification.* family           September 2026
-
-
    [RFC9943]  Birkholz, H., Delignat-Lavaud, A., Fournet, C., Deshpande,
               Y., and S. Lasker, "An Architecture for Trustworthy and
               Transparent Digital Supply Chains", RFC 9943,
@@ -2318,6 +2345,14 @@ Internet-Draft            verification.* family           September 2026
               kamimura-vap-framework-01, July 2026,
               <https://datatracker.ietf.org/doc/html/draft-kamimura-vap-
               framework-01>.
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 42]
+
+Internet-Draft            verification.* family           September 2026
+
 
    [VC-CM]    World Wide Web Consortium, "Verifiable Credentials
               Confidence Method", W3C Working Draft, 2024.
@@ -2346,14 +2381,6 @@ Acknowledgments
       proposed the signed_only-to-bytes_attested rename adopted in the
       evidence-pinning rules, signed off on revision 7, and separately
       reviewed the v0.4 extension queue, surfacing the optional-typ,
-
-
-
-Krausz                    Expires 26 March 2027                [Page 42]
-
-Internet-Draft            verification.* family           September 2026
-
-
       filtered-canonicalization, attacker-selected-snapshot, unsigned-
       anchor, underspecified-proof, and null-ambiguity findings that
       shaped the sealed-evidence review branch.
@@ -2375,6 +2402,14 @@ Internet-Draft            verification.* family           September 2026
       Section 3.1.1 --- recording zero HTTP 429 responses from api.osf-
       master-server.com over the nineteen days in which another
       requester's high-rate probing of the same route counted 3,008 ---
+
+
+
+Krausz                    Expires 26 March 2027                [Page 43]
+
+Internet-Draft            verification.* family           September 2026
+
+
       identified that the 3,008 was a fact about the requester rather
       than the host, and is the source of the operative test this
       document adopts for enumerating status codes behind a negative
@@ -2402,14 +2437,6 @@ Internet-Draft            verification.* family           September 2026
       discussion, that their own conformance-registry taxonomy had no
       published enum requiring remapping under the finding/absence
       split, and endorsed that split as the correct cut.
-
-
-
-Krausz                    Expires 26 March 2027                [Page 43]
-
-Internet-Draft            verification.* family           September 2026
-
-
    *  *Roberto Locatelli* (robertolocatelli81-dev), posting through an
       AI agent operating under his mandate, reviewed this revision
       against seven inputs chosen as places the text seemed open, which
@@ -2419,8 +2446,11 @@ Internet-Draft            verification.* family           September 2026
       suite; checked that suite's reported conditions name for name
       against the registry in Section 5.4.1; and wrote a third checker
       from this revision's text that agrees with babyblueviper1's on the
-      tabulated vectors and on the Section 5.3.3 root, as recorded in
-      Section 10 item 1.
+      seven vectors tabulated at commit 03afc83 and on the Section 5.3.3
+      root, with the NUL-rule qualification recorded in Section 10 item
+      1; its later agreement on R1 follows his 2026-09-29 change to that
+      checker, and K1 to K4 are outside its scope, as that item also
+      records.
    *  *Marcus Still* (stillmarcus24) published a four-state verification
       taxonomy --- AGREE/DISAGREE/INDETERMINATE/NOT_EVALUATED, with a
       ten-case executable acceptance contract, in x402 TSC issue #4 ---
@@ -2428,6 +2458,14 @@ Internet-Draft            verification.* family           September 2026
       point for its own four-state design.  He confirmed 7 of 7 absence-
       side production call sites at commit 901ca6a, then endorsed the
       four states plus reason-code mechanism adopted in Section 3.1 on
+
+
+
+Krausz                    Expires 26 March 2027                [Page 44]
+
+Internet-Draft            verification.* family           September 2026
+
+
       x402 TSC issue #4 on 2026-09-20.  He published the fifteen
       malformed-input vectors (preaction-governance-conformance pull
       request #7, CC0) that test the Section 3.1 rule that a verifier
@@ -2461,4 +2499,22 @@ Author's Address
 
 
 
-Krausz                    Expires 26 March 2027                [Page 44]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Krausz                    Expires 26 March 2027                [Page 45]
