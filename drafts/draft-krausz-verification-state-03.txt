@@ -4,8 +4,8 @@
 
 Network Working Group                                          J. Krausz
 Internet-Draft                                         TK Collective LLC
-Intended status: Informational                         22 September 2026
-Expires: 26 March 2027
+Intended status: Informational                            1 October 2026
+Expires: 4 April 2027
 
 
  The verification.* Constraint Family: Pre-Action Fail-Closed Gates for
@@ -53,9 +53,9 @@ Abstract
 
 
 
-Krausz                    Expires 26 March 2027                 [Page 1]
+Krausz                    Expires 4 April 2027                  [Page 1]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
 Status of This Memo
@@ -73,7 +73,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 26 March 2027.
+   This Internet-Draft will expire on 4 April 2027.
 
 Copyright Notice
 
@@ -109,9 +109,9 @@ Table of Contents
 
 
 
-Krausz                    Expires 26 March 2027                 [Page 2]
+Krausz                    Expires 4 April 2027                  [Page 2]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
      5.2.  Payload Claims --- Canonical, Derived, Mapping-Bound  . .  11
@@ -165,9 +165,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                 [Page 3]
+Krausz                    Expires 4 April 2027                  [Page 3]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
 1.  Introduction
@@ -221,9 +221,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                 [Page 4]
+Krausz                    Expires 4 April 2027                  [Page 4]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
    This document is complementary to security frameworks for AI agent
@@ -277,9 +277,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                 [Page 5]
+Krausz                    Expires 4 April 2027                  [Page 5]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
    *Multi-axis freshness* --- Signature, calibration, and evidence each
@@ -333,9 +333,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                 [Page 6]
+Krausz                    Expires 4 April 2027                  [Page 6]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
    *Pinned* --- An evidence item is pinned when the receipt carries a
@@ -389,9 +389,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                 [Page 7]
+Krausz                    Expires 4 April 2027                  [Page 7]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
    *Instrument failure.* A verifier reporting any of the four states
@@ -445,9 +445,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                 [Page 8]
+Krausz                    Expires 4 April 2027                  [Page 8]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
    with instrument_failure rather than to a finding about the input; it
@@ -501,9 +501,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                 [Page 9]
+Krausz                    Expires 4 April 2027                  [Page 9]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
 3.3.  Admissibility as a Gate, Not a State
@@ -557,9 +557,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 10]
+Krausz                    Expires 4 April 2027                 [Page 10]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
    claim, with a mapping-versioned threshold).  Both produce the same
@@ -613,9 +613,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 11]
+Krausz                    Expires 4 April 2027                 [Page 11]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
    *Canonical input (signed primitives):*
@@ -669,9 +669,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 12]
+Krausz                    Expires 4 April 2027                 [Page 12]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
    *  v_gate_mapping_hash (string, REQUIRED) --- SHA-256 hex digest of
@@ -725,9 +725,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 13]
+Krausz                    Expires 4 April 2027                 [Page 13]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
    --- v_verdict and its reason code are untouched by anything in this
@@ -781,9 +781,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 14]
+Krausz                    Expires 4 April 2027                 [Page 14]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
    evidence_root (string or null):
@@ -837,9 +837,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 15]
+Krausz                    Expires 4 April 2027                 [Page 15]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
    url (string, REQUIRED):
@@ -893,9 +893,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 16]
+Krausz                    Expires 4 April 2027                 [Page 16]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
       malformed; gate decision = halt; reported condition
@@ -949,9 +949,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 17]
+Krausz                    Expires 4 April 2027                 [Page 17]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
    issuer that received content bytes for an item and declares either
@@ -1005,9 +1005,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 18]
+Krausz                    Expires 4 April 2027                 [Page 18]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
    leaf = SHA-256( "ao-evidence-leaf-v2" || 0x00
@@ -1061,9 +1061,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 19]
+Krausz                    Expires 4 April 2027                 [Page 19]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
    *Canonical order.* Leaves are sorted ascending by url; where two
@@ -1117,9 +1117,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 20]
+Krausz                    Expires 4 April 2027                 [Page 20]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
       reaches only items for which bytes actually arrived, and an issuer
@@ -1173,9 +1173,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 21]
+Krausz                    Expires 4 April 2027                 [Page 21]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
    1. Resolve kid in the trust material the relying party
@@ -1229,9 +1229,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 22]
+Krausz                    Expires 4 April 2027                 [Page 22]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
    If the receipt carries an evidence_set, a relying party MUST resolve
@@ -1285,9 +1285,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 23]
+Krausz                    Expires 4 April 2027                 [Page 23]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
    d.  If the verifier holds candidate content for a pinned item,
@@ -1341,9 +1341,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 24]
+Krausz                    Expires 4 April 2027                 [Page 24]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
    j.  When conditions of different kinds apply to the same receipt,
@@ -1397,9 +1397,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 25]
+Krausz                    Expires 4 April 2027                 [Page 25]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
    | pinned_count_mismatch                      | 5.3.1   | malformed |
@@ -1453,9 +1453,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 26]
+Krausz                    Expires 4 April 2027                 [Page 26]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
    | content_not_held                           | 5.4.1   | per-item  |
@@ -1509,9 +1509,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 27]
+Krausz                    Expires 4 April 2027                 [Page 27]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
    *Gate.* All three non-passing outcomes halt under Section 6.3,
@@ -1565,9 +1565,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 28]
+Krausz                    Expires 4 April 2027                 [Page 28]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
 5.6.  Receipt Envelope Example
@@ -1621,9 +1621,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 29]
+Krausz                    Expires 4 April 2027                 [Page 29]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
    The v_gate_mapping_hash field carries the hex-encoded SHA-256 digest
@@ -1677,9 +1677,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 30]
+Krausz                    Expires 4 April 2027                 [Page 30]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
    +===============+========+=============+=======================+====+
@@ -1733,9 +1733,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 31]
+Krausz                    Expires 4 April 2027                 [Page 31]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
 6.2.  Threshold Rules
@@ -1789,9 +1789,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 32]
+Krausz                    Expires 4 April 2027                 [Page 32]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
      +=============+=============================+==================+
@@ -1845,9 +1845,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 33]
+Krausz                    Expires 4 April 2027                 [Page 33]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
 8.1.  Reproducibility Mandate
@@ -1901,9 +1901,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 34]
+Krausz                    Expires 4 April 2027                 [Page 34]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
 9.2.  Relationship to Decision Records
@@ -1957,9 +1957,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 35]
+Krausz                    Expires 4 April 2027                 [Page 35]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
 9.6.  Mastercard Verifiable Intent (environment.*)
@@ -2013,9 +2013,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 36]
+Krausz                    Expires 4 April 2027                 [Page 36]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
        babyblueviper1's is the first from-scratch cold build.  Roberto
@@ -2069,9 +2069,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 37]
+Krausz                    Expires 4 April 2027                 [Page 37]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
        results.  This document therefore records the cold build, its
@@ -2125,9 +2125,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 38]
+Krausz                    Expires 4 April 2027                 [Page 38]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
    7.  *The v_verdict claim name is unrenamed.* Section 5.2 gives the
@@ -2181,9 +2181,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 39]
+Krausz                    Expires 4 April 2027                 [Page 39]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
    *Selective disclosure.* Hash-only claim binding (Section 5.5) permits
@@ -2237,9 +2237,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 40]
+Krausz                    Expires 4 April 2027                 [Page 40]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
    *Well-known URI:* Verification issuers using HTTPS SHOULD publish
@@ -2293,9 +2293,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 41]
+Krausz                    Expires 4 April 2027                 [Page 41]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
    [RFC7518]  Jones, M., "JSON Web Algorithms (JWA)", RFC 7518,
@@ -2349,9 +2349,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 42]
+Krausz                    Expires 4 April 2027                 [Page 42]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
    [VC-CM]    World Wide Web Consortium, "Verifiable Credentials
@@ -2405,9 +2405,9 @@ Acknowledgments
 
 
 
-Krausz                    Expires 26 March 2027                [Page 43]
+Krausz                    Expires 4 April 2027                 [Page 43]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
       identified that the 3,008 was a fact about the requester rather
@@ -2461,9 +2461,9 @@ Internet-Draft            verification.* family           September 2026
 
 
 
-Krausz                    Expires 26 March 2027                [Page 44]
+Krausz                    Expires 4 April 2027                 [Page 44]
 
-Internet-Draft            verification.* family           September 2026
+Internet-Draft            verification.* family             October 2026
 
 
       x402 TSC issue #4 on 2026-09-20.  He published the fifteen
@@ -2517,4 +2517,4 @@ Author's Address
 
 
 
-Krausz                    Expires 26 March 2027                [Page 45]
+Krausz                    Expires 4 April 2027                 [Page 45]
